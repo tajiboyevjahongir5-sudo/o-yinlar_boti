@@ -1,0 +1,12 @@
+{
+  "name": "tosiq-poygasi",
+  "version": "1.0.0",
+  "description": "Telegram Web App: turn-based fence race for 2 online players",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
