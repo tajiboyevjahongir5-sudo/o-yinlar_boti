@@ -1,0 +1,81 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Raqib — o'yinlar markazi</title>
+<style>
+  * { box-sizing:border-box; margin:0; }
+  html, body { background:#060918; overflow:hidden; font-family:"Segoe UI", system-ui, sans-serif; color:#fff; }
+  .art { position:relative; overflow:hidden;
+    background:radial-gradient(circle at 50% 42%, #1d2c78 0%, #0e1542 45%, #060918 100%); }
+  .art::before, .art::after { content:""; position:absolute; height:12px; border-radius:6px; transform:rotate(-40deg); filter:blur(1px); }
+  .art::before { width:70%; left:-25%; bottom:12%; background:#ff2d46; box-shadow:0 0 30px #ff2d46; opacity:.5; }
+  .art::after { width:70%; right:-28%; top:14%; background:#2f7bff; box-shadow:0 0 30px #2f7bff; opacity:.5; }
+  svg { display:block; }
+
+  /* ---------- avatar 640x640 ---------- */
+  .avatar { width:640px; height:640px; }
+  .ring { position:absolute; inset:52px; border-radius:50%; padding:6px; z-index:1;
+    background:conic-gradient(from 200deg, #ff2d46, #ffc531, #2ee66b, #2f7bff, #c084fc, #ff2d46);
+    -webkit-mask:radial-gradient(closest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+    filter:drop-shadow(0 0 18px rgba(255,197,49,.6)); }
+  .pad { position:absolute; left:50%; top:50%; width:300px; height:300px; margin:-165px 0 0 -150px; z-index:2;
+    color:#eef3ff; filter:drop-shadow(0 0 14px #2f7bff) drop-shadow(0 0 30px rgba(47,123,255,.7)); }
+  .pad svg { width:100%; height:100%; stroke-width:1.6; }
+  .btn { position:absolute; width:26px; height:26px; border-radius:50%; z-index:3; }
+  .orbit { position:absolute; width:92px; height:92px; border-radius:50%; display:grid; place-items:center; z-index:2;
+    background:rgba(8,13,40,.9); border:3px solid var(--c); color:var(--c);
+    box-shadow:0 0 18px var(--c), inset 0 0 16px color-mix(in srgb, var(--c) 30%, transparent); }
+  .orbit svg { width:50px; height:50px; filter:drop-shadow(0 0 6px var(--c)); }
+  .spark { position:absolute; color:#fff6d0; filter:drop-shadow(0 0 8px #ffc531); z-index:2; }
+
+  /* ---------- banner 640x360 ---------- */
+  .banner { width:640px; height:360px; display:flex; align-items:center; padding:0 30px 0 34px; gap:18px; }
+  .left { flex:1; z-index:2; }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo .mini { width:58px; height:58px; color:#eef3ff; filter:drop-shadow(0 0 10px #2f7bff); }
+  .logo .mini svg { width:100%; height:100%; }
+  h1 { font-size:76px; font-weight:900; letter-spacing:2px; line-height:1; text-shadow:0 0 28px #2f7bff, 0 0 8px #2f7bff; }
+  .sub { font-size:23px; font-weight:700; color:#c9d6ff; margin:10px 0 18px; text-shadow:0 0 12px rgba(47,123,255,.6); }
+  .chips { display:flex; flex-wrap:wrap; gap:9px; max-width:330px; }
+  .chip { display:flex; align-items:center; gap:7px; font-size:15.5px; font-weight:700; padding:7px 13px; border-radius:18px;
+    border:2px solid var(--c); background:rgba(8,13,36,.85); box-shadow:0 0 10px var(--c); }
+  .chip svg { width:17px; height:17px; color:var(--c); }
+  .foot { margin-top:16px; color:#9aa6d6; font-size:16px; font-weight:600; }
+  .tiles { display:grid; grid-template-columns:repeat(3, 76px); gap:12px; z-index:2; }
+  .tile { width:76px; height:76px; border-radius:18px; display:grid; place-items:center; color:var(--c);
+    border:2px solid var(--c); background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(8,13,40,.92));
+    box-shadow:0 0 14px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 25%, transparent); }
+  .tile svg { width:40px; height:40px; filter:drop-shadow(0 0 6px var(--c)); }
+  .tile.big { grid-column:span 3; width:auto; height:70px; color:#eef3ff; --c:#2f7bff; gap:10px; display:flex; justify-content:center;
+    font-weight:800; font-size:17px; }
+  .tile.big svg { width:36px; height:36px; }
+</style></head>
+<body>
+<div id="avatar" class="art avatar">
+  <div class="ring"></div>
+  <div class="pad"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11" /><line x1="8" x2="8" y1="9" y2="13" /><line x1="15" x2="15.01" y1="12" y2="12" /><line x1="18" x2="18.01" y1="10" y2="10" /><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" /></svg></div>
+  <div class="orbit" style="left:86px;top:88px;--c:#ffc531"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><path d="M16 8h.01" /><path d="M8 8h.01" /><path d="M8 16h.01" /><path d="M16 16h.01" /><path d="M12 12h.01" /></svg></div><div class="orbit" style="left:462px;top:88px;--c:#2ee66b"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" /></svg></div><div class="orbit" style="left:44px;top:300px;--c:#c084fc"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V5" /><path d="M15 13a4.17 4.17 0 01-3-4 4.17 4.17 0 01-3 4" /><path d="M17.707 6.294A3 3 0 1012 5a3 3 0 10-5.707 1.294" /><path d="M17.996 5.125a4 4 0 012.526 5.77" /><path d="M18 18a4 4 0 002-7.465" /><path d="M19.967 17.482a4 4 0 11-7.967.517 4 4 0 11-7.967-.517" /><path d="M6 18a4 4 0 01-2-7.465" /><path d="M6.004 5.125a4 4 0 00-2.526 5.77" /></svg></div><div class="orbit" style="left:504px;top:300px;--c:#ff2d46"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 19 6-6" /><path d="M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5" /><path d="m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586" /><path d="m16 16 4 4" /><path d="m19 21 2-2" /><path d="m5 14 4 4" /><path d="m5 21-2-2" /><path d="M7.5 16.5 4 20" /></svg></div><div class="orbit" style="left:104px;top:470px;--c:#ffc531"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2" /><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2" /><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3" /><path d="M4 22h16" /><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" /><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3" /></svg></div><div class="orbit" style="left:444px;top:470px;--c:#2f7bff"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5V3" /><path d="M14 5V3" /><path d="M15 21v-3a3 3 0 0 0-6 0v3" /><path d="M18 3v8" /><path d="M18 5H6" /><path d="M22 11H2" /><path d="M22 9v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9" /><path d="M6 3v8" /></svg></div>
+  <div class="spark" style="left:300px;top:118px;width:40px;height:40px"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /><path d="M20 2v4" /><path d="M22 4h-4" /><circle cx="4" cy="20" r="2" /></svg></div>
+  <div class="spark" style="left:296px;top:480px;width:46px;height:46px"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /><path d="M5 21h14" /></svg></div>
+</div>
+<div id="banner" class="art banner">
+  <div class="left">
+    <div class="logo"><div class="mini"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11" /><line x1="8" x2="8" y1="9" y2="13" /><line x1="15" x2="15.01" y1="12" y2="12" /><line x1="18" x2="18.01" y1="10" y2="10" /><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" /></svg></div><h1>RAQIB</h1></div>
+    <div class="sub">O'yinlar markazi</div>
+    <div class="chips">
+      <span class="chip" style="--c:#c084fc"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V5" /><path d="M15 13a4.17 4.17 0 01-3-4 4.17 4.17 0 01-3 4" /><path d="M17.707 6.294A3 3 0 1012 5a3 3 0 10-5.707 1.294" /><path d="M17.996 5.125a4 4 0 012.526 5.77" /><path d="M18 18a4 4 0 002-7.465" /><path d="M19.967 17.482a4 4 0 11-7.967.517 4 4 0 11-7.967-.517" /><path d="M6 18a4 4 0 01-2-7.465" /><path d="M6.004 5.125a4 4 0 00-2.526 5.77" /></svg>Aql o'yinlari</span>
+      <span class="chip" style="--c:#ffc531"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2" /><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2" /><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3" /><path d="M4 22h16" /><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" /><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3" /></svg>Reyting · ELO</span>
+      <span class="chip" style="--c:#2ee66b"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 19 6-6" /><path d="M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5" /><path d="m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586" /><path d="m16 16 4 4" /><path d="m19 21 2-2" /><path d="m5 14 4 4" /><path d="m5 21-2-2" /><path d="M7.5 16.5 4 20" /></svg>Do'stlar bilan</span>
+      <span class="chip" style="--c:#ff2d46"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /><path d="M20 2v4" /><path d="M22 4h-4" /><circle cx="4" cy="20" r="2" /></svg>Yangi o'yinlar</span>
+    </div>
+    <div class="foot">Bir botda — ko'plab o'yinlar</div>
+  </div>
+  <div class="tiles">
+    <div class="tile" style="--c:#ffc531"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><path d="M16 8h.01" /><path d="M8 8h.01" /><path d="M8 16h.01" /><path d="M16 16h.01" /><path d="M12 12h.01" /></svg></div><div class="tile" style="--c:#2ee66b"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" /></svg></div><div class="tile" style="--c:#c084fc"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V5" /><path d="M15 13a4.17 4.17 0 01-3-4 4.17 4.17 0 01-3 4" /><path d="M17.707 6.294A3 3 0 1012 5a3 3 0 10-5.707 1.294" /><path d="M17.996 5.125a4 4 0 012.526 5.77" /><path d="M18 18a4 4 0 002-7.465" /><path d="M19.967 17.482a4 4 0 11-7.967.517 4 4 0 11-7.967-.517" /><path d="M6 18a4 4 0 01-2-7.465" /><path d="M6.004 5.125a4 4 0 00-2.526 5.77" /></svg></div><div class="tile" style="--c:#ff2d46"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 19 6-6" /><path d="M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5" /><path d="m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586" /><path d="m16 16 4 4" /><path d="m19 21 2-2" /><path d="m5 14 4 4" /><path d="m5 21-2-2" /><path d="M7.5 16.5 4 20" /></svg></div><div class="tile" style="--c:#ffc531"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2" /><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2" /><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3" /><path d="M4 22h16" /><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" /><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3" /></svg></div><div class="tile" style="--c:#2f7bff"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5V3" /><path d="M14 5V3" /><path d="M15 21v-3a3 3 0 0 0-6 0v3" /><path d="M18 3v8" /><path d="M18 5H6" /><path d="M22 11H2" /><path d="M22 9v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9" /><path d="M6 3v8" /></svg></div>
+    <div class="tile big"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 17a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2Z" /><path d="M6 15v-2" /><path d="M12 15V9" /><circle cx="12" cy="6" r="3" /></svg>O'ynash</div>
+  </div>
+</div>
+<script>
+  // show only the requested piece
+  const type = new URLSearchParams(location.search).get('type') || 'avatar';
+  document.getElementById(type === 'avatar' ? 'banner' : 'avatar').remove();
+</script>
+</body></html>

@@ -521,9 +521,10 @@ async function onMessage(msg) {
 }
 
 // shown on the bot's profile ("About", <=120 chars) and in an empty chat ("What can this bot do?", <=512 chars)
-const BOT_ABOUT = "🎮 Raqib — do'stlar bilan onlayn aql o'yinlari: To'siq Jangi va X va O. Reyting, ELO va mos raqib!";
+const BOT_ABOUT = "🎮 Raqib — o'yinlar markazi: do'stlar bilan onlayn o'yinlar, reyting va ELO. Yangi o'yinlar qo'shilib boradi!";
 const BOT_DESCRIPTION = [
-  "🎮 RAQIB — aql o'yinlari Telegram'da!",
+  "🎮 RAQIB — o'yinlar markazi Telegram'da!",
+  "Bir botda — ko'plab o'yinlar:",
   "",
   "🧱 To'siq Jangi — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet",
   "❌⭕ X va O — uchta belgini bir qatorga ter",
@@ -532,6 +533,7 @@ const BOT_DESCRIPTION = [
   "🏆 ELO reyting va g'oliblar jadvali",
   "👥 Do'stlar bilan ochiq va maxfiy xonalar",
   "🤖 Botga qarshi mashq",
+  "✨ Yangi o'yinlar qo'shilib boradi",
   "",
   "Kim kuchliroq? Boshlash uchun START ni bosing 👇",
 ].join('\n');
