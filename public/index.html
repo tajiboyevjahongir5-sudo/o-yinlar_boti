@@ -413,6 +413,10 @@
   .panel h1 .i { width:.9em; height:.9em; vertical-align:-.08em; }
   #games { display:flex; flex-direction:column; gap:12px; }
 
+  /* ---------- Telegram fullscreen: keep clear of the status bar and Telegram's Close / ⋯ buttons ---------- */
+  :root { --st:calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+    --sb:var(--tg-safe-area-inset-bottom, 0px); }
+
   /* ---------- responsive ---------- */
   #app { height:100vh; height:var(--tg-viewport-stable-height, 100dvh); }
   .panel { max-height:calc(100dvh - 32px); overflow-y:auto; }
@@ -466,6 +470,11 @@
     #board { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); }
     .gcard:hover, .room:hover, .lrow:hover { transform:translateY(-2px); transition:transform .15s; }
   }
+  /* fullscreen safe area (0 outside Telegram fullscreen) — must come last to win over the media queries */
+  #app { padding-top:calc(10px + var(--st)) !important; }
+  #hub, .tab, #lobby { padding-top:calc(18px + var(--st)) !important; }
+  #overlay { padding-top:calc(20px + var(--st)); }
+  #nav { padding-bottom:calc(8px + max(var(--sb), env(safe-area-inset-bottom))); }
 </style>
 </head>
 <body>
@@ -551,6 +560,11 @@
   let popAt = 0;
   const tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#070b1f'); tg.setBackgroundColor('#070b1f'); tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) {} }
+  // phones: open edge to edge (Bot API 8.0+); Telegram's own buttons then float over the top,
+  // so the layout keeps clear of --tg-safe-area-inset-top / --tg-content-safe-area-inset-top
+  try {
+    if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && ['android', 'ios'].includes(tg.platform) && !tg.isFullscreen) tg.requestFullscreen();
+  } catch (e) {}
   const haptic = (k) => { try {
     if (!tg || !tg.HapticFeedback) return;
     if (k === 'success' || k === 'error' || k === 'warning') tg.HapticFeedback.notificationOccurred(k);
