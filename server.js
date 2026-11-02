@@ -520,14 +520,30 @@ async function onMessage(msg) {
   if (msg.chat.type === 'private') return send("👇 O'ynash uchun tugmani bosing:", keyboard([playButton()]));
 }
 
+// shown on the bot's profile ("About", <=120 chars) and in an empty chat ("What can this bot do?", <=512 chars)
+const BOT_ABOUT = "🎮 Raqib — do'stlar bilan onlayn aql o'yinlari: To'siq Jangi va X va O. Reyting, ELO va mos raqib!";
+const BOT_DESCRIPTION = [
+  "🎮 RAQIB — aql o'yinlari Telegram'da!",
+  "",
+  "🧱 To'siq Jangi — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet",
+  "❌⭕ X va O — uchta belgini bir qatorga ter",
+  "",
+  "⭐ Reytingli o'yin — kuchi teng raqib topiladi",
+  "🏆 ELO reyting va g'oliblar jadvali",
+  "👥 Do'stlar bilan ochiq va maxfiy xonalar",
+  "🤖 Botga qarshi mashq",
+  "",
+  "Kim kuchliroq? Boshlash uchun START ni bosing 👇",
+].join('\n');
+
 async function runBot() {
   if (!BOT_TOKEN) return console.log('BOT_TOKEN yo\'q — bot xabarlariga javob berilmaydi');
   try {
     await tgApi('deleteWebhook', {}); // polling and a webhook can't be used together
     if (APP_URL) await tgApi('setChatMenuButton', { menu_button: { type: 'web_app', text: "O'ynash", web_app: { url: APP_URL + '/' } } });
     await tgApi('setMyCommands', { commands: [{ command: 'start', description: "O'yinni boshlash" }, { command: 'help', description: "Qanday o'ynaladi" }] });
-    await tgApi('setMyShortDescription', { short_description: "🎮 To'siq Jangi va X va O — do'stlar bilan onlayn aql o'yinlari, reyting va ELO" });
-    await tgApi('setMyDescription', { description: "🎮 Aql o'yinlari: To'siq Jangi va X va O\n\n🏆 Reytingli o'yinlar — kuchi teng raqib\n👥 Do'stlar bilan xonalar\n🤖 Botga qarshi mashq\n\nBoshlash uchun START ni bosing 👇" });
+    await tgApi('setMyShortDescription', { short_description: BOT_ABOUT });
+    await tgApi('setMyDescription', { description: BOT_DESCRIPTION });
     console.log('Bot ishga tushdi' + (APP_URL ? `, ilova: ${APP_URL}` : ' (WEB_URL yoki domen topilmadi — tugma t.me havolasini ishlatadi)'));
   } catch (e) { console.log('Bot sozlamalarida xato:', e.message); }
   let offset = 0;

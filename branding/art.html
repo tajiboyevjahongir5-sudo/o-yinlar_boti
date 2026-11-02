@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bot rasmlari</title>
+<style>html, body { margin:0; background:#070b1f; overflow:hidden; } canvas { display:block; }</style>
+<script src="../public/hero.js"></script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Renders the bot's profile picture (?type=avatar, 640x640) or banner (?type=banner, 640x360)
+// in the game's neon style; screenshot it with a headless browser at that window size.
+const type = new URLSearchParams(location.search).get('type') || 'avatar';
+const W = 640, H = type === 'avatar' ? 640 : 360;
+const RED = '#ff2d46', BLUE = '#2f7bff', YELLOW = '#ffc531', GREEN = '#2ee66b';
+const c = document.getElementById('c'), x = c.getContext('2d');
+c.width = W; c.height = H;
+
+function rr(px, py, w, h, r) { x.beginPath(); x.roundRect(px, py, w, h, r); }
+
+function background() {
+  const g = x.createRadialGradient(W * 0.5, H * 0.42, 10, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+  g.addColorStop(0, '#1c2b72'); g.addColorStop(0.45, '#0e1540'); g.addColorStop(1, '#060918');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // diagonal neon streaks: red from the bottom left, blue from the top right
+  const streak = (x0, y0, len, color, width, alpha) => {
+    x.save(); x.globalAlpha = alpha; x.strokeStyle = color; x.lineWidth = width; x.shadowColor = color; x.shadowBlur = 24;
+    x.beginPath(); x.moveTo(x0, y0); x.lineTo(x0 + len, y0 - len * 0.82); x.stroke(); x.restore();
+  };
+  streak(-60, H * 0.95, W * 0.55, RED, 10, 0.55); streak(-40, H * 1.08, W * 0.5, RED, 5, 0.35);
+  streak(W * 0.62, H * 0.55, W * 0.6, BLUE, 10, 0.5); streak(W * 0.7, H * 0.72, W * 0.6, BLUE, 5, 0.3);
+}
+
+// one neon tile grid, n x n cells of size cs at (px, py)
+function grid(px, py, n, cs, alpha = 1) {
+  for (let r = 0; r < n; r++) for (let q = 0; q < n; q++) {
+    const gx = px + q * cs + 3, gy = py + r * cs + 3, s = cs - 6;
+    const g = x.createLinearGradient(0, gy, 0, gy + s); g.addColorStop(0, '#222a4d'); g.addColorStop(1, '#171d38');
+    x.globalAlpha = alpha; x.fillStyle = g; rr(gx, gy, s, s, s * 0.18); x.fill();
+    x.strokeStyle = 'rgba(170,185,255,.18)'; x.lineWidth = 1; x.stroke(); x.globalAlpha = 1;
+  }
+}
+function fence(x0, y0, x1, y1, color, w) {
+  x.save(); x.strokeStyle = color; x.shadowColor = color; x.shadowBlur = 18; x.lineWidth = w; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke();
+  x.shadowBlur = 0; x.strokeStyle = 'rgba(255,255,255,.45)'; x.lineWidth = w * 0.25;
+  x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke(); x.restore();
+}
+function markX(cx, cy, r, color, w) {
+  x.save(); x.strokeStyle = color; x.shadowColor = color; x.shadowBlur = 16; x.lineWidth = w; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(cx - r, cy - r); x.lineTo(cx + r, cy + r); x.moveTo(cx + r, cy - r); x.lineTo(cx - r, cy + r); x.stroke(); x.restore();
+}
+function markO(cx, cy, r, color, w) {
+  x.save(); x.strokeStyle = color; x.shadowColor = color; x.shadowBlur = 16; x.lineWidth = w;
+  x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke(); x.restore();
+}
+function glowText(t, px, py, size, color, glow, align = 'left', weight = 900) {
+  x.save(); x.font = `${weight} ${size}px "Segoe UI", system-ui, sans-serif`; x.textAlign = align; x.textBaseline = 'alphabetic';
+  x.shadowColor = glow; x.shadowBlur = size * 0.45; x.fillStyle = color; x.fillText(t, px, py);
+  x.shadowBlur = 0; x.fillText(t, px, py); x.restore();
+}
+function chip(t, px, py, color) {
+  x.save(); x.font = '700 17px "Segoe UI", system-ui, sans-serif';
+  const w = x.measureText(t).width + 30;
+  rr(px, py, w, 34, 17); x.fillStyle = 'rgba(8,13,36,.85)'; x.fill();
+  x.strokeStyle = color; x.lineWidth = 2; x.shadowColor = color; x.shadowBlur = 10; x.stroke();
+  x.shadowBlur = 0; x.fillStyle = '#eef2ff'; x.textBaseline = 'middle'; x.fillText(t, px + 15, py + 18); x.restore();
+  return w;
+}
+
+function avatar() {
+  background();
+  // glowing ring that frames the circle Telegram crops to
+  x.save(); x.strokeStyle = 'rgba(255,197,49,.7)'; x.lineWidth = 6; x.shadowColor = YELLOW; x.shadowBlur = 30;
+  x.beginPath(); x.arc(W / 2, H / 2, 268, 0, 7); x.stroke(); x.restore();
+  grid(W / 2 - 190, H / 2 - 40, 4, 95, 0.55);
+  // the neon fence between the two rivals
+  fence(W / 2, H * 0.26, W / 2, H * 0.78, YELLOW, 16);
+  Hero.draw(x, W * 0.31, H * 0.74, 250, { color: RED, kind: 'human', dir: 'right', pose: 'idle', t: 900, glow: 1 });
+  Hero.draw(x, W * 0.69, H * 0.74, 250, { color: BLUE, kind: 'bot', dir: 'left', pose: 'idle', t: 1700, glow: 1 });
+  glowText('VS', W / 2, H * 0.24, 64, '#fff6d0', YELLOW, 'center');
+}
+
+function banner() {
+  background();
+  // left: name and what's inside
+  glowText('RAQIB', 34, 112, 84, '#ffffff', BLUE);
+  glowText("Aql o'yinlari Telegram'da", 38, 152, 24, '#c9d6ff', 'rgba(47,123,255,.6)', 'left', 700);
+  let cx = 36;
+  cx += chip("To'siq Jangi", cx, 182, RED) + 10;
+  chip('X va O', cx, 182, BLUE);
+  cx = 36;
+  cx += chip('Reyting · ELO', cx, 226, YELLOW) + 10;
+  chip("Do'stlar bilan", cx, 226, GREEN);
+  glowText('Mos raqib topiladi — kim kuchli?', 38, 300, 19, '#9aa6d6', 'rgba(0,0,0,0)', 'left', 600);
+  // right: a fence board with both characters, and an X va O card on top
+  grid(392, 70, 4, 52);
+  fence(392 + 52 + 4, 70 + 104, 392 + 156 - 4, 70 + 104, RED, 9);
+  fence(392 + 156, 70 + 4, 392 + 156, 70 + 100, BLUE, 9);
+  Hero.draw(x, 392 + 52 * 0.5, 70 + 52 * 3.82, 62, { color: RED, kind: 'human', dir: 'up', pose: 'idle', t: 500, glow: 0.8 });
+  Hero.draw(x, 392 + 52 * 1.5, 70 + 52 * 0.82, 62, { color: BLUE, kind: 'bot', dir: 'down', pose: 'idle', t: 1400, glow: 0.8 });
+  // X va O card
+  const bx = 470, by = 222, bs = 132;
+  x.save(); rr(bx - 10, by - 10, bs + 20, bs + 20, 18); x.fillStyle = 'rgba(6,10,30,.92)'; x.fill();
+  x.strokeStyle = BLUE; x.lineWidth = 2.5; x.shadowColor = BLUE; x.shadowBlur = 16; x.stroke(); x.restore();
+  grid(bx, by, 3, bs / 3);
+  const cell = bs / 3, ctr = (i) => [bx + (i % 3 + 0.5) * cell, by + (Math.floor(i / 3) + 0.5) * cell];
+  [[0, 'X'], [4, 'X'], [2, 'O'], [6, 'O'], [8, 'X']].forEach(([i, m]) => {
+    const [px, py] = ctr(i);
+    m === 'X' ? markX(px, py, 11, RED, 6) : markO(px, py, 12, BLUE, 6);
+  });
+  const [ax, ay] = ctr(0), [zx, zy] = ctr(8);
+  fence(ax - 10, ay - 10, zx + 10, zy + 10, RED, 7);
+}
+
+type === 'avatar' ? avatar() : banner();
+document.title = 'done';
+</script>
+</body>
+</html>
