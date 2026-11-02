@@ -42,6 +42,12 @@ npm start
 Brauzerda `http://localhost:3000` ni oching. Onlayn rejimni sinash uchun xonani yarating va
 `http://localhost:3000/?room=XONA_KODI` havolasini boshqa oynada oching.
 
+## Bot xabarlari
+
+Server botga kelgan xabarlarni o'zi o'qiydi (long polling, webhook shart emas): `/start` ga xush kelibsiz xabari va
+"🎮 O'ynash" tugmasi, `/start KOD` ga "Xonaga kirish" tugmasi, `/help`. Ishga tushganda menyu tugmasi, buyruqlar va
+bot tavsifini ham o'rnatadi. Tugma ilova manzilini `WEB_URL` dan yoki Railway'ning `RAILWAY_PUBLIC_DOMAIN` idan oladi.
+
 ## Render'ga joylash
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/tajiboyevjahongir5-sudo/o-yinlar_boti)

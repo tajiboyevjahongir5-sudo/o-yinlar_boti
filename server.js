@@ -397,4 +397,77 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, () => console.log(`O'yinlar serveri: http://localhost:${PORT}`));
+// ---------- the Telegram bot itself: /start message, menu button, description ----------
+// Uses long polling (getUpdates), so no webhook setup is needed. The Mini App address comes from
+// WEB_URL, or from Railway's RAILWAY_PUBLIC_DOMAIN when a domain has been generated.
+const BOT_USERNAME = process.env.BOT_USERNAME || '', APP_NAME = process.env.APP_NAME || '';
+const APP_URL = (process.env.WEB_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : ''))
+  .replace(/\/+$/, '');
+const tgApi = (method, body) => fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}),
+}).then(r => r.json());
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// the button that opens the game; with a room code it opens straight into that room
+function playButton(code) {
+  const text = code ? '▶️ Xonaga kirish' : "🎮 O'ynash";
+  if (APP_URL) return { text, web_app: { url: APP_URL + (code ? `/?room=${code}` : '/') } };
+  if (BOT_USERNAME && APP_NAME) return { text, url: `https://t.me/${BOT_USERNAME}/${APP_NAME}` + (code ? `?startapp=${code}` : '') };
+  return null;
+}
+function shareButton() {
+  if (!BOT_USERNAME) return null;
+  const text = "🎮 To'siq Jangi va X va O — men bilan bellashasanmi? Reytingda kim yuqori, ko'ramiz! 🏆";
+  return { text: "👥 Do'stni taklif qilish", url: `https://t.me/share/url?url=${encodeURIComponent('https://t.me/' + BOT_USERNAME)}&text=${encodeURIComponent(text)}` };
+}
+const keyboard = (...rows) => ({ inline_keyboard: rows.map(r => r.filter(Boolean)).filter(r => r.length) });
+
+function welcomeText(firstName) {
+  return `🎮 <b>Assalomu alaykum, ${esc(firstName || "do'stim")}!</b>\n\n`
+    + `Bu yerda do'stlaring va butun O'zbekiston bilan <b>aql o'yinlari</b>da kuch sinashasan:\n\n`
+    + `🧱 <b>To'siq Jangi</b> — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet\n`
+    + `❌⭕ <b>X va O</b> — uchta belgini bir qatorga birinchi bo'lib ter\n\n`
+    + `🏆 Reytingli o'yinlar va ELO\n👥 Do'stlar bilan ochiq va maxfiy xonalar\n🤖 Botga qarshi mashq\n\n`
+    + `👇 Boshlash uchun <b>O'ynash</b> tugmasini bos!`;
+}
+const HELP_TEXT = `ℹ️ <b>Qanday o'ynaladi?</b>\n\n`
+  + `1️⃣ <b>O'ynash</b> tugmasini bosing va o'yinni tanlang\n`
+  + `2️⃣ <b>⭐ Reytingli o'yin</b> — sizga kuchi teng raqib topiladi, g'alaba uchun ELO beriladi\n`
+  + `3️⃣ <b>Xona yaratish</b> — do'stingiz bilan o'ynang: ochiq xonaga istalgan kishi, maxfiy xonaga faqat kod bilan kiriladi\n`
+  + `4️⃣ <b>🤖 Botga qarshi</b> — mashq qiling\n\n`
+  + `Reyting va profilingiz ilovaning pastki menyusida.`;
+
+async function onMessage(msg) {
+  if (!msg || !msg.chat || typeof msg.text !== 'string') return;
+  const chat_id = msg.chat.id, [cmd, payload] = msg.text.trim().split(/\s+/);
+  const send = (text, markup) => tgApi('sendMessage', { chat_id, text, parse_mode: 'HTML', reply_markup: markup, link_preview_options: { is_disabled: true } });
+  if (cmd === '/start' || cmd.startsWith('/start@')) {
+    const code = clean(payload);
+    if (code) return send(`🔑 Sizni <code>${esc(code)}</code> xonasiga taklif qilishdi!\n\n👇 Tugmani bosing va o'yinga kiring.`, keyboard([playButton(code)]));
+    return send(welcomeText(msg.from && msg.from.first_name), keyboard([playButton()], [shareButton()]));
+  }
+  if (cmd === '/help' || cmd.startsWith('/help@')) return send(HELP_TEXT, keyboard([playButton()]));
+  if (msg.chat.type === 'private') return send("👇 O'ynash uchun tugmani bosing:", keyboard([playButton()]));
+}
+
+async function runBot() {
+  if (!BOT_TOKEN) return console.log('BOT_TOKEN yo\'q — bot xabarlariga javob berilmaydi');
+  try {
+    await tgApi('deleteWebhook', {}); // polling and a webhook can't be used together
+    if (APP_URL) await tgApi('setChatMenuButton', { menu_button: { type: 'web_app', text: "O'ynash", web_app: { url: APP_URL + '/' } } });
+    await tgApi('setMyCommands', { commands: [{ command: 'start', description: "O'yinni boshlash" }, { command: 'help', description: "Qanday o'ynaladi" }] });
+    await tgApi('setMyShortDescription', { short_description: "🎮 To'siq Jangi va X va O — do'stlar bilan onlayn aql o'yinlari, reyting va ELO" });
+    await tgApi('setMyDescription', { description: "🎮 Aql o'yinlari: To'siq Jangi va X va O\n\n🏆 Reytingli o'yinlar — kuchi teng raqib\n👥 Do'stlar bilan xonalar\n🤖 Botga qarshi mashq\n\nBoshlash uchun START ni bosing 👇" });
+    console.log('Bot ishga tushdi' + (APP_URL ? `, ilova: ${APP_URL}` : ' (WEB_URL yoki domen topilmadi — tugma t.me havolasini ishlatadi)'));
+  } catch (e) { console.log('Bot sozlamalarida xato:', e.message); }
+  let offset = 0;
+  for (;;) {
+    try {
+      const r = await tgApi('getUpdates', { offset, timeout: 25, allowed_updates: ['message'] });
+      if (!r.ok) { console.log('getUpdates:', r.description); await sleep(5000); continue; }
+      for (const u of r.result) { offset = u.update_id + 1; onMessage(u.message).catch(e => console.log('sendMessage xato:', e.message)); }
+    } catch (e) { await sleep(3000); }
+  }
+}
+
+server.listen(PORT, () => { console.log(`O'yinlar serveri: http://localhost:${PORT}`); runBot(); });
