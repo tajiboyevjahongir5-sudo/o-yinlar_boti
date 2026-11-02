@@ -364,10 +364,15 @@
     padding:5px 10px; border-radius:12px; box-shadow:0 0 8px rgba(47,123,255,.55); white-space:nowrap; }
   #inviteBtn.hide { display:none; }
   /* invite preview styled like a Telegram message */
-  .tgmsg { width:100%; text-align:left; border-radius:16px 16px 16px 4px; background:#182533; padding:12px 14px 10px;
-    font-size:14px; line-height:1.5; color:#e9eef5; white-space:pre-line; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .tgmsg { flex:none; width:100%; text-align:left; border-radius:16px 16px 16px 4px; background:#182533; overflow:hidden;
+    font-size:14px; line-height:1.5; color:#e9eef5; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .tgimg { display:block; width:100%; aspect-ratio:16 / 9; object-fit:cover; }
+  .tgcap { padding:10px 14px 10px; white-space:pre-line; }
+  .tgmsg blockquote { margin:2px 0; padding:6px 10px; border-left:3px solid #5eb5f7; border-radius:4px 8px 8px 4px;
+    background:rgba(94,181,247,.12); white-space:normal; }
+  .tgmsg i { color:#c9d6ff; }
   .tgmsg code { background:rgba(255,255,255,.1); padding:1px 6px; border-radius:5px; font-weight:800; letter-spacing:1px; color:#ffd166; }
-  .tgbtn { width:100%; margin-top:-8px; padding:10px; border-radius:4px 4px 14px 14px; background:#1f3a52; color:#8fcaff; font-weight:700;
+  .tgbtn { width:100%; margin-top:-8px; padding:10px; border-radius:4px 4px 14px 14px; background:#1f8a4c; color:#fff; font-weight:700;
     font-size:14px; text-align:center; }
   .tgfrom { align-self:flex-start; font-size:12px; color:var(--mute); margin-bottom:-8px; }
   #xoTray { display:flex; align-items:center; justify-content:center; gap:14px; }
@@ -857,15 +862,22 @@
     xo: ['❌⭕', "Uchta belgini bir qatorga birinchi bo'lib tering!"] };
   const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // same wording as the server's inviteText(); kept as HTML for the preview bubble
-  function inviteHtml(code) {
+  function inviteHtml(code, elo) {
     if (code) {
       const [e, line] = GAME_LINE[kind];
-      return `🎮 <b>${escHtml(myName)}</b> sizni o'yinga chaqirmoqda!\n\n${e} <b>${GAME_NAMES[kind]}</b>\n${line}\n\n`
-        + `🔑 Xona kodi: <code>${escHtml(code)}</code>\n⚔️ Kim kuchliroq — hozir bilib olamiz! 👇`;
+      return `⚔️ <b>${escHtml(myName)}</b> sizni <b>${GAME_NAMES[kind]}</b> bellashuviga chaqirdi!\n\n`
+        + `<blockquote>${e} ${line}</blockquote>\n`
+        + (elo ? `🏆 Uning reytingi: <b>${elo} ELO</b> — yengib ko'rasizmi?\n` : '')
+        + `🔑 Xona kodi: <code>${escHtml(code)}</code>\n⏳ Xona sizni kutyapti — kechikmang!\n\n`
+        + `👇 <b>Xonaga kirish</b> tugmasini bosing`;
     }
-    return `🎮 <b>${escHtml(myName)}</b> sizni <b>O'yinlar</b>ga taklif qilmoqda!\n\n`
-      + `🧱 <b>To'siq Jangi</b> — raqib yo'lini to'siqlar bilan to'sing\n❌⭕ <b>X va O</b> — uchtasini bir qatorga tering\n\n`
-      + `🏆 Reytingli o'yinlar · 👥 Do'stlar bilan xonalar · 🤖 Botga qarshi\n👇 Pastdagi tugmani bosing va o'ynang!`;
+    return `🎮 <b>${escHtml(myName)}</b> sizni <b>RAQIB</b> o'yinlar markaziga chorlayapti!\n\n`
+      + `<blockquote>⚔️ Kim aqlliroq — bellashib ko'ramizmi?</blockquote>\n`
+      + `🧱 <b>To'siq Jangi</b> — yo'lni to'sib, marraga birinchi yet\n`
+      + `❌⭕ <b>X va O</b> — uchtasini bir qatorga ter\n`
+      + `✨ <i>…va yangi o'yinlar yo'lda!</i>\n\n`
+      + `🏆 Reyting va ELO  •  👥 Do'stlar bilan xonalar  •  🤖 Botga qarshi\n\n`
+      + `👇 <b>Tugmani bosing — o'yin boshlanadi!</b>`;
   }
   const appLink = (code) => config.bot && config.app
     ? `https://t.me/${config.bot}/${config.app}` + (code ? `?startapp=${code}` : '')
@@ -875,9 +887,13 @@
     const p = openPanel('invite');
     addText(p, 'h1', "{send} Do'stni taklif qilish");
     addText(p, 'div', "Do'stingizga shunday xabar boradi:").className = 'tgfrom';
-    const msg = document.createElement('div'); msg.className = 'tgmsg'; msg.innerHTML = inviteHtml(code);
+    // looks like the real thing: the banner photo, the caption, and the green button under it
+    const msg = document.createElement('div'); msg.className = 'tgmsg';
+    msg.innerHTML = '<img class="tgimg" src="img/invite.png" alt=""><div class="tgcap"></div>';
+    msg.querySelector('.tgcap').innerHTML = inviteHtml(code);
     const btn = addText(p, 'div', code ? '▶️ Xonaga kirish' : "🎮 O'ynash"); btn.className = 'tgbtn';
     p.insertBefore(msg, btn);
+    if (code) api('profile', kind).then(d => { if (d && d.games) msg.querySelector('.tgcap').innerHTML = inviteHtml(code, d.elo); });
     p.append(bigBtn('{send} Yuborish', () => sendInvite(code), 'pri'), bigBtn('Bekor qilish', hideOverlay));
   }
   async function sendInvite(code) {

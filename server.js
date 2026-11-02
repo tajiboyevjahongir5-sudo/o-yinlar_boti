@@ -96,15 +96,23 @@ const GAME_INFO = {
 const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 // the invite text (Telegram HTML); the same wording is shown as a preview inside the app
-function inviteText(name, kind, code) {
+// elo: the inviter's rating in that game (shown on room invites when they have played rated games)
+function inviteText(name, kind, code, elo) {
   if (code) {
     const g = GAME_INFO[kind];
-    return `🎮 <b>${esc(name)}</b> sizni o'yinga chaqirmoqda!\n\n${g.emoji} <b>${g.title}</b>\n${g.line}\n\n`
-      + `🔑 Xona kodi: <code>${esc(code)}</code>\n⚔️ Kim kuchliroq — hozir bilib olamiz! 👇`;
+    return `⚔️ <b>${esc(name)}</b> sizni <b>${g.title}</b> bellashuviga chaqirdi!\n\n`
+      + `<blockquote>${g.emoji} ${g.line}</blockquote>\n`
+      + (elo ? `🏆 Uning reytingi: <b>${elo} ELO</b> — yengib ko'rasizmi?\n` : '')
+      + `🔑 Xona kodi: <code>${esc(code)}</code>\n⏳ Xona sizni kutyapti — kechikmang!\n\n`
+      + `👇 <b>Xonaga kirish</b> tugmasini bosing`;
   }
-  return `🎮 <b>${esc(name)}</b> sizni <b>O'yinlar</b>ga taklif qilmoqda!\n\n`
-    + `🧱 <b>To'siq Jangi</b> — raqib yo'lini to'siqlar bilan to'sing\n❌⭕ <b>X va O</b> — uchtasini bir qatorga tering\n\n`
-    + `🏆 Reytingli o'yinlar · 👥 Do'stlar bilan xonalar · 🤖 Botga qarshi\n👇 Pastdagi tugmani bosing va o'ynang!`;
+  return `🎮 <b>${esc(name)}</b> sizni <b>RAQIB</b> o'yinlar markaziga chorlayapti!\n\n`
+    + `<blockquote>⚔️ Kim aqlliroq — bellashib ko'ramizmi?</blockquote>\n`
+    + `🧱 <b>To'siq Jangi</b> — yo'lni to'sib, marraga birinchi yet\n`
+    + `❌⭕ <b>X va O</b> — uchtasini bir qatorga ter\n`
+    + `✨ <i>…va yangi o'yinlar yo'lda!</i>\n\n`
+    + `🏆 Reyting va ELO  •  👥 Do'stlar bilan xonalar  •  🤖 Botga qarshi\n\n`
+    + `👇 <b>Tugmani bosing — o'yin boshlanadi!</b>`;
 }
 
 async function prepareInvite(body) {
@@ -112,13 +120,19 @@ async function prepareInvite(body) {
   if (!v || !bot || !app) return { ok: false, reason: 'unavailable' };
   const kind = kindOf(body.kind), code = clean(body.code);
   const link = `https://t.me/${bot}/${app}` + (code ? `?startapp=${code}` : '');
-  const result = {
-    type: 'article', id: crypto.randomBytes(8).toString('hex'),
-    title: code ? `${GAME_INFO[kind].title} — o'yinga taklif` : "O'yinlar — do'stingizni taklif qiling",
-    description: code ? `Xona kodi: ${code}` : "To'siq Jangi va X va O",
-    input_message_content: { message_text: inviteText(v.name, kind, code), parse_mode: 'HTML', link_preview_options: { is_disabled: true } },
-    reply_markup: { inline_keyboard: [[{ text: code ? '▶️ Xonaga kirish' : "🎮 O'ynash", url: link }]] },
-  };
+  const st = players[v.uid] && players[v.uid].stats[kind];
+  const text = inviteText(v.name, kind, code, st && st.games ? st.elo : null);
+  const button = { text: code ? '▶️ Xonaga kirish' : "🎮 O'ynash", style: 'success', url: link };
+  const title = code ? `${GAME_INFO[kind].title} — o'yinga taklif` : "RAQIB — do'stingizni taklif qiling";
+  const description = code ? `Xona kodi: ${code}` : "O'yinlar markazi: To'siq Jangi, X va O va boshqalar";
+  // with a public address the invite goes out as a photo (the neon banner) with the text as its caption
+  const photo = APP_URL ? `${APP_URL}/img/invite.png` : null;
+  const result = photo
+    ? { type: 'photo', id: crypto.randomBytes(8).toString('hex'), photo_url: photo, thumbnail_url: photo, photo_width: 640, photo_height: 360,
+        title, description, caption: text, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[button]] } }
+    : { type: 'article', id: crypto.randomBytes(8).toString('hex'), title, description,
+        input_message_content: { message_text: text, parse_mode: 'HTML', link_preview_options: { is_disabled: true } },
+        reply_markup: { inline_keyboard: [[button]] } };
   const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/savePreparedInlineMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_id: Number(v.uid.slice(2)), result, allow_user_chats: true, allow_group_chats: true }),
