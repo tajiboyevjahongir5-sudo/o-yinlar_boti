@@ -411,15 +411,55 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // the button that opens the game; with a room code it opens straight into that room
 function playButton(code) {
   const text = code ? '▶️ Xonaga kirish' : "🎮 O'ynash";
-  if (APP_URL) return { text, web_app: { url: APP_URL + (code ? `/?room=${code}` : '/') } };
-  if (BOT_USERNAME && APP_NAME) return { text, url: `https://t.me/${BOT_USERNAME}/${APP_NAME}` + (code ? `?startapp=${code}` : '') };
+  if (APP_URL) return { text, style: 'success', web_app: { url: APP_URL + (code ? `/?room=${code}` : '/') } };
+  if (BOT_USERNAME && APP_NAME) return { text, style: 'success', url: `https://t.me/${BOT_USERNAME}/${APP_NAME}` + (code ? `?startapp=${code}` : '') };
   return null;
 }
 function shareButton() {
   if (!BOT_USERNAME) return null;
   const text = "🎮 To'siq Jangi va X va O — men bilan bellashasanmi? Reytingda kim yuqori, ko'ramiz! 🏆";
-  return { text: "👥 Do'stni taklif qilish", url: `https://t.me/share/url?url=${encodeURIComponent('https://t.me/' + BOT_USERNAME)}&text=${encodeURIComponent(text)}` };
+  return { text: "👥 Do'stni taklif qilish", style: 'primary', url: `https://t.me/share/url?url=${encodeURIComponent('https://t.me/' + BOT_USERNAME)}&text=${encodeURIComponent(text)}` };
 }
+// ---------- premium (custom) emoji: the admin maps a plain emoji to a premium one with /emoji ----------
+// Telegram shows custom emoji from a bot only if the bot's owner has Premium (or the bot has a Fragment
+// username); if Telegram refuses, the message is sent again with plain emoji.
+const ADMINS = String(process.env.ADMIN_ID || '').split(/[\s,]+/).filter(Boolean);
+const EMOJI_FILE = path.join(DATA_DIR, 'emoji.json');
+let emojiMap = {};
+try { emojiMap = JSON.parse(fs.readFileSync(EMOJI_FILE, 'utf8')); } catch (e) {}
+const saveEmoji = () => fs.writeFile(EMOJI_FILE, JSON.stringify(emojiMap, null, 1), () => {});
+const bareEmoji = (e) => e.replace(/️/g, ''); // "▶️" and "▶" are the same key
+const emojiKeys = () => Object.keys(emojiMap).sort((a, b) => b.length - a.length);
+function premiumText(html) {
+  for (const k of emojiKeys()) {
+    const re = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '️?', 'gu');
+    html = html.replace(re, (m) => `<tg-emoji emoji-id="${emojiMap[k]}">${m}</tg-emoji>`);
+  }
+  return html;
+}
+// a button whose label starts with a mapped emoji gets that premium emoji as its icon instead
+function premiumButton(b) {
+  for (const k of emojiKeys()) {
+    const m = b.text.match(new RegExp('^' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '️?\\s*', 'u'));
+    if (m) return Object.assign({}, b, { text: b.text.slice(m[0].length), icon_custom_emoji_id: emojiMap[k] });
+  }
+  return b;
+}
+const premiumMarkup = (mk) => mk && mk.inline_keyboard ? { inline_keyboard: mk.inline_keyboard.map(r => r.map(premiumButton)) } : mk;
+
+// "/emoji 🎮=<premium> 🏆=<premium>": every custom_emoji entity is paired with the plain emoji typed before it
+function readEmojiPairs(msg) {
+  const ents = (msg.entities || []).filter(e => e.type === 'custom_emoji').sort((a, b) => a.offset - b.offset);
+  const pairs = [];
+  let from = 0;
+  for (const e of ents) {
+    const plain = msg.text.slice(from, e.offset).replace(/^\/emoji(@\w+)?/i, '').replace(/[=\s,:\-→>]+/g, '');
+    if (plain) pairs.push([bareEmoji(plain), e.custom_emoji_id]);
+    from = e.offset + e.length;
+  }
+  return pairs;
+}
+
 const keyboard = (...rows) => ({ inline_keyboard: rows.map(r => r.filter(Boolean)).filter(r => r.length) });
 
 function welcomeText(firstName) {
@@ -440,7 +480,37 @@ const HELP_TEXT = `ℹ️ <b>Qanday o'ynaladi?</b>\n\n`
 async function onMessage(msg) {
   if (!msg || !msg.chat || typeof msg.text !== 'string') return;
   const chat_id = msg.chat.id, [cmd, payload] = msg.text.trim().split(/\s+/);
-  const send = (text, markup) => tgApi('sendMessage', { chat_id, text, parse_mode: 'HTML', reply_markup: markup, link_preview_options: { is_disabled: true } });
+  const plain = (text, markup) => tgApi('sendMessage', { chat_id, text, parse_mode: 'HTML', reply_markup: markup, link_preview_options: { is_disabled: true } });
+  const send = async (text, markup) => {
+    if (!Object.keys(emojiMap).length) return plain(text, markup);
+    const r = await plain(premiumText(text), premiumMarkup(markup));
+    if (!r.ok) { console.log('Premium emoji rad etildi:', r.description); return plain(text, markup); }
+    return r;
+  };
+  const isAdmin = msg.from && ADMINS.includes(String(msg.from.id));
+  if (cmd === '/id') return plain(`🆔 Sizning Telegram ID: <code>${msg.from ? msg.from.id : '?'}</code>`);
+  const isDel = /^\/emojidel/i.test(msg.text.trim()), isEmoji = !isDel && /^\/emoji/i.test(msg.text.trim());
+  if (isEmoji || isDel) {
+    if (!ADMINS.length) return plain("⚙️ Avval serverga <code>ADMIN_ID</code> o'zgaruvchisini qo'shing (ID'ingizni /id bilan bilib oling).");
+    if (!isAdmin) return plain("⛔ Bu buyruq faqat admin uchun.");
+    if (isDel) {
+      const what = msg.text.replace(/^\/emojidel(@\w+)?/i, '').trim();
+      if (what === 'all') emojiMap = {}; else for (const ch of [...what.replace(/\s+/g, '')]) delete emojiMap[bareEmoji(ch)];
+      saveEmoji();
+      return plain(what === 'all' ? "🗑 Barcha premium emojilar o'chirildi." : "🗑 O'chirildi. Qolgan: " + (Object.keys(emojiMap).join(' ') || "yo'q"));
+    }
+    const pairs = readEmojiPairs(msg);
+    if (pairs.length) {
+      for (const [k, id] of pairs) emojiMap[k] = id;
+      saveEmoji();
+      return send(`✅ Saqlandi (${pairs.length} ta): ` + pairs.map(([k]) => k).join(' ')
+        + "\n\nEndi bot xabarlari va tugmalarida shu emojilar premium ko'rinishda chiqadi. Tekshirish: /start");
+    }
+    const list = Object.keys(emojiMap);
+    return send(`✨ <b>Premium emoji</b>\n\nQo'shish: <code>/emoji 🎮=</code> va yoniga premium emojini yuboring.\n`
+      + `Bir xabarda bir nechtasi: <code>/emoji 🎮=… 🏆=… 👥=…</code>\nO'chirish: <code>/emojidel 🎮</code> yoki <code>/emojidel all</code>\n\n`
+      + (list.length ? `Hozirgi (${list.length}): ${list.join(' ')}` : "Hozircha premium emoji yo'q."));
+  }
   if (cmd === '/start' || cmd.startsWith('/start@')) {
     const code = clean(payload);
     if (code) return send(`🔑 Sizni <code>${esc(code)}</code> xonasiga taklif qilishdi!\n\n👇 Tugmani bosing va o'yinga kiring.`, keyboard([playButton(code)]));

@@ -48,6 +48,16 @@ Server botga kelgan xabarlarni o'zi o'qiydi (long polling, webhook shart emas): 
 "🎮 O'ynash" tugmasi, `/start KOD` ga "Xonaga kirish" tugmasi, `/help`. Ishga tushganda menyu tugmasi, buyruqlar va
 bot tavsifini ham o'rnatadi. Tugma ilova manzilini `WEB_URL` dan yoki Railway'ning `RAILWAY_PUBLIC_DOMAIN` idan oladi.
 
+### Rangli tugmalar va premium emoji
+
+- "🎮 O'ynash" — yashil (`style: success`), "👥 Taklif" — ko'k (`primary`).
+- **Premium emoji:** serverga `ADMIN_ID` (Telegram ID'ingiz; `/id` buyrug'i ko'rsatadi) qo'shing. Keyin botga
+  `/emoji 🎮=` + premium emoji yuboring (bir xabarda bir nechta: `/emoji 🎮=… 🏆=… 👥=…`). Shundan so'ng bot
+  xabarlarida va tugmalarida shu emoji premium ko'rinishda chiqadi. O'chirish: `/emojidel 🎮` yoki `/emojidel all`.
+  Ro'yxat: `/emoji`. Saqlanadi: `DATA_DIR/emoji.json`.
+- Telegram qoidasi: bot premium emoji ishlata olishi uchun **bot egasida Telegram Premium** bo'lishi kerak
+  (yoki Fragment'dan qo'shimcha username). Aks holda bot xabarni oddiy emoji bilan yuboradi.
+
 ## Render'ga joylash
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/tajiboyevjahongir5-sudo/o-yinlar_boti)
