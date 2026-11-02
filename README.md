@@ -42,19 +42,27 @@ npm start
 Brauzerda `http://localhost:3000` ni oching. Onlayn rejimni sinash uchun xonani yarating va
 `http://localhost:3000/?room=XONA_KODI` havolasini boshqa oynada oching.
 
-## Telegramga ulash
+## Render'ga joylash
 
-1. **Serverni internetga chiqaring** (Telegram faqat `https://` havolani qabul qiladi). WebSocket'ni
-   qo'llab-quvvatlaydigan istalgan hosting bo'ladi: Render, Railway, Fly.io yoki o'zingizning VPS'ingiz.
-   Start buyrug'i: `npm start`; port `PORT` muhit o'zgaruvchisidan olinadi.
-   Sinash uchun: `cloudflared tunnel --url http://localhost:3000`.
-2. Telegramda **@BotFather** → `/newbot` → bot yarating.
-3. @BotFather → `/newapp` → botni tanlang → nom, tavsif, rasm (640×360) → **Web App URL** sifatida
-   `https://sizning-domen.com` ni kiriting → qisqa nom bering (masalan `race`).
-4. Serverga quyidagi muhit o'zgaruvchilarini bering — taklif havolalari shulardan yasaladi:
-   - `BOT_USERNAME` — botingiz nomi, `@` belgisiz (masalan `MyRaceBot`)
-   - `APP_NAME` — 3-qadamdagi qisqa nom (masalan `race`)
-5. Ixtiyoriy: @BotFather → `/mybots` → Bot Settings → **Menu Button** → shu URL.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/tajiboyevjahongir5-sudo/o-yinlar_boti)
+
+1. Yuqoridagi tugmani bosing (yoki render.com → **New → Blueprint** → shu repozitoriyni tanlang).
+   Render `render.yaml` faylidan sozlamalarni o'zi oladi: `npm ci`, `npm start`, `/healthz` tekshiruvi.
+2. Render 3 ta qiymat so'raydi:
+   - `BOT_TOKEN` — @BotFather bergan token (maxfiy! faqat Render'ga kiriting, kodga yozmang)
+   - `BOT_USERNAME` — bot nomi `@` belgisiz (masalan `OyinlarBot`)
+   - `APP_NAME` — Mini App qisqa nomi (masalan `game`), 4-qadamda yaratiladi. Hozircha `game` deb yozing.
+3. **Apply / Deploy** bosing. Bir necha daqiqada `https://o-yinlar-boti.onrender.com` kabi manzil chiqadi.
+4. Telegramda @BotFather → `/newapp` → botni tanlang → nom, tavsif, rasm (640×360) → **Web App URL** sifatida
+   Render manzilini kiriting → qisqa nom sifatida 2-qadamdagi `APP_NAME` ni bering.
+5. Ixtiyoriy: @BotFather → `/mybots` → Bot Settings → **Menu Button** → Render manzili.
+
+**Bepul tarif haqida:** 15 daqiqa hech kim kirmasa server "uxlaydi" va keyingi ochilishda ~1 daqiqa uyg'onadi.
+Bepul tarifda doimiy disk yo'q, shuning uchun ELO ma'lumotlari (`data/players.json`) har qayta ishga tushishda
+o'chadi. Reytingni saqlash uchun pullik tarif + disk kerak (`render.yaml` dagi izohga qarang).
+
+Boshqa hostinglar ham bo'ladi (Railway, Fly.io, VPS): start buyrug'i `npm start`, port `PORT` dan olinadi.
+Sinash uchun: `cloudflared tunnel --url http://localhost:3000`.
 
 O'yin havolasi: `https://t.me/MyRaceBot/race`. "Do'stni taklif qilish" tugmasi
 `https://t.me/MyRaceBot/race?startapp=XONA` havolasini yuboradi; do'stingiz uni ochishi bilan

@@ -139,6 +139,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ bot: process.env.BOT_USERNAME || '', app: process.env.APP_NAME || '' }));
   }
+  if (url.pathname === '/healthz') return sendJson(res, { ok: true }); // Render's health check
   if (url.pathname === '/api/rooms') return sendJson(res, lobbyData()); // same data the lobby socket pushes
   if (url.pathname === '/api/invite' && req.method === 'POST') {
     let body = '';

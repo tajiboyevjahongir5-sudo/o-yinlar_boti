@@ -1,0 +1,31 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# One Node web service; Render supplies PORT and supports WebSockets.
+services:
+  - type: web
+    name: o-yinlar-boti
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # secret from @BotFather — entered in the Render dashboard, never committed
+      - key: BOT_TOKEN
+        sync: false
+      # bot username without "@", e.g. MyGamesBot
+      - key: BOT_USERNAME
+        sync: false
+      # short name of the Mini App created with /newapp, e.g. game
+      - key: APP_NAME
+        sync: false
+    # The free plan has no persistent disk, so data/players.json (ELO) is reset on every
+    # restart or deploy. On a paid plan, uncomment this to keep ratings:
+    # disk:
+    #   name: data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # and add an env var DATA_DIR=/var/data

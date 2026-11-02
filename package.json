@@ -1,10 +1,13 @@
 {
-  "name": "tosiq-poygasi",
+  "name": "oyinlar-boti",
   "version": "1.0.0",
-  "description": "Telegram Web App: turn-based fence race for 2 online players",
+  "description": "Telegram Web App: To'siq Jangi and X va O, online rooms, rated matchmaking and ELO",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "ws": "^8.18.0"
