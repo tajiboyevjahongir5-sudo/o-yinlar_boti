@@ -227,6 +227,9 @@ bot tavsifini ham o'rnatadi. Tugma ilova manzilini `WEB_URL` dan yoki Railway'ni
    Render manzilini kiriting → qisqa nom sifatida 2-qadamdagi `APP_NAME` ni bering.
 5. Ixtiyoriy: @BotFather → `/mybots` → Bot Settings → **Menu Button** → Render manzili.
 
+**Ma'lumotlar (muhim):** server `DATA_DIR`, yo'q bo'lsa Railway Volume'ning `RAILWAY_VOLUME_MOUNT_PATH` papkasini
+ishlatadi (Volume ulansa avtomatik). Server ishga tushganda logda `Ma'lumotlar papkasi: /data (N o'yinchi)` chiqadi.
+
 **Bepul tarif haqida:** 15 daqiqa hech kim kirmasa server "uxlaydi" va keyingi ochilishda ~1 daqiqa uyg'onadi.
 Bepul tarifda doimiy disk yo'q, shuning uchun ELO ma'lumotlari (`data/players.json`) har qayta ishga tushishda
 o'chadi. Reytingni saqlash uchun pullik tarif + disk kerak (`render.yaml` dagi izohga qarang).

@@ -21,7 +21,9 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const BOT_NAME = String(process.env.BOT_USERNAME || '').trim().replace(/^@+/, '').replace(/^https?:\/\/t\.me\//, '');
 
 // ---------- players & ELO (persisted to a JSON file) ----------
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+// where ratings, friends, coins etc. are kept: DATA_DIR, or the Railway volume (Railway sets RAILWAY_VOLUME_MOUNT_PATH
+// when a volume is attached), otherwise ./data (lost on every redeploy without a volume!)
+const DATA_DIR = process.env.DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
 const PLAYERS_FILE = path.join(DATA_DIR, 'players.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 let players = {};
@@ -1712,6 +1714,15 @@ function readEmojiPairs(msg) {
 
 const keyboard = (...rows) => ({ inline_keyboard: rows.map(r => r.filter(Boolean)).filter(r => r.length) });
 
+// Russian for users whose Telegram is in Russian
+const isRu = (from) => !!(from && /^(ru|uk|be|kk)/.test(from.language_code || ''));
+const WELCOME_RU = (n) => `🎮 <b>Привет, ${esc(n || 'друг')}!</b>\n\n`
+  + `Здесь вы соревнуетесь с друзьями и всем Узбекистаном в <b>интеллектуальных играх</b>:\n\n`
+  + `♟️ <b>Шахматы</b>, ⚫ <b>Шашки</b>, 🎲 <b>Нарды</b>, 🁫 <b>Домино</b>, 🚢 <b>Морской бой</b>, 🔴 <b>4 в ряд</b>, ▪️ <b>Точки</b>, 🧱 <b>Битва стен</b>, ❌⭕ <b>Крестики-нолики</b>\n\n`
+  + `🏆 Рейтинг и ELO • ⚔️ Турниры • 👥 Игры с друзьями\n🎁 Ежедневный бонус • 🛍 Скины • 🤖 Против бота\n\n`
+  + `👇 Нажмите <b>Играть</b>! (Язык меняется в профиле)`;
+const HELP_RU = `ℹ️ <b>Как играть?</b>\n\n1️⃣ Нажмите <b>Играть</b> и выберите игру\n2️⃣ <b>⭐ Рейтинговая игра</b> — подберём равного соперника\n`
+  + `3️⃣ <b>Создать комнату</b> — играйте с другом\n4️⃣ <b>🤖 Против бота</b> — тренировка\n5️⃣ В любом чате напишите @${BOT_NAME || 'bot'} — вызов в группу`;
 function welcomeText(firstName) {
   return `🎮 <b>Assalomu alaykum, ${esc(firstName || "do'stim")}!</b>\n\n`
     + `Bu yerda do'stlaring va butun O'zbekiston bilan <b>aql o'yinlari</b>da kuch sinashasan:\n\n`
@@ -1775,9 +1786,9 @@ async function onMessage(msg) {
   if (cmd === '/start' || cmd.startsWith('/start@')) {
     const code = clean(payload);
     if (code) return send(`🔑 Sizni <code>${esc(code)}</code> xonasiga taklif qilishdi!\n\n👇 Tugmani bosing va o'yinga kiring.`, keyboard([playButton(code)]));
-    return send(welcomeText(msg.from && msg.from.first_name), keyboard([playButton()], [shareButton()]));
+    return send(isRu(msg.from) ? WELCOME_RU(msg.from.first_name) : welcomeText(msg.from && msg.from.first_name), keyboard([playButton()], [shareButton()]));
   }
-  if (cmd === '/help' || cmd.startsWith('/help@')) return send(HELP_TEXT, keyboard([playButton()]));
+  if (cmd === '/help' || cmd.startsWith('/help@')) return send(isRu(msg.from) ? HELP_RU : HELP_TEXT, keyboard([playButton()]));
   if (msg.chat.type === 'private') return send("👇 O'ynash uchun tugmani bosing:", keyboard([playButton()]));
 }
 
@@ -1844,4 +1855,7 @@ async function runBot() {
   }
 }
 
-server.listen(PORT, () => { rollWeek(); console.log(`O'yinlar serveri: http://localhost:${PORT}`); runBot(); });
+server.listen(PORT, () => {
+  rollWeek();
+  console.log(`Ma'lumotlar papkasi: ${DATA_DIR} (${Object.keys(players).length} o'yinchi)` + (DATA_DIR.startsWith(__dirname) ? " — DIQQAT: doimiy disk emas, deployda o'chadi!" : ''));
+  console.log(`O'yinlar serveri: http://localhost:${PORT}`); runBot(); });

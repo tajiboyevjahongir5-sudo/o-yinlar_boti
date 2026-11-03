@@ -876,6 +876,7 @@
 <div id="xoGhost"></div>
 <canvas id="fx"></canvas>
 
+<script src="i18n.js"></script>
 <script src="icons.js"></script>
 <script src="game.js"></script>
 <script src="hero.js"></script>
@@ -1022,6 +1023,14 @@
   let botLevel = 1, botHist = [], replay = null;
   // my own profile bits (equipped frame/skins, what is unlocked), refreshed from the server
   let myInfo = { pid: null, equip: { frame: null, skin: {} }, skins: {}, frames: [] };
+  // board themes (Profile): squares of the 8x8 boards, cells of To'siq Jangi / X va O, the 4-in-a-row frame
+  const THEMES = {
+    neon: { name: 'Neon', light: '#8f9bd0', dark: '#27305e', light2: '#3b4474', dark2: '#232a52', top: '#20263f', bot: '#171c31', edge: 'rgba(170,185,255,.16)', frame: '#16205a' },
+    yogoch: { name: "Yog'och", light: '#f0d9b5', dark: '#b58863', light2: '#e3c597', dark2: '#9c6b43', top: '#c9a26f', bot: '#a87e4b', edge: 'rgba(60,35,10,.35)', frame: '#7a4a22' },
+    marmar: { name: 'Marmar', light: '#eef0f4', dark: '#8e9aaf', light2: '#d9dde6', dark2: '#7a869c', top: '#c9cfdb', bot: '#a9b2c4', edge: 'rgba(40,50,70,.3)', frame: '#5d6b85' },
+    yashil: { name: 'Yashil', light: '#d7e8c4', dark: '#5f8f4a', light2: '#bcd6a2', dark2: '#4a7a39', top: '#2f6b3a', bot: '#24572e', edge: 'rgba(255,255,255,.14)', frame: '#1f5a34' },
+  };
+  const theme = () => THEMES[store.get('theme')] || THEMES.neon;
   const MIN_DEFAULT = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3 };
   const minutesFor = (k) => { const v = Number(store.get('min_' + k)); return [1, 3, 5, 10].includes(v) ? v : MIN_DEFAULT[k]; };
   const frameCls = (f) => (f ? 'fr fr-' + f : '');
@@ -3006,6 +3015,24 @@
       const hx = c.getContext('2d'); hx.setTransform(dpr, 0, 0, dpr, 0, 0);
       profHero = hx;
     }
+    // language and board theme
+    addText(box, 'div', 'Til').className = 'lbl2';
+    const ls = document.createElement('div'); ls.className = 'seg';
+    [['uz', "O'zbekcha"], ['ru', 'Русский']].forEach(([k, t]) => {
+      const b = document.createElement('button'); b.textContent = t; b.classList.toggle('on', I18N.lang === k);
+      b.onclick = () => { if (I18N.lang === k) return; store.set('lang', k); haptic('light'); location.reload(); };
+      ls.appendChild(b);
+    });
+    box.appendChild(ls);
+    addText(box, 'div', 'Taxta mavzusi').className = 'lbl2';
+    const ts = document.createElement('div'); ts.className = 'seg';
+    for (const [k, t] of Object.entries(THEMES)) {
+      const b = document.createElement('button'); b.textContent = t.name; b.classList.toggle('on', (store.get('theme') || 'neon') === k);
+      b.style.cssText = `border-bottom:3px solid ${t.dark}`;
+      b.onclick = () => { store.set('theme', k); haptic('light'); Snd.play('tap'); ts.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); toast('{check} ' + t.name); };
+      ts.appendChild(b);
+    }
+    box.appendChild(ts);
     const ns = document.createElement('label'); ns.className = 'chk'; ns.style.cssText = 'padding:10px 12px;border-radius:14px;border:1px solid rgba(120,140,255,.25);background:rgba(8,13,36,.85)';
     ns.innerHTML = `<input type="checkbox" ${notifyOn ? 'checked' : ''}> 🔔 Bot eslatmalari (seriya, haftalik natija)`;
     ns.querySelector('input').onchange = async (e) => { const r = await postApi('settings', { notify: e.target.checked }); if (r && r.ok) { notifyOn = r.notify; toast(notifyOn ? "🔔 Eslatmalar yoqildi" : "🔕 Eslatmalar o'chirildi"); } };
@@ -3549,7 +3576,7 @@
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       const x = offX + c * cell + gap / 2, y = offY + r * cell + gap / 2, s = cell - gap;
       const g = ctx.createLinearGradient(0, y, 0, y + s);
-      g.addColorStop(0, '#20263f'); g.addColorStop(1, '#171c31');
+      g.addColorStop(0, theme().top); g.addColorStop(1, theme().bot);
       ctx.fillStyle = g; rr(x, y, s, s, rad); ctx.fill();
       ctx.strokeStyle = 'rgba(170,185,255,.16)'; ctx.lineWidth = 1; rr(x + .5, y + .5, s - 1, s - 1, rad); ctx.stroke();
       if (hints.some(h => h.r === r && h.c === c)) {
@@ -3693,7 +3720,7 @@
     const cs = size / 3, gp = Math.max(5, cs * 0.06), rad = cs * 0.14, pulse = 0.5 + 0.5 * Math.sin(now / 300);
     for (let i = 0; i < 9; i++) {
       const x = x0 + (i % 3) * cs + gp / 2, y = y0 + Math.floor(i / 3) * cs + gp / 2, s = cs - gp;
-      const gr = c.createLinearGradient(0, y, 0, y + s); gr.addColorStop(0, '#20263f'); gr.addColorStop(1, '#171c31');
+      const gr = c.createLinearGradient(0, y, 0, y + s); gr.addColorStop(0, theme().top); gr.addColorStop(1, theme().bot);
       c.fillStyle = gr; c.beginPath(); c.roundRect ? c.roundRect(x, y, s, s, rad) : c.rect(x, y, s, s); c.fill();
       c.strokeStyle = 'rgba(170,185,255,.16)'; c.lineWidth = 1; c.stroke();
       const v = g.board[i];
@@ -3836,7 +3863,8 @@
     ctx.restore();
     for (let v = 0; v < 64; v++) {
       const i = view8(v), r = Math.floor(v / 8), c = v % 8, x = offX + c * S, y = offY + r * S, dark = (r + c) % 2 === 1;
-      ctx.fillStyle = dark ? (chess ? '#27305e' : '#232a52') : (chess ? '#8f9bd0' : '#3b4474');
+      const th = theme();
+      ctx.fillStyle = dark ? (chess ? th.dark : th.dark2) : (chess ? th.light : th.light2);
       ctx.fillRect(x, y, S, S);
       if (lastSq.includes(i)) { ctx.fillStyle = 'rgba(255,197,49,.28)'; ctx.fillRect(x, y, S, S); }
       if (i === sel8) { ctx.fillStyle = hexA(COLORS[you], 0.38); ctx.fillRect(x, y, S, S); }
@@ -4026,6 +4054,7 @@
   function loop(now) { try { draw(now); drawHubThumbs(now); drawProfileHero(now); drawVsHeroes(now); drawSkinPreviews(now); drawShopPreviews(now); } catch (e) { console.error(e); } requestAnimationFrame(loop); }
   PLUG = window.Boards({
     get game() { return game; }, get you() { return you; }, COLORS, shade, hexA, act: (a) => act(a), flash, haptic: (k) => haptic(k), myTurn: () => myTurn(),
+    theme: () => theme(),
     button: (label, fn, cls) => { const b = bigBtn(label, () => { haptic('light'); fn(); }, cls); return b; },
   });
   resize(); requestAnimationFrame(loop);
@@ -4037,6 +4066,7 @@
   if (friendCode) startRoom = null;
   const inl = startRoom && /^g_(tosiq|xo|shashka|shaxmat|[a-z0-9]+)_([a-f0-9]{6,12})$/.exec(startRoom);
   if (inl) { startRoom = null; kind = RULES[inl[1]] ? inl[1] : kind; viewKind = kind; pendingInline = inl[2]; }
+  I18N.start(store.get('lang') || (user && /^ru|^uk|^be|^kk/.test(user.language_code || '') ? 'ru' : 'uz'));
   openPresence();
   loadMyInfo().then(() => setFrame($('hubAv'), myInfo.equip.frame));
   refreshWallet();
