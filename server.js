@@ -124,7 +124,7 @@ function uidOfPid(pid) {
   return pidIndex.get(pid) || null;
 }
 function playerRec(uid, name, photo) {
-  const p = players[uid] || (players[uid] = { name: name || "O'yinchi", stats: {} });
+  const p = players[uid] || (players[uid] = { name: name || "O'yinchi", stats: {}, created: Date.now() });
   if (name) p.name = name;
   if (photo !== undefined && photo !== null) p.photo = photo;
   p.ach = p.ach || {}; p.friends = p.friends || []; p.requests = p.requests || []; p.equip = p.equip || { frame: null, skin: {} };
@@ -346,6 +346,188 @@ const ACTIONS = {
   botwin(me, m) { if (Number(m.level) === 2) award(me.uid, 'bothard'); return { ok: true }; },
 };
 
+// ---------- admin panel (only for ADMIN_ID; with BOT_TOKEN the Telegram signature must check out) ----------
+const isAdmin = (uid) => typeof uid === 'string' && uid.startsWith('tg') && String(process.env.ADMIN_ID || '').split(/[\s,]+/).includes(uid.slice(2));
+function bannedMsg(uid) {
+  const b = players[uid] && players[uid].ban;
+  if (!b) return null;
+  if (b.until && b.until < Date.now()) { delete players[uid].ban; savePlayers(); return null; }
+  const till = b.until ? ` (${new Date(b.until + 5 * 3600000).toISOString().slice(0, 16).replace('T', ' ')} gacha)` : '';
+  return `⛔ Siz bloklangansiz${till}` + (b.reason ? `: ${b.reason}` : '');
+}
+const dayKey = (t = Date.now()) => new Date(t + 5 * 3600 * 1000).toISOString().slice(0, 10); // Tashkent date
+function countGame(kind) {
+  meta.days = meta.days || {};
+  const d = meta.days[dayKey()] || (meta.days[dayKey()] = {});
+  d[kind] = (d[kind] || 0) + 1;
+  // keep 60 days
+  const keys = Object.keys(meta.days).sort();
+  while (keys.length > 60) delete meta.days[keys.shift()];
+  saveMeta();
+}
+// who to message in a broadcast: everyone who opened the app or pressed /start in the bot
+function botAudience() {
+  const ids = new Set((meta.botUsers || []).map(String));
+  for (const u of Object.keys(players)) if (u.startsWith('tg')) ids.add(u.slice(2));
+  return [...ids];
+}
+let broadcasting = null;
+const adminRow = (uid) => {
+  const p = players[uid] || {};
+  const games = Object.values(p.stats || {}).reduce((n, st) => n + (st.games || 0), 0);
+  const best = Object.entries(p.stats || {}).filter(([, st]) => st.games).sort((a, b) => b[1].elo - a[1].elo)[0];
+  return { pid: pidOf(uid), tgId: uid.startsWith('tg') ? uid.slice(2) : null, name: p.name || "O'yinchi", photo: p.photo || null,
+    games, best: best ? { kind: best[0], elo: best[1].elo } : null, seen: p.seen || null, created: p.created || null,
+    online: presence.has(uid), ban: p.ban || null, admin: isAdmin(uid) };
+};
+const ADMIN = {
+  stats() {
+    const now = Date.now(), all = Object.keys(players), day = 86400000, today = dayKey();
+    const days = [];
+    for (let i = 6; i >= 0; i--) { const k = dayKey(now - i * day); const d = (meta.days || {})[k] || {}; days.push({ day: k, games: d }); }
+    const on = onlineCounts();
+    let live = 0, waiting = 0;
+    for (const r of rooms.values()) { if (r.game.winner === null && r.game.turnStart !== null) live++; else if (r.game.turnStart === null) waiting++; }
+    return { ok: true, players: all.length,
+      newToday: all.filter(u => players[u].created && dayKey(players[u].created) === today).length,
+      activeToday: all.filter(u => players[u].seen && dayKey(players[u].seen) === today).length,
+      active7: all.filter(u => players[u].seen && now - players[u].seen < 7 * day).length,
+      rated: Object.fromEntries(Object.keys(GAMES).map(k => [k, all.filter(u => players[u].stats[k] && players[u].stats[k].games).length])),
+      online: on.counts, onlineTotal: on.total, liveGames: live, waitingRooms: waiting, queue: queue.length,
+      tours: [...tours.values()].filter(t => t.status !== 'done').length, banned: all.filter(u => players[u].ban).length,
+      botUsers: botAudience().length, days, broadcasting };
+  },
+  players(m) {
+    const q = String(m.q || '').trim().replace(/^@/, '').toLowerCase();
+    let list = Object.keys(players);
+    if (q) list = list.filter(u => (players[u].name || '').toLowerCase().includes(q) || u.slice(2) === q || u.toLowerCase() === q || pidOf(u) === q);
+    const sort = m.sort === 'new' ? (u) => -(players[u].created || 0) : m.sort === 'games' ? (u) => -adminRow(u).games
+      : m.sort === 'banned' ? (u) => (players[u].ban ? 0 : 1) : (u) => -(players[u].seen || 0);
+    list.sort((a, b) => sort(a) - sort(b));
+    return { ok: true, total: list.length, list: list.slice(0, 50).map(adminRow) };
+  },
+  player(m) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid) return { ok: false, msg: "O'yinchi topilmadi" };
+    const p = players[uid];
+    const stats = {};
+    for (const k of Object.keys(GAMES)) { const st = p.stats[k]; stats[k] = st ? { elo: st.elo, peak: st.peak, games: st.games, wins: st.wins, losses: st.losses, draws: st.draws || 0 } : null; }
+    return { ok: true, row: adminRow(uid), stats, ach: Object.keys(p.ach || {}), friends: (p.friends || []).length, counters: p.counters || null,
+      status: statusOf(uid) };
+  },
+  setElo(m) {
+    const uid = uidOfPid(String(m.pid || '')), kind = kindOf(m.kind), elo = Math.round(Number(m.elo));
+    if (!uid || !(elo >= 100 && elo <= 3000)) return { ok: false, msg: "ELO 100–3000 oralig'ida bo'lishi kerak" };
+    const st = statsOf(uid, kind);
+    st.elo = elo; st.peak = Math.max(st.peak, elo);
+    if (m.resetPeak) st.peak = elo;
+    savePlayers();
+    return { ok: true };
+  },
+  resetStats(m) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid) return { ok: false, msg: "O'yinchi topilmadi" };
+    const kind = m.kind ? kindOf(m.kind) : null;
+    if (kind) delete players[uid].stats[kind]; else players[uid].stats = {};
+    savePlayers();
+    return { ok: true };
+  },
+  ban(m, me) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid) return { ok: false, msg: "O'yinchi topilmadi" };
+    if (isAdmin(uid)) return { ok: false, msg: "Adminni bloklab bo'lmaydi" };
+    const days = Number(m.days) || 0;
+    players[uid].ban = { until: days > 0 ? Date.now() + days * 86400000 : 0, reason: String(m.reason || '').slice(0, 120), by: me.name, at: Date.now() };
+    leaveAll(uid);
+    notify(uid, { t: 'banned', msg: bannedMsg(uid) });
+    savePlayers();
+    return { ok: true };
+  },
+  unban(m) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid) return { ok: false, msg: "O'yinchi topilmadi" };
+    delete players[uid].ban; savePlayers();
+    notify(uid, { t: 'unbanned' });
+    return { ok: true };
+  },
+  rooms() {
+    const list = [...rooms.values()].map(r => ({ id: r.id, kind: r.kind, pub: r.pub, ranked: !!r.ranked, tour: !!r.tour, challenge: !!(r.reserved && !r.tour),
+      minutes: r.minutes || DEFAULT_MIN[r.kind], names: r.players.map(x => x && x.name), online: r.players.map(x => !!(x && x.ws)),
+      state: r.game.winner !== null ? 'done' : r.game.turnStart !== null ? 'playing' : 'waiting', moves: r.game.log.length,
+      watchers: r.watchers ? r.watchers.size : 0, age: Math.round((Date.now() - r.created) / 60000) }));
+    const tl = [...tours.values()].map(t => Object.assign(tourBrief(t), { players: t.players.map(p => p.name) }));
+    return { ok: true, rooms: list, tours: tl };
+  },
+  closeRoom(m) {
+    const r = rooms.get(clean(m.id));
+    if (!r) return { ok: false, msg: 'Xona topilmadi' };
+    closeRoom(r, "⛔ Xona admin tomonidan yopildi");
+    return { ok: true };
+  },
+  cancelTour(m) {
+    const t = tours.get(clean(m.id));
+    if (!t) return { ok: false, msg: 'Turnir topilmadi' };
+    for (const rd of t.rounds) for (const x of rd) if (x.room && rooms.get(x.room)) closeRoom(rooms.get(x.room), "⛔ Turnir admin tomonidan bekor qilindi");
+    t.status = 'done'; t.ended = 0; clearTimeout(t.expire);
+    for (const p of t.players) notify(p.uid, { t: 'toast', msg: "Turnir admin tomonidan bekor qilindi" });
+    tourChanged(t); tours.delete(t.id); lobbyChanged();
+    return { ok: true };
+  },
+  announce(m) { // a banner at the top of the games list for everyone (empty text removes it)
+    const text = String(m.text || '').trim().slice(0, 300);
+    meta.announce = text ? { text, at: Date.now() } : null;
+    saveMeta();
+    const msg = JSON.stringify({ t: 'announce', text: text || null, at: Date.now() });
+    for (const set of presence.values()) for (const w of set) if (w.readyState === 1) w.send(msg);
+    return { ok: true };
+  },
+  broadcast(m, me) { // a bot message to everyone, ~20 per second (Telegram's limit is 30)
+    const text = String(m.text || '').trim().slice(0, 3500);
+    if (!text) return { ok: false, msg: "Matn bo'sh" };
+    if (!BOT_TOKEN) return { ok: false, msg: "BOT_TOKEN yo'q — xabar yuborib bo'lmaydi" };
+    if (broadcasting && !broadcasting.done) return { ok: false, msg: "Oldingi xabar hali yuborilmoqda" };
+    const ids = m.test ? [me.uid.slice(2)] : botAudience();
+    broadcasting = { total: ids.length, sent: 0, failed: 0, done: false, test: !!m.test, at: Date.now() };
+    const markup = m.button ? keyboard([playButton()]) : undefined;
+    (async () => {
+      for (const id of ids) {
+        try {
+          const r = await tgApi('sendMessage', { chat_id: Number(id), text, parse_mode: 'HTML', reply_markup: markup, link_preview_options: { is_disabled: true } });
+          if (r.ok) broadcasting.sent++; else broadcasting.failed++;
+        } catch (e) { broadcasting.failed++; }
+        await sleep(50);
+      }
+      broadcasting.done = true;
+      notify(me.uid, { t: 'toast', msg: `Xabar yuborildi: ${broadcasting.sent} ta, yetib bormadi: ${broadcasting.failed} ta` });
+    })();
+    return { ok: true, total: ids.length };
+  },
+};
+// end a room for everyone in it (players and spectators are sent back to the lobby)
+function closeRoom(r, msg) {
+  clearTimeout(r.clockTimer); clearTimeout(r.noShow); clearTimeout(r.cleanup); clearTimeout(r.holdTimer);
+  rooms.delete(r.id);
+  const out = JSON.stringify({ t: 'err', code: 'notfound', msg });
+  for (const p of r.players) if (p && p.ws && p.ws.readyState === 1) { p.ws.attach && p.ws.attach(null, -1); p.ws.send(out); }
+  if (r.watchers) for (const w of r.watchers) if (w.readyState === 1) w.send(out);
+  lobbyChanged();
+}
+// a banned player leaves the queue, waiting rooms and open tournaments
+function leaveAll(uid) {
+  for (const q of queue.filter(x => x.uid === uid)) { leaveQueue(q.ws); q.ws.send(JSON.stringify({ t: 'err', code: 'auth', msg: bannedMsg(uid) })); }
+  for (const r of [...rooms.values()]) {
+    const i = r.players.findIndex(p => p && p.uid === uid);
+    if (i < 0) continue;
+    if (r.game.winner === null && r.game.turnStart !== null) { rulesOf(r).resign(r.game, i); broadcast(r); }
+    const p = r.players[i];
+    if (p && p.ws) p.ws.send(JSON.stringify({ t: 'err', code: 'auth', msg: bannedMsg(uid) }));
+  }
+  for (const t of tours.values()) if (t.status === 'open') {
+    const i = t.players.findIndex(p => p.uid === uid);
+    if (i >= 0) { t.players.splice(i, 1); tourChanged(t); }
+  }
+}
+
 const GAME_INFO = {
   tosiq: { title: "To'siq Jangi", emoji: '🧱', line: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing!" },
   xo: { title: 'X va O', emoji: '❌⭕', line: "Uchta belgini bir qatorga birinchi bo'lib tering!" },
@@ -520,6 +702,16 @@ const server = http.createServer((req, res) => {
     const requests = (p && p.requests || []).filter(u => players[u]).map(u => cardOf(u));
     return sendJson(res, { friends: list, requests });
   }
+  if (url.pathname === '/api/admin' && req.method === 'POST') {
+    readJson(req).then(async (body) => {
+      const me = whoIs(body);
+      if (!me || !isAdmin(me.uid)) return sendJson(res, { ok: false, msg: "Ruxsat yo'q" });
+      const fn = ADMIN[body.op];
+      if (!fn) return sendJson(res, { ok: false, msg: "Noma'lum amal" });
+      try { sendJson(res, await fn(body, me)); } catch (e) { console.log('admin', body.op, e); sendJson(res, { ok: false, msg: 'Xato: ' + e.message }); }
+    });
+    return;
+  }
   const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin)$/);
   if (act && req.method === 'POST') {
     readJson(req).then(async (body) => {
@@ -676,6 +868,8 @@ function broadcast(room) {
     room.clockTimer = setTimeout(() => { if (G.checkTimeout(room.game, Date.now())) broadcast(room); }, Math.max(0, left) + 50);
   }
   rateGame(room);
+  if (g.winner !== null && !room.counted) { room.counted = true; countGame(room.kind); }
+  else if (g.winner === null) room.counted = false;
   if (g.winner !== null) room.drawOffer = null;
   if (room.tour) tourGameChanged(room);
   const now = Date.now();
@@ -847,7 +1041,11 @@ wss.on('connection', (ws) => {
       const me = whoIs(m);
       if (!me) return;
       ws.user = me;
-      playerRec(me.uid, me.name, me.photo);
+      const rec = playerRec(me.uid, me.name, me.photo);
+      rec.seen = Date.now();
+      if (meta.announce) send({ t: 'announce', text: meta.announce.text, at: meta.announce.at });
+      if (bannedMsg(me.uid)) send({ t: 'banned', msg: bannedMsg(me.uid) });
+      if (isAdmin(me.uid)) send({ t: 'admin' });
       if (!presence.has(me.uid)) presence.set(me.uid, new Set());
       presence.get(me.uid).add(ws);
       const t = tourOf(me.uid);
@@ -860,7 +1058,10 @@ wss.on('connection', (ws) => {
       ws.kind = GAMES[m.kind] ? m.kind : null;
       return onlineChanged();
     }
-    if (['tcreate', 'tjoin', 'tleave', 'tstart', 'tview'].includes(m.t)) return tourAction(ws, m);
+    if (['tcreate', 'tjoin', 'tleave', 'tstart', 'tview'].includes(m.t)) {
+      if (ws.user && bannedMsg(ws.user.uid)) return send({ t: 'toast', msg: bannedMsg(ws.user.uid) });
+      return tourAction(ws, m);
+    }
 
     if (m.t === 'watch') { // spectate a running game
       const r = rooms.get(clean(m.room));
@@ -879,6 +1080,7 @@ wss.on('connection', (ws) => {
       if (BOT_TOKEN && !v) return fail('auth', "Reytingli o'yin faqat Telegram ichida ishlaydi");
       const uid = v ? v.uid : String(m.uid || '').slice(0, 64), name = v ? v.name : String(m.name || "O'yinchi").slice(0, 24);
       if (!uid) return fail('auth', "Foydalanuvchi aniqlanmadi");
+      if (bannedMsg(uid)) return fail('auth', bannedMsg(uid));
       leaveQueue(ws);
       for (const q of queue.filter(x => x.uid === uid)) { leaveQueue(q.ws); q.ws.close(); } // one search per player
       const kind = kindOf(m.kind);
@@ -893,6 +1095,7 @@ wss.on('connection', (ws) => {
       const v = verifyInitData(m.initData);
       const uid = v ? v.uid : String(m.uid || '').slice(0, 64), name = v ? v.name : String(m.name || "O'yinchi").slice(0, 24);
       const verified = !!v || !BOT_TOKEN, photo = v ? v.photo : cleanPhoto(m.photo);
+      if (bannedMsg(uid)) return fail('auth', bannedMsg(uid));
       let r;
       if (m.create) {                       // new room
         const pub = !!m.create.pub;
@@ -1121,6 +1324,10 @@ async function onMessage(msg) {
     return send(`✨ <b>Premium emoji</b>\n\nQo'shish: <code>/emoji 🎮=</code> va yoniga premium emojini yuboring.\n`
       + `Bir xabarda bir nechtasi: <code>/emoji 🎮=… 🏆=… 👥=…</code>\nO'chirish: <code>/emojidel 🎮</code> yoki <code>/emojidel all</code>\n\n`
       + (list.length ? `Hozirgi (${list.length}): ${list.join(' ')}` : "Hozircha premium emoji yo'q."));
+  }
+  if (msg.chat.type === 'private') {
+    meta.botUsers = meta.botUsers || [];
+    if (!meta.botUsers.includes(chat_id)) { meta.botUsers.push(chat_id); saveMeta(); }
   }
   if (cmd === '/start' || cmd.startsWith('/start@')) {
     const code = clean(payload);

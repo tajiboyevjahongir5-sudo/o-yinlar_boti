@@ -79,6 +79,24 @@ ketayotgan o'yinni bosib tomosha qilish mumkin. Turnir o'yinlari ELO bermaydi; g
 - **Yurishni qaytarish** (↺, faqat botga qarshi, hamma o'yinda).
 - **Yurishlarni ko'rish**: o'yin tugagach ⏮ ◀ ▶ ⏭ bilan butun o'yinni qadamma-qadam ko'rish.
 
+## Admin panel
+
+Serverga `ADMIN_ID` (Telegram ID; botga `/id` yozsangiz ko'rsatadi; bir nechta bo'lsa vergul bilan) qo'shing.
+Shu foydalanuvchi uchun Profil sahifasida **🛡 Admin panel** tugmasi chiqadi (server Telegram imzosini tekshiradi —
+boshqalar API'ni ham ishlata olmaydi).
+
+- **Statistika**: hozir onlayn (umumiy va har o'yinda), ketayotgan o'yinlar, jami/bugungi/7 kunlik o'yinchilar,
+  navbat, turnirlar, bloklanganlar, 7 kunlik onlayn o'yinlar grafigi (o'yinlar bo'yicha). 10 soniyada yangilanadi.
+- **O'yinchilar**: ism, @username, Telegram ID yoki pid bo'yicha qidirish; saralash (oxirgi kirgan, yangi, ko'p
+  o'ynagan, bloklangan). O'yinchi kartasida: har o'yindagi ELO / eng yuqori / G-M, **ELO'ni o'zgartirish**,
+  **bloklash** (1/7/30 kun yoki muddatsiz, sabab bilan — o'yinchi navbat, xona va turnirlardan chiqariladi, ilovada
+  "Kirish cheklangan" ekrani chiqadi), **blokdan chiqarish**, **statistikani tozalash**.
+- **Xonalar**: barcha xonalar va turnirlar; ketayotgan o'yinni 👁 tomosha qilish, xonani yopish, turnirni bekor qilish.
+- **Xabarlar**: ilovada hammaga ko'rinadigan **e'lon** (o'yinlar ro'yxati tepasida, darhol) va **bot orqali hammaga
+  xabar** (ilovani ochgan yoki botga /start bosganlarga; HTML; "O'ynash" tugmasi; avval "Menga sinov"; jarayon
+  ko'rsatiladi, ~20 xabar/soniya).
+- Ma'lumot: `data/meta.json` (kunlik o'yinlar, e'lon, bot foydalanuvchilari), `data/players.json` (blok, sanalar).
+
 ## Revansh, reaksiyalar va ovoz
 
 - **🔁 Revansh**: o'yin tugagach o'sha raqib bilan yana o'ynash. Ikkala o'yinchi ham rozi bo'lishi kerak: birinchi

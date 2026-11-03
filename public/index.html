@@ -597,6 +597,50 @@
   .nbadge { position:absolute; top:2px; left:calc(50% + 6px); min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red);
     color:#fff; font-size:11px; font-weight:900; display:grid; place-items:center; box-shadow:0 0 8px var(--red); }
   .nbadge:empty { display:none; }
+  /* ---------- admin panel, announcement banner, ban screen ---------- */
+  .adm-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
+  .adm-grid div { border-radius:14px; padding:10px 12px; background:rgba(8,13,36,.85); border:1px solid rgba(120,140,255,.25); }
+  .adm-grid b { display:block; font-size:22px; } .adm-grid small { color:var(--mute); font-size:11.5px; font-weight:700; }
+  .adm-grid .hot b { color:var(--green); }
+  .bars { display:flex; align-items:flex-end; gap:6px; height:120px; padding:8px; border-radius:14px; background:rgba(8,13,36,.85);
+    border:1px solid rgba(120,140,255,.25); }
+  .bars .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; min-width:0; }
+  .bars .stack { width:100%; max-width:30px; display:flex; flex-direction:column-reverse; border-radius:6px 6px 2px 2px; overflow:hidden; min-height:2px; background:rgba(255,255,255,.06); }
+  .bars .stack i { display:block; } .bars small { font-size:10px; color:var(--mute); font-weight:700; } .bars b { font-size:11px; }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:11.5px; color:var(--mute); font-weight:700; }
+  .legend i { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:4px; }
+  .adm-row { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:14px; border:1px solid rgba(120,140,255,.25);
+    background:rgba(8,13,36,.85); cursor:pointer; }
+  .adm-row .ini { width:36px; height:36px; border-radius:50%; flex:none; display:grid; place-items:center; font-weight:900; background:#18214a; overflow:hidden; }
+  .adm-row .ini img { width:100%; height:100%; object-fit:cover; }
+  .adm-row .who2 { flex:1; min-width:0; } .adm-row .who2 b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:14px; }
+  .adm-row .who2 small { color:var(--mute); font-size:11.5px; }
+  .adm-row .side { flex:none; text-align:right; font-size:12px; color:#9cc0ff; font-weight:800; }
+  .adm-row.ban { border-color:rgba(255,45,70,.6); } .tag.ban { color:#ff8a98; border-color:rgba(255,45,70,.6); } .tag.adm { color:var(--yellow); border-color:rgba(255,197,49,.6); }
+  .adm-room { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:14px; border:1px solid rgba(120,140,255,.25); background:rgba(8,13,36,.85); }
+  .adm-room .who2 { flex:1; min-width:0; } .adm-room b { display:block; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .adm-room small { color:var(--mute); font-size:11.5px; }
+  .adm-room button, .mini-danger { flex:none; border:1.5px solid var(--red); background:rgba(255,45,70,.12); color:#fff; font-weight:800; font-size:12.5px;
+    border-radius:11px; padding:7px 10px; box-shadow:0 0 8px rgba(255,45,70,.5); }
+  .adm-in, .adm-ta { width:100%; padding:11px 13px; border-radius:13px; border:1.5px solid rgba(120,140,255,.5); background:#070b1f; color:#fff; font-size:14.5px;
+    outline:none; font-family:inherit; user-select:text; -webkit-user-select:text; touch-action:auto; }
+  .adm-ta { min-height:96px; resize:vertical; line-height:1.4; }
+  .adm-line { display:flex; gap:8px; width:100%; align-items:center; } .adm-line > * { flex:1; min-width:0; }
+  .adm-line select { padding:11px 8px; border-radius:13px; border:1.5px solid rgba(120,140,255,.5); background:#070b1f; color:#fff; font-size:14px; font-family:inherit; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#c4cbef; width:100%; }
+  .chk input { width:18px; height:18px; accent-color:var(--green); }
+  .prog-big { width:100%; height:10px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden; } .prog-big i { display:block; height:100%; background:var(--green); }
+  .adm-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; border-radius:16px; color:#fff; font-weight:800; font-size:14.5px;
+    border:2px solid var(--yellow); background:rgba(255,197,49,.12); box-shadow:0 0 10px rgba(255,197,49,.5); }
+  #announce { display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border-radius:16px; border:1.5px solid var(--yellow);
+    background:linear-gradient(120deg, rgba(255,197,49,.16), rgba(5,10,30,.85) 70%); box-shadow:0 0 12px rgba(255,197,49,.35);
+    font-size:13.5px; line-height:1.45; color:#fff4d6; white-space:pre-line; animation:cardIn .4s ease-out; }
+  #announce.hide { display:none; } #announce .ic3 { flex:none; font-size:18px; line-height:1.2; }
+  #announce button { flex:none; border:0; background:none; color:var(--mute); padding:0 2px; font-size:16px; }
+  #banScreen { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:30px;
+    text-align:center; background:rgba(4,6,18,.96); }
+  #banScreen.hide { display:none; } #banScreen .e { font-size:56px; } #banScreen p { color:#ffd0d6; font-size:15px; line-height:1.5; max-width:340px; }
+
   /* long notices wrap instead of running off the screen */
   #toast { white-space:normal; text-align:center; width:max-content; max-width:calc(100vw - 32px); line-height:1.35; }
   .search-in { width:100%; padding:12px 14px; border-radius:14px; border:2px solid var(--blue); background:#070b1f; color:#fff; font-size:15px;
@@ -694,6 +738,7 @@
   <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button id="hubSnd" class="tiny-btn snd" aria-label="Ovoz"></button><button class="inv-btn" id="hubInvite"><i data-ic="invite"></i> Taklif qilish</button></div>
   <div class="hub-title"><i data-ic="games"></i> O'yinlar</div>
   <div class="hub-online"><span class="dot"></span><span id="hubOnline">Onlayn o'yinchilar yuklanmoqda...</span></div>
+  <div id="announce" class="hide"><span class="ic3">📢</span><span id="announceTx" style="flex:1"></span><button id="announceX" aria-label="Yopish">✕</button></div>
   <div id="games"></div>
 </div></div>
 <div id="lobby" class="hide"><div class="hub-in">
@@ -725,6 +770,13 @@
 </div></div>
 <div id="friends" class="tab hide"><div class="hub-in" id="friendsIn"></div></div>
 <div id="profile" class="tab hide"><div class="hub-in" id="profIn"></div></div>
+<div id="admin" class="tab hide"><div class="hub-in">
+  <div class="lob-top"><button class="icon-btn" id="admBack" aria-label="Orqaga"><i data-ic="back"></i></button>
+    <div class="lob-title"><b>🛡 Admin panel</b><small id="admSub">Faqat siz ko'rasiz</small></div></div>
+  <div class="seg" id="admSeg"><button data-s="stats" class="on">Statistika</button><button data-s="players">O'yinchilar</button><button data-s="rooms">Xonalar</button><button data-s="msg">Xabarlar</button></div>
+  <div id="admBody" style="display:flex;flex-direction:column;gap:10px"></div>
+</div></div>
+<div id="banScreen" class="hide"><span class="e">⛔</span><h2 style="margin:0">Kirish cheklangan</h2><p id="banTx"></p></div>
 <nav id="nav" class="hide"><div class="in">
   <button data-tab="hub" class="on"><span><i data-ic="games"></i></span>O'yinlar</button>
   <button data-tab="rating"><span><i data-ic="rating"></i></span>Reyting</button>
@@ -1547,6 +1599,10 @@
     s.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; setFriendBadge(m.requests || 0); }
+      else if (m.t === 'admin') { isAdminUser = true; if (!$('profile').classList.contains('hide')) loadProfile(); }
+      else if (m.t === 'announce') { setAnnounce(m.text, m.at); if (m.text && !$('hub').classList.contains('hide')) Snd.play('notify'); }
+      else if (m.t === 'banned') { $('banTx').textContent = m.msg; $('banScreen').classList.remove('hide'); leaveOnline(); }
+      else if (m.t === 'unbanned') { $('banScreen').classList.add('hide'); toast("{check} Blok olib tashlandi"); }
       else if (m.t === 'freq') { // someone wants to be my friend
         setFriendBadge(m.count); Snd.play('notify'); haptic('medium');
         toast(`{invite} ${m.from.name} sizga do'stlik so'rovi yubordi — Do'stlar bo'limida tasdiqlang`);
@@ -1943,6 +1999,248 @@
     box.appendChild(nb);
   }
 
+
+  // ---------- admin panel ----------
+  let isAdminUser = false, admTab = 'stats', admTimer = null;
+  // Telegram's own confirm dialog (window.confirm is not reliable inside the app)
+  const ask = (text) => new Promise((res) => {
+    try { if (tg && tg.showConfirm && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) return tg.showConfirm(text, (ok) => res(!!ok)); } catch (e) {}
+    res(window.confirm(text));
+  });
+  const adminApi = (op, o) => postApi('admin', Object.assign({ op }, o || {}));
+  const GAME_COL = { shaxmat: '#2f7bff', shashka: '#ff2d46', tosiq: '#ffc531', xo: '#c084fc' };
+  const agoTxt = (t) => { if (!t) return '—'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'hozir' : m < 60 ? m + ' daq' : m < 1440 ? Math.round(m / 60) + ' soat' : Math.round(m / 1440) + ' kun'; };
+  function showAdmin() {
+    if (!isAdminUser) return;
+    for (const t of ['hub', 'rating', 'friends', 'profile']) $(t).classList.add('hide');
+    $('admin').classList.remove('hide'); $('nav').classList.add('hide');
+    setBackButton(true);
+    $('admSeg').querySelectorAll('button').forEach(b => b.onclick = () => { haptic('light'); admTab = b.dataset.s; renderAdmin(); });
+    renderAdmin();
+  }
+  function hideAdmin() { $('admin').classList.add('hide'); clearTimeout(admTimer); }
+  $('admBack').onclick = () => { hideAdmin(); showTabs('profile'); };
+  const admAlive = () => !$('admin').classList.contains('hide');
+  async function renderAdmin() {
+    clearTimeout(admTimer);
+    $('admSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.s === admTab));
+    const box = $('admBody'), tab = admTab;
+    if (!box.children.length || box.dataset.tab !== tab) box.innerHTML = '<div class="note">Yuklanmoqda...</div>';
+    box.dataset.tab = tab;
+    if (tab === 'stats') return admStats(box);
+    if (tab === 'players') return admPlayers(box);
+    if (tab === 'rooms') return admRooms(box);
+    return admMessages(box);
+  }
+
+  async function admStats(box) {
+    const d = await adminApi('stats');
+    if (!admAlive() || admTab !== 'stats') return;
+    box.innerHTML = '';
+    if (!d || !d.ok) return addText(box, 'div', '{alert} ' + ((d && d.msg) || "Ruxsat yo'q")).className = 'empty2';
+    const grid = document.createElement('div'); grid.className = 'adm-grid';
+    const cell = (v, l, hot) => { const c = document.createElement('div'); if (hot) c.className = 'hot'; addText(c, 'b', String(v)); addText(c, 'small', l); grid.appendChild(c); };
+    cell(d.onlineTotal, '🟢 Hozir onlayn', true); cell(d.liveGames, "🎮 Ketayotgan o'yinlar", true);
+    cell(d.players, "👥 Jami o'yinchilar"); cell(d.newToday, '🆕 Bugun yangi');
+    cell(d.activeToday, '📅 Bugun kirganlar'); cell(d.active7, '📈 7 kunda kirganlar');
+    cell(d.waitingRooms, '⏳ Kutayotgan xonalar'); cell(d.queue, '⭐ Reytingli navbatda');
+    cell(d.tours, '🏆 Faol turnirlar'); cell(d.banned, '⛔ Bloklanganlar');
+    cell(d.botUsers, '🤖 Bot auditoriyasi'); cell(Object.values(d.rated).reduce((a, b) => a + b, 0), '🏅 Reytingda (jami)');
+    box.appendChild(grid);
+    addText(box, 'div', "{games} Hozir har bir o'yinda").className = 'sec';
+    const og = document.createElement('div'); og.className = 'adm-grid';
+    for (const k of Object.keys(GAME_NAMES)) { const c = document.createElement('div'); addText(c, 'b', String(d.online[k] || 0)); addText(c, 'small', `${GAME_NAMES[k]} · reytingda ${d.rated[k]}`); c.style.borderColor = GAME_COL[k]; og.appendChild(c); }
+    box.appendChild(og);
+    addText(box, 'div', "{trend} Onlayn o'yinlar — 7 kun").className = 'sec';
+    const bars = document.createElement('div'); bars.className = 'bars';
+    const max = Math.max(1, ...d.days.map(x => Object.values(x.games).reduce((a, b) => a + b, 0)));
+    for (const x of d.days) {
+      const tot = Object.values(x.games).reduce((a, b) => a + b, 0), col = document.createElement('div'); col.className = 'col';
+      addText(col, 'b', String(tot));
+      const st = document.createElement('div'); st.className = 'stack'; st.style.height = Math.max(2, tot / max * 80) + 'px';
+      for (const k of Object.keys(GAME_NAMES)) if (x.games[k]) { const i = document.createElement('i'); i.style.background = GAME_COL[k]; i.style.flex = x.games[k]; st.appendChild(i); }
+      col.appendChild(st); addText(col, 'small', x.day.slice(8) + '.' + x.day.slice(5, 7));
+      bars.appendChild(col);
+    }
+    box.appendChild(bars);
+    const lg = document.createElement('div'); lg.className = 'legend';
+    lg.innerHTML = Object.keys(GAME_NAMES).map(k => `<span><i style="background:${GAME_COL[k]}"></i>${SHORT_NAMES[k]}</span>`).join('');
+    box.appendChild(lg);
+    addText(box, 'div', 'Har 10 soniyada yangilanadi. Bot o\'yinlari hisobga olinmaydi.').className = 'note';
+    admTimer = setTimeout(() => { if (admAlive() && admTab === 'stats') admStats(box); }, 10000);
+  }
+
+  let admQ = '', admSort = 'seen';
+  async function admPlayers(box) {
+    if (!box.querySelector('.adm-in')) {
+      box.innerHTML = '';
+      const inp = document.createElement('input'); inp.className = 'adm-in'; inp.placeholder = 'Ism, @username, Telegram ID yoki pid'; inp.value = admQ;
+      const seg = document.createElement('div'); seg.className = 'seg';
+      [['seen', 'Oxirgi kirgan'], ['new', 'Yangi'], ['games', "Ko'p o'ynagan"], ['banned', 'Bloklangan']].forEach(([k, t]) => {
+        const b = document.createElement('button'); b.textContent = t; b.dataset.k = k; b.classList.toggle('on', k === admSort);
+        b.onclick = () => { admSort = k; seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.k === k)); loadList(); };
+        seg.appendChild(b);
+      });
+      const list = document.createElement('div'); list.className = 'adm-list'; list.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+      box.append(inp, seg, list);
+      let t = null; inp.oninput = () => { clearTimeout(t); t = setTimeout(() => { admQ = inp.value.trim(); loadList(); }, 300); };
+    }
+    const list = box.querySelector('.adm-list');
+    async function loadList() {
+      const d = await adminApi('players', { q: admQ, sort: admSort });
+      if (!admAlive() || admTab !== 'players') return;
+      list.innerHTML = '';
+      if (!d || !d.ok) return addText(list, 'div', '{alert} ' + ((d && d.msg) || 'Xato')).className = 'empty2';
+      addText(list, 'div', `Topildi: ${d.total}` + (d.total > 50 ? ' (birinchi 50 tasi)' : '')).className = 'note';
+      for (const r of d.list) {
+        const row = document.createElement('div'); row.className = 'adm-row' + (r.ban ? ' ban' : '');
+        const av = document.createElement('div'); av.className = 'ini';
+        if (isPhoto(r.photo)) setAvatar(av, r.photo, initial(r.name)); else av.textContent = initial(r.name);
+        const who = document.createElement('div'); who.className = 'who2';
+        const nm = addText(who, 'b', r.name);
+        if (r.admin) nm.insertAdjacentHTML('beforeend', ' <span class="tag adm">admin</span>');
+        if (r.ban) nm.insertAdjacentHTML('beforeend', ' <span class="tag ban">bloklangan</span>');
+        addText(who, 'small', (r.online ? '🟢 onlayn · ' : '') + `oxirgi: ${agoTxt(r.seen)} · ${r.games} o'yin`);
+        const side = document.createElement('div'); side.className = 'side'; side.textContent = r.best ? `${SHORT_NAMES[r.best.kind]} ${r.best.elo}` : '—';
+        row.append(av, who, side); row.onclick = () => admPlayer(r.pid);
+        list.appendChild(row);
+      }
+    }
+    loadList();
+  }
+  async function admPlayer(pid) {
+    const p = openPanel('admplayer');
+    addText(p, 'div', 'Yuklanmoqda...').className = 'note';
+    const d = await adminApi('player', { pid });
+    if ($('overlay').dataset.kind !== 'admplayer') return;
+    p.innerHTML = '';
+    if (!d || !d.ok) { addText(p, 'p', (d && d.msg) || 'Xato'); return p.append(bigBtn('Yopish', hideOverlay)); }
+    const r = d.row;
+    const av = document.createElement('div'); av.className = 'pc-av';
+    if (isPhoto(r.photo)) setAvatar(av, r.photo, initial(r.name)); else av.textContent = initial(r.name);
+    p.appendChild(av);
+    addText(p, 'h1', r.name).style.fontSize = '21px';
+    addText(p, 'div', `Telegram ID: ${r.tgId || '—'} · pid: ${r.pid}\nRo'yxatdan: ${r.created ? new Date(r.created).toLocaleDateString() : '—'} · oxirgi: ${agoTxt(r.seen)}\nDo'stlar: ${d.friends} · yutuqlar: ${d.ach.length} · holat: ${d.status.state}`).className = 'note';
+    p.lastChild.style.whiteSpace = 'pre-line';
+    if (r.ban) addText(p, 'div', `⛔ Bloklangan${r.ban.until ? ' — ' + new Date(r.ban.until).toLocaleString() + ' gacha' : ' — muddatsiz'}${r.ban.reason ? ': ' + r.ban.reason : ''}`).className = 'err';
+    const grid = document.createElement('div'); grid.className = 'pc-elo';
+    for (const k of Object.keys(GAME_NAMES)) {
+      const st = d.stats[k], c = document.createElement('div');
+      c.innerHTML = `<b>${st ? st.elo : 1000}</b>`; c.append(`${SHORT_NAMES[k]} · eng yuqori ${st ? st.peak : 1000} · ${st ? st.wins + 'G/' + st.losses + 'M' : "o'ynamagan"}`);
+      grid.appendChild(c);
+    }
+    p.appendChild(grid);
+    // ELO edit
+    addText(p, 'div', "ELO'ni o'zgartirish").className = 'lbl2';
+    const line = document.createElement('div'); line.className = 'adm-line';
+    const sel = document.createElement('select'); sel.innerHTML = Object.keys(GAME_NAMES).map(k => `<option value="${k}">${SHORT_NAMES[k]}</option>`).join('');
+    const num = document.createElement('input'); num.className = 'adm-in'; num.type = 'number'; num.min = 100; num.max = 3000;
+    const fill = () => { const st = d.stats[sel.value]; num.value = st ? st.elo : 1000; }; sel.onchange = fill; fill();
+    const save = document.createElement('button'); save.className = 'frow-btn'; save.className = 'mini-danger'; save.style.cssText = 'border-color:var(--green);background:rgba(46,230,107,.12);box-shadow:0 0 8px var(--green);flex:none';
+    save.textContent = 'Saqlash';
+    save.onclick = async () => { const x = await adminApi('setElo', { pid, kind: sel.value, elo: Number(num.value) }); toast(x && x.ok ? '{check} ELO saqlandi' : '{alert} ' + ((x && x.msg) || 'Xato')); if (x && x.ok) admPlayer(pid); };
+    line.append(sel, num, save); p.appendChild(line);
+    if (!r.admin) {
+      if (r.ban) p.appendChild(bigBtn('{unlock} Blokdan chiqarish', async () => { const x = await adminApi('unban', { pid }); toast(x && x.ok ? '{check} Blokdan chiqarildi' : '{alert} Xato'); admPlayer(pid); }, 'pri'));
+      else {
+        addText(p, 'div', 'Bloklash').className = 'lbl2';
+        const bl = document.createElement('div'); bl.className = 'adm-line';
+        const days = document.createElement('select'); days.innerHTML = [['1', '1 kun'], ['7', '7 kun'], ['30', '30 kun'], ['0', 'Muddatsiz']].map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+        const why = document.createElement('input'); why.className = 'adm-in'; why.placeholder = 'Sabab (ixtiyoriy)';
+        bl.append(days, why); p.appendChild(bl);
+        p.appendChild(bigBtn('⛔ Bloklash', async () => {
+          if (!await ask(`${r.name} bloklansinmi? U o'yinlardan chiqariladi.`)) return;
+          const x = await adminApi('ban', { pid, days: Number(days.value), reason: why.value });
+          toast(x && x.ok ? '⛔ Bloklandi' : '{alert} ' + ((x && x.msg) || 'Xato')); admPlayer(pid);
+        }, 'danger'));
+      }
+      p.appendChild(bigBtn("{again} Statistikasini tozalash", async () => {
+        if (!await ask(`${r.name}ning barcha o'yinlardagi ELO va statistikasi o'chirilsinmi? Qaytarib bo'lmaydi.`)) return;
+        const x = await adminApi('resetStats', { pid }); toast(x && x.ok ? '{check} Tozalandi' : '{alert} Xato'); admPlayer(pid);
+      }));
+    }
+    p.appendChild(bigBtn('Yopish', () => { hideOverlay(); if (admTab === 'players') admPlayers($('admBody')); }));
+  }
+
+  async function admRooms(box) {
+    const d = await adminApi('rooms');
+    if (!admAlive() || admTab !== 'rooms') return;
+    box.innerHTML = '';
+    if (!d || !d.ok) return addText(box, 'div', '{alert} Xato').className = 'empty2';
+    addText(box, 'div', `{rating} Turnirlar · ${d.tours.length}`).className = 'sec';
+    if (!d.tours.length) addText(box, 'div', "Faol turnir yo'q").className = 'note';
+    for (const t of d.tours) {
+      const row = document.createElement('div'); row.className = 'adm-room';
+      const who = document.createElement('div'); who.className = 'who2';
+      addText(who, 'b', `🏆 ${GAME_NAMES[t.kind]} · ${t.count}/${t.size} · ${t.status}`); addText(who, 'small', t.players.join(', '));
+      const b = document.createElement('button'); b.textContent = 'Bekor qilish';
+      b.onclick = async () => { if (!await ask('Turnir bekor qilinsinmi?')) return; const x = await adminApi('cancelTour', { id: t.id }); toast(x && x.ok ? 'Bekor qilindi' : '{alert} Xato'); admRooms(box); };
+      row.append(who, b); box.appendChild(row);
+    }
+    addText(box, 'div', `{rooms} Xonalar · ${d.rooms.length}`).className = 'sec';
+    if (!d.rooms.length) addText(box, 'div', "Hozir xona yo'q").className = 'note';
+    const ST = { playing: "o'ynalmoqda", waiting: 'kutmoqda', done: 'tugagan' };
+    for (const r of d.rooms.sort((a, b) => (a.state === 'playing' ? -1 : 1) - (b.state === 'playing' ? -1 : 1))) {
+      const row = document.createElement('div'); row.className = 'adm-room';
+      const who = document.createElement('div'); who.className = 'who2';
+      const type = r.tour ? 'Turnir' : r.ranked ? 'Reytingli' : r.challenge ? 'Chaqiruv' : r.pub ? 'Ochiq' : 'Maxfiy';
+      addText(who, 'b', `${GAME_NAMES[r.kind]} · ${r.names.map((n, i) => (n || '—') + (n && !r.online[i] ? ' (oflayn)' : '')).join(' vs ')}`);
+      addText(who, 'small', `${type} · ${r.minutes} daq · ${ST[r.state]} · ${r.moves} yurish · ${r.age} daq oldin` + (r.watchers ? ` · ${r.watchers} tomoshabin` : ''));
+      row.appendChild(who);
+      if (r.state === 'playing') { const w = document.createElement('button'); w.textContent = '👁'; w.style.cssText = 'border-color:#c084fc;background:rgba(192,132,252,.14);box-shadow:0 0 8px #c084fc'; w.onclick = () => { hideAdmin(); watchGame(r.id, r.kind); }; row.appendChild(w); }
+      const b = document.createElement('button'); b.textContent = 'Yopish';
+      b.onclick = async () => { if (!await ask("Xona yopilsinmi? O'yinchilar xonalar sahifasiga qaytariladi.")) return; const x = await adminApi('closeRoom', { id: r.id }); toast(x && x.ok ? 'Yopildi' : '{alert} Xato'); admRooms(box); };
+      row.appendChild(b); box.appendChild(row);
+    }
+    admTimer = setTimeout(() => { if (admAlive() && admTab === 'rooms') admRooms(box); }, 8000);
+  }
+
+  async function admMessages(box) {
+    const d = await adminApi('stats');
+    if (!admAlive() || admTab !== 'msg') return;
+    box.innerHTML = '';
+    // the in-app banner
+    addText(box, 'div', "📢 Ilovadagi e'lon").className = 'sec';
+    addText(box, 'div', "O'yinlar ro'yxati tepasida hamma uchun ko'rinadi (darhol). Bo'sh qoldirib saqlasangiz — o'chadi.").className = 'note';
+    const ta = document.createElement('textarea'); ta.className = 'adm-ta'; ta.maxLength = 300; ta.placeholder = "Masalan: Bugun 20:00 da Shaxmat turniri! 🏆"; ta.value = announceText || '';
+    box.appendChild(ta);
+    const row = document.createElement('div'); row.className = 'btn-row';
+    row.append(bigBtn("{check} E'lonni saqlash", async () => { const x = await adminApi('announce', { text: ta.value }); toast(x && x.ok ? (ta.value.trim() ? "{check} E'lon chiqdi" : "E'lon o'chirildi") : '{alert} Xato'); }, 'pri'),
+      bigBtn("{close} O'chirish", async () => { ta.value = ''; const x = await adminApi('announce', { text: '' }); toast(x && x.ok ? "E'lon o'chirildi" : '{alert} Xato'); }));
+    box.appendChild(row);
+    // a bot message to everyone
+    addText(box, 'div', '🤖 Bot orqali hammaga xabar').className = 'sec';
+    addText(box, 'div', `${d && d.botUsers || 0} kishiga boradi (ilovani ochgan yoki botga /start bosganlar). HTML: <b>qalin</b>, <i>qiya</i>. Avval o'zingizga sinab ko'ring.`).className = 'note';
+    const bt = document.createElement('textarea'); bt.className = 'adm-ta'; bt.maxLength = 3500; bt.placeholder = "Xabar matni..."; box.appendChild(bt);
+    const chk = document.createElement('label'); chk.className = 'chk'; chk.innerHTML = '<input type="checkbox" checked> "🎮 O\'ynash" tugmasini qo\'shish'; box.appendChild(chk);
+    const send = async (test) => {
+      if (!bt.value.trim()) return toast("{alert} Matn bo'sh");
+      if (!test && !await ask(`Xabar ${d && d.botUsers || 0} kishiga yuborilsinmi?`)) return;
+      const x = await adminApi('broadcast', { text: bt.value, button: chk.querySelector('input').checked, test });
+      toast(x && x.ok ? (test ? "{send} Sinov xabari sizga yuborildi" : `{send} Yuborilmoqda: ${x.total} kishi`) : '{alert} ' + ((x && x.msg) || 'Xato'));
+      if (x && x.ok && !test) admMessages(box);
+    };
+    const r2 = document.createElement('div'); r2.className = 'btn-row';
+    r2.append(bigBtn('{send} Menga sinov', () => send(true)), bigBtn('{send} Hammaga yuborish', () => send(false), 'pri'));
+    box.appendChild(r2);
+    const b = d && d.broadcasting;
+    if (b) {
+      addText(box, 'div', `${b.test ? 'Sinov' : 'Oxirgi xabar'}: ${b.sent + b.failed}/${b.total} · yetdi ${b.sent} · yetmadi ${b.failed}` + (b.done ? ' · tugadi' : ' · yuborilmoqda...')).className = 'note';
+      const pr = document.createElement('div'); pr.className = 'prog-big'; pr.innerHTML = `<i style="width:${b.total ? (b.sent + b.failed) / b.total * 100 : 100}%"></i>`; box.appendChild(pr);
+      if (!b.done) admTimer = setTimeout(() => { if (admAlive() && admTab === 'msg' && !bt.value) admMessages(box); }, 2000);
+    }
+  }
+
+  // ---------- announcement banner (from the admin) and the ban screen ----------
+  let announceText = null;
+  function setAnnounce(text, at) {
+    announceText = text || null;
+    const hidden = text && store.get('ann_x') === String(at);
+    $('announce').classList.toggle('hide', !text || hidden);
+    $('announceTx').textContent = text || '';
+    $('announceX').onclick = () => { store.set('ann_x', String(at)); $('announce').classList.add('hide'); };
+  }
+
   // ---------- emoji reactions (online games) ----------
   const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
   function sendReaction(e) {
@@ -2068,6 +2366,7 @@
 
   function showTabs(tab) {
     for (const t of ['hub', 'rating', 'friends', 'profile']) $(t).classList.toggle('hide', t !== tab);
+    hideAdmin();
     $('nav').classList.remove('hide');
     document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     setBackButton(tab !== 'hub');
@@ -2078,6 +2377,7 @@
   }
   function hideTabs() {
     for (const t of ['rating', 'friends', 'profile', 'nav']) $(t).classList.add('hide');
+    hideAdmin();
     profHero = null;
   }
   document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
@@ -2176,6 +2476,7 @@
       const hx = c.getContext('2d'); hx.setTransform(dpr, 0, 0, dpr, 0, 0);
       profHero = hx;
     }
+    if (isAdminUser) { const ab = document.createElement('button'); ab.className = 'adm-btn'; ab.innerHTML = '🛡 Admin panel'; ab.onclick = () => { haptic('medium'); showAdmin(); }; box.appendChild(ab); }
     const inv = document.createElement('button'); inv.className = 'inv-btn inv-big'; inv.innerHTML = lbl("{invite} Do'stlarni taklif qilish");
     inv.onclick = () => showInvite(null);
     box.appendChild(inv);
@@ -2324,6 +2625,7 @@
   // Telegram's Back button and the "Chiqish" button: game -> rooms -> games
   function goBack() {
     if (replay) return closeReplay();
+    if (!$('admin').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); hideAdmin(); return showTabs('profile'); }
     if (['player', 'pick', 'tour', 'tcreate', 'challenge', 'addfriend'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
     if (!$('rating').classList.contains('hide') || !$('profile').classList.contains('hide')) return showHub();
     if (!$('hub').classList.contains('hide')) return;
