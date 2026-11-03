@@ -111,7 +111,8 @@ window.I18N = (function () {
     'Damka ustasi': 'Мастер дамки', 'Devor quruvchi': 'Строитель стен', 'Uchtalik': 'Три в ряд', "Hamma o'yin": 'Все игры', "Kuchli o'yinchi": 'Сильный игрок',
     'Chaqmoq': 'Молния', 'Qasos': 'Реванш', "Do'stona": 'Дружелюбный', 'Tomoshabin': 'Зритель', 'Bot yengildi': 'Бот побеждён', "Turnir g'olibi": 'Победитель турнира',
     'Haftalik seriya': 'Недельная серия', 'Xaridor': 'Покупатель', 'Taklifchi': 'Пригласивший',
-    'Kirish cheklangan': 'Доступ ограничен', "Birinchi toshni qo'ying": 'Поставьте первую кость', 'Raqib boshlaydi': 'Соперник начинает',
+    'Kirish cheklangan': 'Доступ ограничен', 'Kemani surib joylang, bosib aylantiring': 'Перетащите корабль, нажмите — повернуть',
+    'Kemalar bir-biriga tegmasligi kerak': 'Корабли не должны касаться', "Bu yerda aylantirib bo'lmaydi": 'Здесь повернуть нельзя', "Birinchi toshni qo'ying": 'Поставьте первую кость', 'Raqib boshlaydi': 'Соперник начинает',
     'Neon': 'Неон', "Yog'och": 'Дерево', 'Marmar': 'Мрамор', 'Yashil': 'Зелёная', "O'zbekcha": 'Узбекский', 'Faqat siz ko\'rasiz': 'Видите только вы',
   };
   const PATTERNS = [

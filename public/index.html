@@ -4045,7 +4045,13 @@
     haptic('light');
   });
 
-  cv.addEventListener('pointermove', (e) => {
+  // drags that start on the board finish wherever the finger is lifted
+  addEventListener('pointerup', (e) => {
+    if (!game || !PLUG[game.kind] || !PLUG[game.kind].up) return;
+    const b = cv.getBoundingClientRect();
+    PLUG[game.kind].up(e.clientX - b.left, e.clientY - b.top, game, { x0: offX, y0: offY, S: cell * COLS });
+  });
+  addEventListener('pointermove', (e) => {
     if (!game || !PLUG[game.kind] || !PLUG[game.kind].move) return;
     const b = cv.getBoundingClientRect();
     PLUG[game.kind].move(e.clientX - b.left, e.clientY - b.top, game, { x0: offX, y0: offY, S: cell * COLS });

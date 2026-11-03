@@ -123,7 +123,7 @@ window.Boards = function (env) {
   // ---------------- Dengiz jangi ----------------
   {
     const M = window.Battleship, N = M.N;
-    let fleet = null, fleetFor = null; // my fleet while placing (re-rolled locally)
+    let fleet = null; // my fleet while placing (re-rolled / dragged locally)
     const enemyGeo = (B) => { const s = B.S * 0.62; return { x: B.x0 + (B.S - s) / 2, y: B.y0 + B.S * 0.04, s, cs: s / N }; };
     const mineGeo = (B, big) => { const s = big ? B.S * 0.9 : B.S * 0.3; return { x: B.x0 + (B.S - s) / 2, y: big ? B.y0 + B.S * 0.05 : B.y0 + B.S * 0.69, s, cs: s / N }; };
     const grid = (c, G, title) => {
@@ -132,10 +132,33 @@ window.Boards = function (env) {
       for (let i = 1; i < N; i++) { c.beginPath(); c.moveTo(G.x + i * G.cs, G.y); c.lineTo(G.x + i * G.cs, G.y + G.s); c.moveTo(G.x, G.y + i * G.cs); c.lineTo(G.x + G.s, G.y + i * G.cs); c.stroke(); }
       if (title) { c.fillStyle = 'rgba(200,215,255,.8)'; c.font = `800 ${Math.max(9, G.cs * 0.45)}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText(T(title), G.x, G.y - 2); }
     };
-    const ship = (c, G, s, color, alpha) => {
-      const w = s.dir === 'h' ? s.len : 1, h = s.dir === 'v' ? s.len : 1;
-      c.save(); c.globalAlpha = alpha == null ? 1 : alpha; c.fillStyle = env.hexA(color, 0.75); c.strokeStyle = '#e8ecff'; c.lineWidth = 1.5;
-      rr(c, G.x + s.c * G.cs + 2, G.y + s.r * G.cs + 2, w * G.cs - 4, h * G.cs - 4, G.cs * 0.3); c.fill(); c.stroke(); c.restore();
+    // a warship drawn along +x in a box len x 1 cells, then turned for vertical ones:
+    // pointed bow, grey hull with a stripe in the owner's colour, deck, guns and a bridge that depend on the size
+    const ship = (c, G, s, color, alpha, tint) => {
+      const L = s.len * G.cs, H = G.cs, x0 = G.x + s.c * G.cs, y0 = G.y + s.r * G.cs;
+      c.save(); c.globalAlpha = alpha == null ? 1 : alpha;
+      c.translate(x0, y0);
+      if (s.dir === 'v') { c.translate(H, 0); c.rotate(Math.PI / 2); }
+      const pad = H * 0.12, top = pad, bot = H - pad, mid = H / 2, bow = L - pad * 0.6, stern = pad * 0.8;
+      const hullTop = tint ? tint[0] : '#9aa6c2', hullBot = tint ? tint[1] : '#4d5878';
+      // hull
+      c.shadowColor = color; c.shadowBlur = 10;
+      const gr = c.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, hullTop); gr.addColorStop(1, hullBot);
+      c.fillStyle = gr;
+      c.beginPath(); c.moveTo(stern, top + H * 0.08); c.lineTo(bow - H * 0.45, top); c.quadraticCurveTo(bow, mid, bow - H * 0.45, bot);
+      c.lineTo(stern, bot - H * 0.08); c.quadraticCurveTo(stern - pad * 0.6, mid, stern, top + H * 0.08); c.closePath(); c.fill();
+      c.shadowBlur = 0; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.2; c.stroke();
+      // owner's stripe and the deck
+      c.fillStyle = color; c.fillRect(stern + H * 0.1, mid + H * 0.2, (bow - stern) * 0.7, H * 0.08);
+      c.fillStyle = 'rgba(255,255,255,.18)'; rr(c, stern + H * 0.2, top + H * 0.16, bow - stern - H * 0.8, H * 0.36, H * 0.1); c.fill();
+      const gun = (gx) => { c.fillStyle = '#2b3350'; c.beginPath(); c.arc(gx, mid - H * 0.03, H * 0.13, 0, 7); c.fill(); c.fillRect(gx, mid - H * 0.06, H * 0.32, H * 0.06); };
+      const bridge = (bx, w) => { c.fillStyle = '#d7deef'; rr(c, bx, top + H * 0.18, w, H * 0.42, H * 0.06); c.fill(); c.fillStyle = '#1d2a55';
+        for (let k = 0; k < 3; k++) c.fillRect(bx + w * (0.18 + k * 0.26), top + H * 0.26, w * 0.14, H * 0.08); };
+      if (s.len === 1) bridge(L * 0.3, L * 0.32);
+      else if (s.len === 2) { bridge(L * 0.22, H * 0.55); gun(L * 0.62); }
+      else if (s.len === 3) { gun(L * 0.2); bridge(L * 0.38, H * 0.7); gun(L * 0.7); }
+      else { gun(L * 0.14); gun(L * 0.3); bridge(L * 0.46, H * 0.8); c.fillStyle = '#3a4466'; c.fillRect(L * 0.62, top + H * 0.12, H * 0.16, H * 0.2); gun(L * 0.78); }
+      c.restore();
     };
     const marks = (c, G, shots, now, lastK) => {
       for (let k = 0; k < N * N; k++) {
@@ -147,19 +170,31 @@ window.Boards = function (env) {
       }
     };
     const placing = (g) => g.phase === 'place' && !(g.placed ? g.placed[env.you] : g.ships[env.you]);
+    // placing by hand: drag a ship (snaps to the grid, red when it may not stand there), tap it to turn it
+    let drag = null; // { i, dr, dc, r, c, moved, x0, y0 }
+    const cellAt = (G, x, y) => ({ r: Math.floor((y - G.y) / G.cs), c: Math.floor((x - G.x) / G.cs) });
+    const shipAtCell = (r, c) => fleet.findIndex(s => M.cellsOf(s).includes(r * N + c));
+    const fleetWith = (i, patch) => fleet.map((s, k) => (k === i ? Object.assign({}, s, patch) : s));
     P.dengiz = {
       noReplay: true,
       badge: (g, p) => { const sunk = g.sunk[p].length; return `🚢 ${M.FLEET.length - sunk} <small>/${M.FLEET.length}</small>`; },
-      msg: (g) => g.phase === 'place' ? (placing(g) ? "Kemalaringizni joylang va \"Tayyor\"ni bosing" : 'Raqib kemalarini joylamoqda...')
+      msg: (g) => g.phase === 'place' ? (placing(g) ? "Kemani surib joylang, bosib aylantiring" : 'Raqib kemalarini joylamoqda...')
         : g.turn === env.you ? (g.last && g.last.p === env.you && g.last.res !== 'miss' ? "{check} Tegdi! Yana oting" : "{target} O'q uzing!") : 'Raqib otmoqda...',
       draw(c, g, now, B) {
         if (g.phase === 'place') {
           const G = mineGeo(B, true); grid(c, G, placing(g) ? 'Sizning flotingiz' : 'Joylandi ✓');
-          if (fleetFor !== g) { if (!fleet || !placing(g)) fleet = M.randomFleet(); fleetFor = g; }
+          if (!fleet) fleet = M.randomFleet(); // a fresh fleet for every game (cleared once the battle starts)
           const mine = placing(g) ? fleet : (g.ships[env.you] || fleet);
-          for (const s of mine || []) ship(c, G, s, col(env.you));
+          (mine || []).forEach((s, i) => { if (!(drag && drag.moved && drag.i === i)) ship(c, G, s, col(env.you), 1, env.shipTint && env.shipTint()); });
+          if (drag && drag.moved) { // the dragged ship at its snapped spot
+            const s = Object.assign({}, fleet[drag.i], { r: drag.r, c: drag.c }), ok = !M.fleetError(fleetWith(drag.i, { r: drag.r, c: drag.c }));
+            const w = s.dir === 'h' ? s.len : 1, h = s.dir === 'v' ? s.len : 1;
+            c.save(); c.fillStyle = ok ? 'rgba(46,230,107,.25)' : 'rgba(255,45,70,.3)'; c.fillRect(G.x + s.c * G.cs, G.y + s.r * G.cs, w * G.cs, h * G.cs); c.restore();
+            ship(c, G, s, ok ? col(env.you) : '#ff2d46', 0.85, env.shipTint && env.shipTint());
+          }
           return;
         }
+        fleet = null; drag = null;
         const E = enemyGeo(B), Me = mineGeo(B, false), opp = 1 - env.you;
         grid(c, E, 'Raqib maydoni'); grid(c, Me, 'Sizniki');
         // enemy ships stay hidden until sunk (in bot games the app holds the whole fleet)
@@ -171,11 +206,44 @@ window.Boards = function (env) {
         if (env.myTurn()) { c.save(); c.strokeStyle = env.hexA(col(env.you), 0.5 + 0.3 * Math.sin(now / 250)); c.lineWidth = 2; rr(c, E.x - 2, E.y - 2, E.s + 4, E.s + 4, 8); c.stroke(); c.restore(); }
       },
       down(x, y, g, B) {
+        if (g.phase === 'place') {
+          if (!placing(g)) return;
+          const G = mineGeo(B, true), { r, c } = cellAt(G, x, y), i = shipAtCell(r, c);
+          if (i < 0) return;
+          drag = { i, dr: r - fleet[i].r, dc: c - fleet[i].c, r: fleet[i].r, c: fleet[i].c, moved: false, x0: x, y0: y };
+          return;
+        }
         if (g.phase !== 'battle') return;
         const E = enemyGeo(B), k = Math.floor((x - E.x) / E.cs), r = Math.floor((y - E.y) / E.cs);
         if (k < 0 || k >= N || r < 0 || r >= N) return;
         if (g.shots[env.you][r * N + k]) return env.flash('Bu katakka otilgan', 800);
         env.act({ t: 'shot', r, c: k });
+      },
+      move(x, y, g, B) {
+        if (!drag || g.phase !== 'place') return;
+        if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 6) return;
+        drag.moved = true;
+        const G = mineGeo(B, true), { r, c } = cellAt(G, x, y), s = fleet[drag.i];
+        const maxR = N - (s.dir === 'v' ? s.len : 1), maxC = N - (s.dir === 'h' ? s.len : 1);
+        const nr = Math.max(0, Math.min(maxR, r - drag.dr)), nc = Math.max(0, Math.min(maxC, c - drag.dc));
+        if (nr !== drag.r || nc !== drag.c) { drag.r = nr; drag.c = nc; env.haptic('light'); }
+      },
+      up(x, y, g) {
+        if (!drag || g.phase !== 'place') { drag = null; return; }
+        const d = drag; drag = null;
+        if (d.moved) {
+          const next = fleetWith(d.i, { r: d.r, c: d.c });
+          if (M.fleetError(next)) { env.haptic('warning'); return env.flash("Kemalar bir-biriga tegmasligi kerak", 1200); }
+          fleet = next; env.haptic('medium');
+          return;
+        }
+        // a tap turns the ship around its first cell (moved back inside the field when needed)
+        const s = fleet[d.i], dir = s.dir === 'h' ? 'v' : 'h';
+        const r0 = Math.min(s.r, N - (dir === 'v' ? s.len : 1)), c0 = Math.min(s.c, N - (dir === 'h' ? s.len : 1));
+        const next = fleetWith(d.i, { dir, r: r0, c: c0 });
+        if (s.len === 1) return;
+        if (M.fleetError(next)) { env.haptic('warning'); return env.flash("Bu yerda aylantirib bo'lmaydi", 1000); }
+        fleet = next; env.haptic('light');
       },
       ui(g, tray) {
         tray.innerHTML = '';
