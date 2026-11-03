@@ -733,8 +733,9 @@
   @media (max-width:360px) { .hello .who3 small { display:none; } .hello .who3 b { font-size:15px; } .hello { gap:8px; } }
 
   /* ---------- Telegram fullscreen: keep clear of the status bar and Telegram's Close / ⋯ buttons ---------- */
+  /* bottom: Android's navigation bar comes only through Telegram's own variables (env() is 0 there) */
   :root { --st:calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
-    --sb:var(--tg-safe-area-inset-bottom, 0px); }
+    --sb:calc(max(var(--tg-safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px)); }
 
   /* ---------- responsive ---------- */
   #app { height:100vh; height:var(--tg-viewport-stable-height, 100dvh); }
@@ -793,7 +794,12 @@
   #app { padding-top:calc(10px + var(--st)) !important; }
   #hub, .tab, #lobby { padding-top:calc(18px + var(--st)) !important; }
   #overlay { padding-top:calc(20px + var(--st)); }
-  #nav { padding-bottom:calc(8px + max(var(--sb), env(safe-area-inset-bottom))); }
+  #nav { padding-bottom:calc(8px + var(--sb)); }
+  #app { padding-bottom:calc(14px + var(--sb)) !important; }
+  #hub, .tab { padding-bottom:calc(92px + var(--sb)) !important; }
+  #lobby { padding-bottom:calc(22px + var(--sb)) !important; }
+  #toast { bottom:calc(26px + var(--sb)); }
+  #replayBar { bottom:calc(14px + var(--sb)); }
 </style>
 </head>
 <body>
