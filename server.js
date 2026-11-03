@@ -762,8 +762,10 @@ const server = http.createServer((req, res) => {
     let size = 0, failed = false;
     req.on('data', (c) => {
       size += c.length;
-      if (size > max && !failed) { failed = true; out.destroy(); req.destroy(); sendJson(res, { ok: false, msg: `Fayl ${max / 1048576} MB dan katta` }); }
+      // too big: stop saving, let the rest of the upload drain, then answer
+      if (size > max && !failed) { failed = true; req.unpipe(out); out.destroy(); fs.unlink(AD_PENDING, () => {}); req.resume(); }
     });
+    req.on('end', () => { if (failed) sendJson(res, { ok: false, msg: `Fayl ${max / 1048576} MB dan katta` }); });
     req.pipe(out);
     out.on('finish', () => { if (!failed) { adPending = { type, size }; sendJson(res, { ok: true, kind: AD_TYPES[type], size }); } });
     out.on('error', () => { if (!failed) { failed = true; sendJson(res, { ok: false, msg: 'Saqlab bo\'lmadi' }); } });
