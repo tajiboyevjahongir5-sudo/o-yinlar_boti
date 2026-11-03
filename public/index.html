@@ -448,8 +448,12 @@
   .rbub { position:fixed; z-index:9; pointer-events:none; font-size:40px; line-height:1; padding:8px 10px; border-radius:20px;
     background:rgba(12,18,48,.92); border:1.5px solid var(--bc, var(--blue)); box-shadow:0 0 16px var(--bc, var(--blue));
     animation:bubble 2.4s ease-out forwards; }
-  @keyframes bubble { 0% { transform:translate(-50%, 10px) scale(.4); opacity:0; } 12% { transform:translate(-50%, 0) scale(1.15); opacity:1; }
-    20% { transform:translate(-50%, 0) scale(1); } 75% { opacity:1; } 100% { transform:translate(-50%, -46px) scale(1); opacity:0; } }
+  /* stickers pop up in the bottom-right corner; several at once stack upwards */
+  .rbub { right:calc(14px + env(safe-area-inset-right)); display:flex; flex-direction:column; align-items:center; gap:3px;
+    transform-origin:100% 100%; transition:bottom .25s ease-out; }
+  .rbub small { font-size:10.5px; font-weight:800; color:#dfe5ff; max-width:72px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  @keyframes bubble { 0% { transform:translateY(16px) scale(.4); opacity:0; } 12% { transform:translateY(0) scale(1.15); opacity:1; }
+    20% { transform:scale(1); } 75% { opacity:1; transform:translateY(0); } 100% { transform:translateY(-30px); opacity:0; } }
   .rm-note { font-size:13.5px; font-weight:800; color:var(--yellow); min-height:0; }
   .rm-note:empty { display:none; }
   .big.pulse { animation:rkGlow 1.2s ease-in-out infinite; border-color:var(--yellow); }
@@ -1204,14 +1208,18 @@
   function showReaction(e, mine) {
     if (!REACTIONS.includes(e)) return;
     Snd.play('pop'); if (!mine) haptic('light');
-    // above the sender's card; on the result screen the cards are hidden, so float up from the middle
-    const card = $(mine ? 'card0' : 'card1').getBoundingClientRect(), onCard = $('overlay').classList.contains('hide') && card.width;
-    const b = document.createElement('div'); b.className = 'rbub'; b.textContent = e;
+    // bottom-right corner, with who sent it; the border is the sender's colour (green = you)
+    const b = document.createElement('div'); b.className = 'rbub';
+    addText(b, 'span', e); addText(b, 'small', mine ? 'Siz' : names[1 - you] || 'Raqib');
     b.style.setProperty('--bc', mine ? 'var(--green)' : COLORS[1 - you]);
-    b.style.left = (onCard ? card.left + card.width / 2 : innerWidth * (mine ? 0.3 : 0.7)) + 'px';
-    b.style.top = (onCard ? card.bottom + 6 : innerHeight * 0.16) + 'px';
     document.body.appendChild(b);
-    setTimeout(() => b.remove(), 2500);
+    stackReactions();
+    setTimeout(() => { b.remove(); stackReactions(); }, 2500);
+  }
+  function stackReactions() { // newest at the bottom, older ones pushed up
+    const all = [...document.querySelectorAll('.rbub')].reverse();
+    let y = 22 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sb')) || 0);
+    for (const el of all) { el.style.bottom = `calc(${y}px + env(safe-area-inset-bottom))`; y += el.offsetHeight + 8; }
   }
   (() => {
     const bar = $('reactBar');
