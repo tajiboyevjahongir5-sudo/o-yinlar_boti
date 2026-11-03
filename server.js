@@ -335,7 +335,7 @@ function walletOf(uid) {
   const next = d.claimed === day ? null : Rewards.DAILY[Math.min(streakNow + 1, 7) - 1] * (isVip(p) ? 2 : 1);
   return { coins: p.coins || 0, vip: isVip(p) ? p.vip : null, streak: streakNow, bonus: next, claimedToday: d.claimed === day,
     quests: questsOf(p, uid).list.map(questInfo), owned: p.owned || { skins: {}, frames: [] },
-    ref: { code: inviteOf(uid), count: p.refCount || 0 } };
+    ref: { code: inviteOf(uid), count: p.refCount || 0 }, freeSpin: p.spinDay !== dayKey(), spinPrice: SPIN_PRICE };
 }
 function shopItem(id) { // "skin:shaxmat:yogoch" / "frame:neon"
   const [type, a, b] = String(id || '').split(':');
@@ -354,7 +354,45 @@ function grant(uid, it) { // give a bought thing
   if (it.type === 'frame' || it.type === 'skin') award(uid, 'shopper');
   savePlayers();
 }
+// the lucky wheel: one free spin a day, more for coins; the prize is decided here, the app only animates it
+const WHEEL = [
+  { k: 'coins', n: 20, w: 28 }, { k: 'coins', n: 50, w: 24 }, { k: 'coins', n: 100, w: 17 }, { k: 'coins', n: 200, w: 10 },
+  { k: 'vip', n: 1, w: 6 }, { k: 'coins', n: 500, w: 5 }, { k: 'skin', n: 1, w: 3 }, { k: 'coins', n: 1000, w: 2 },
+];
+const SPIN_PRICE = 300;
+const STORY_DIR = path.join(DATA_DIR, 'stories');
 const ECON_ACTIONS = {
+  spin(me, m) {
+    const p = playerRec(me.uid, me.name, me.photo), today = dayKey(), free = p.spinDay !== today;
+    if (!free) { if ((p.coins || 0) < SPIN_PRICE) return { ok: false, msg: `Bugungi bepul aylantirish ishlatilgan. Yana aylantirish: ${SPIN_PRICE} tanga` }; addCoins(me.uid, -SPIN_PRICE, 'spin'); }
+    p.spinDay = today;
+    let r = Math.random() * WHEEL.reduce((n, x) => n + x.w, 0), i = 0;
+    while ((r -= WHEEL[i].w) > 0) i++;
+    const prize = WHEEL[i];
+    let text = '';
+    if (prize.k === 'coins') { addCoins(me.uid, prize.n, 'wheel'); text = `${prize.n} tanga`; }
+    else if (prize.k === 'vip') { p.vip = Math.max(Date.now(), p.vip || 0) + 86400000; text = 'VIP · 1 kun'; }
+    else { // a random coin skin the player doesn't have yet (or 1500 coins)
+      const pool = [];
+      for (const k of Object.keys(Rewards.SKINS)) for (const sk of Rewards.SKINS[k]) if (sk.price && !Rewards.skinUnlocked(p, k, sk.id)) pool.push({ type: 'skin', kind: k, id: sk.id, item: sk });
+      if (pool.length) { const it = pool[Math.floor(Math.random() * pool.length)]; grant(me.uid, it); text = `Skin: ${it.item.name} (${GAME_INFO[it.kind].title})`; }
+      else { addCoins(me.uid, 1500, 'wheel'); text = '1500 tanga'; }
+    }
+    savePlayers();
+    return Object.assign({ ok: true, index: i, prize: text, free }, walletOf(me.uid));
+  },
+  // a result card for Telegram Stories: the app draws it, we keep it for two days at a public address
+  story(me, m) {
+    const mm = String(m.image || '').match(/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/);
+    if (!mm) return { ok: false, msg: "Rasm noto'g'ri" };
+    const buf = Buffer.from(mm[2], 'base64');
+    if (buf.length > 3 * 1024 * 1024) return { ok: false, msg: 'Rasm juda katta' };
+    fs.mkdirSync(STORY_DIR, { recursive: true });
+    for (const f of fs.readdirSync(STORY_DIR)) { const st = fs.statSync(path.join(STORY_DIR, f)); if (Date.now() - st.mtimeMs > 2 * 86400000) fs.unlinkSync(path.join(STORY_DIR, f)); }
+    const id = crypto.randomBytes(8).toString('hex') + '.' + (mm[1] === 'png' ? 'png' : 'jpg');
+    fs.writeFileSync(path.join(STORY_DIR, id), buf);
+    return { ok: true, url: `story/${id}` };
+  },
   wallet(me) { return Object.assign({ ok: true }, walletOf(me.uid)); },
   daily(me) {
     const p = playerRec(me.uid, me.name, me.photo), day = dayKey(), yday = dayKey(Date.now() - 86400000), d = p.daily || {};
@@ -992,6 +1030,8 @@ const GAME_INFO = {
 };
 // the emoji players can send each other during a game
 const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
+// ready-made phrases (no free chat, so nothing to moderate)
+const PHRASES = ['Salom! 👋', 'Omad! 🍀', 'Yaxshi yurish! 👍', 'Voy! 😮', 'Tezroq 😅', "Yaxshi o'yin! 🤝", 'Rahmat! 🙏', "Yana o'ynaymizmi? 🔁"];
 const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 // the invite text (Telegram HTML); the same wording is shown as a preview inside the app
@@ -1094,6 +1134,11 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ bot: BOT_NAME, app: process.env.APP_NAME || '' }));
   }
   if (url.pathname === '/healthz') return sendJson(res, { ok: true }); // Render's health check
+  const story = url.pathname.match(/^\/story\/([a-f0-9]{16}\.(png|jpg))$/);
+  if (story) return fs.readFile(path.join(STORY_DIR, story[1]), (err, data) => {
+    if (err) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'Content-Type': story[2] === 'png' ? 'image/png' : 'image/jpeg', 'Cache-Control': 'public, max-age=86400' }); res.end(data);
+  });
   if (url.pathname === '/ad.img' || url.pathname === '/ad.media') { // the banner picture or video from the admin panel
     if (!meta.ad || !meta.ad.img) { res.writeHead(404); return res.end(); }
     return fs.stat(AD_FILE, (err, st) => {
@@ -1213,9 +1258,9 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings)$/);
+  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings|spin|story)$/);
   if (act && req.method === 'POST') {
-    readJson(req).then(async (body) => {
+    readJson(req, act[1] === 'story' ? 4 * 1024 * 1024 : 20000).then(async (body) => {
       const me = whoIs(body);
       if (!me) return sendJson(res, { ok: false, msg: 'Faqat Telegram ichida ishlaydi' });
       try { sendJson(res, await ACTIONS[act[1]](me, body)); } catch (e) { sendJson(res, { ok: false, msg: 'Xato' }); }
@@ -1685,7 +1730,7 @@ wss.on('connection', (ws) => {
       }
       broadcast(room);
     } else if (m.t === 'react') { // a quick emoji for both screens, at most one per 1.2 s
-      if (!REACTIONS.includes(m.e) || !room.players[1 - slot]) return;
+      if (!(REACTIONS.includes(m.e) || PHRASES.includes(m.e)) || !room.players[1 - slot]) return;
       const now = Date.now();
       if (now - (ws.lastReact || 0) < 1200) return;
       ws.lastReact = now;

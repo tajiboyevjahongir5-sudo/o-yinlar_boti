@@ -671,7 +671,19 @@
     border:1.5px solid var(--yellow); background:rgba(255,197,49,.12); color:#ffe9a8; box-shadow:0 0 8px rgba(255,197,49,.4); }
   .coin-chip.bump { animation:bump .6s ease-out; }
   @media (max-width:440px) { .hello .lbl3 { display:none; } .hello .inv-btn { padding:9px 11px; } .hello .inv-btn .i { margin:0 !important; } .hello .who3 small { display:none; } }
-  .eco-row { display:flex; gap:10px; }
+  .eco-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .eco-row .eco { flex-direction:column; align-items:flex-start; gap:4px; padding:9px 10px; }
+  .eco-row .eco .e { font-size:22px; } .eco-row .eco b { font-size:12.5px; line-height:1.2; } .eco-row .eco small { font-size:10.5px; }
+  .eco.wheel { --c:#2ee66b; } .eco.wheel.ready { animation:rkGlow 1.6s ease-in-out infinite; }
+  .rbub.phrase { font-size:16px; font-weight:800; max-width:62vw; text-align:center; white-space:normal; }
+  .phr { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; padding:4px 2px 0; width:100%; }
+  .phr button { border:1px solid rgba(120,140,255,.4); background:rgba(255,255,255,.06); color:#fff; border-radius:12px; padding:6px 9px; font-size:12.5px; font-weight:700; }
+  #reactBar { flex-wrap:wrap; max-width:330px; justify-content:center; }
+  .rules { text-align:left; width:100%; font-size:14px; line-height:1.5; color:#d8ddff; }
+  .rules li { margin:0 0 6px; } .rules ul { margin:0; padding-left:18px; }
+  .wheel-wrap { position:relative; width:260px; height:260px; }
+  .wheel-wrap canvas { width:260px; height:260px; }
+  .wheel-wrap::after { content:"▼"; position:absolute; top:-14px; left:50%; transform:translateX(-50%); color:#fff; font-size:26px; text-shadow:0 0 10px var(--yellow); }
   .eco { flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:16px; color:#fff; text-align:left;
     border:1.5px solid var(--c); background:linear-gradient(120deg, color-mix(in srgb, var(--c) 20%, transparent), rgba(5,10,30,.85) 70%);
     box-shadow:0 0 10px color-mix(in srgb, var(--c) 50%, transparent); }
@@ -808,7 +820,7 @@
     <div class="card" id="card0"><div class="av"></div><div class="who"><div class="nm"></div><div class="fc"><i></i><span></span></div></div><div class="clk"></div></div>
     <div class="card opp" id="card1"><div class="av"></div><div class="who"><div class="nm"></div><div class="fc"><i></i><span></span></div></div><div class="clk"></div></div>
   </div>
-  <div id="log"><span class="ic"><i data-ic="history"></i></span><div class="tx"></div><button id="inviteBtn" class="hide"><i data-ic="send"></i> Taklif</button><button id="reactBtn" class="tiny-btn hide" aria-label="Reaksiya"><i data-ic="smile"></i></button><button id="drawBtn" class="tiny-btn hide" aria-label="Durrang taklif qilish"><i data-ic="draw"></i></button><button id="undoBtn" class="tiny-btn hide" aria-label="Yurishni qaytarish"><i data-ic="again"></i></button><button id="sndBtn" class="tiny-btn snd" aria-label="Ovoz"></button><button id="exitBtn"><i data-ic="exit"></i> Chiqish</button></div>
+  <div id="log"><span class="ic"><i data-ic="history"></i></span><div class="tx"></div><button id="inviteBtn" class="hide"><i data-ic="send"></i> Taklif</button><button id="reactBtn" class="tiny-btn hide" aria-label="Reaksiya"><i data-ic="smile"></i></button><button id="drawBtn" class="tiny-btn hide" aria-label="Durrang taklif qilish"><i data-ic="draw"></i></button><button id="undoBtn" class="tiny-btn hide" aria-label="Yurishni qaytarish"><i data-ic="again"></i></button><button id="rulesBtn" class="tiny-btn" aria-label="Qoidalar">?</button><button id="sndBtn" class="tiny-btn snd" aria-label="Ovoz"></button><button id="exitBtn"><i data-ic="exit"></i> Chiqish</button></div>
   <div id="banner" class="off"><span class="st"></span><div id="msg"></div><span class="st r"></span></div>
   <div id="wrap"><canvas id="c"></canvas></div>
   <div id="xoTray" class="hide">
@@ -839,6 +851,7 @@
   <button class="ranked" id="lobRanked"><span class="rk-ic"><i data-ic="star"></i></span><span class="tx2"><b>Reytingli o'yin</b>
     <small>Sizga mos raqib topiladi · ELO uchun</small></span><span class="go"><i data-ic="next"></i></span></button>
   <div class="tseg"><small><i data-ic="timer"></i> Vaqt</small><div class="seg" id="lobTime"></div></div>
+  <button class="act" id="lobRules" style="--c:#c084fc">📖 Qoidalar</button>
   <div class="lob-actions">
     <button class="act" id="lobCode"><i data-ic="key"></i> Kod bilan kirish</button>
     <button class="act" id="lobBot"><i data-ic="bot"></i> Botga qarshi</button>
@@ -1552,7 +1565,9 @@
       const row = document.createElement('div'); row.className = 'rx-row';
       for (const e of REACTIONS) { const b = document.createElement('button'); b.className = 'rx'; b.textContent = e; b.onclick = () => sendReaction(e); row.appendChild(b); }
       panel.appendChild(row);
+      panel.appendChild(phraseRow());
     }
+    if (won && tg && tg.shareToStory) panel.appendChild(bigBtn("📲 Stories'ga ulashish", () => shareStory(won, draw)));
     const oppPid = pids[1 - you];
     if (mode === 'online' && oppPid) { // add the opponent as a friend right from here
       const fb = bigBtn("{invite} Do'st qo'shish", null);
@@ -2593,7 +2608,11 @@
     q.querySelector('b').textContent = `Vazifalar ${done}/${wallet.quests.length}`;
     q.querySelector('small').textContent = ready ? `${ready} ta mukofot kutmoqda!` : 'Bugungi topshiriqlar';
     q.onclick = () => { haptic('light'); showQuests(); };
-    row.append(d, q);
+    const w = document.createElement('button'); w.className = 'eco wheel' + (wallet.freeSpin ? ' ready' : ' done');
+    w.innerHTML = `<span class="e">🎡</span><span><b>Omad g'ildiragi</b><small></small></span>`;
+    w.querySelector('small').textContent = wallet.freeSpin ? 'Bepul aylantiring!' : `${wallet.spinPrice} 🪙 ga`;
+    w.onclick = () => { haptic('light'); showWheel(); };
+    row.append(d, q, w);
   }
   $('coinChip').onclick = () => { haptic('light'); showTabs('shop'); };
   function onCoins(m) {
@@ -2804,8 +2823,109 @@
   }
   let admRepAll = false;
 
+
+  // ---------- rules of every game ----------
+  const RULES_TEXT = {
+    shaxmat: ['Maqsad: raqib shohiga mot qo\'yish (shoh hujum ostida va qochib qutula olmaydi).', 'Har dona o\'z yo\'lida yuradi: piyoda oldinga 1 (birinchi yurishda 2), ot "G" shaklida, fil diagonal, ruh to\'g\'ri, farzin istalgan yo\'nalishda, shoh 1 katak.',
+      'Rokirovka, o\'tib olish (en passant) va oxirgi qatorga yetgan piyodani almashtirish bor.', 'Durrang: pat, 3 marta takror, 50 yurish, kuch yetmasligi yoki kelishuv (🤝).', 'Yurish: donani bosing, so\'ng yashil nuqtani bosing yoki surib qo\'ying.'],
+    shashka: ['Rus shashkasi: donalar faqat qora kataklarda, oldinga diagonal 1 katak yuradi.', 'Urish majburiy! Oldinga ham, orqaga ham urish mumkin; urish davom etsa — davom etasiz.', 'Oxirgi qatorga yetgan dona damka bo\'ladi va diagonal bo\'ylab istalgancha uchadi.', 'Raqibning barcha donalarini uring yoki uni yurolmaydigan qiling.'],
+    nardi: ['Uzun nardi: har kimda 15 tosh, boshdan (head) boshlab bir xil yo\'nalishda aylanib yuradi.', 'Zarlar o\'zi tashlanadi: har zar — bitta yurish; juftlikda 4 ta yurish.', 'Raqib turgan joyga tosh qo\'yib bo\'lmaydi (urish yo\'q).', 'Boshdan navbatiga faqat bitta tosh (birinchi navbatda 6-6, 4-4, 3-3 bo\'lsa ikkita).', 'Hamma tosh uyda (oxirgi chorakda) bo\'lgach, chiqarish boshlanadi. Birinchi chiqargan yutadi.'],
+    domino: ['Har kimda 7 tosh; navbat bilan uchiga mos tosh qo\'yiladi.', 'Mos tosh bo\'lmasa — bozordan olasiz, bozor bo\'sh bo\'lsa — o\'tkazasiz.', 'Qo\'lini birinchi bo\'shatgan yutadi. Hech kim yura olmasa, ochkosi kam yutadi.'],
+    dengiz: ['Avval 1 daqiqada kemalaringizni joylang: surib qo\'ying, bosib aylantiring. Kemalar bir-biriga tegmasin.', 'Navbat bilan raqib maydoniga o\'q uzasiz. Tekkizsangiz — yana otasiz.', 'Raqibning barcha kemalarini birinchi cho\'ktirgan yutadi.'],
+    c4: ['Ustunni bosing — tosh eng pastga tushadi.', 'Gorizontal, vertikal yoki diagonal 4 ta toshni birinchi tergan yutadi.', 'Taxta to\'lsa — durrang.'],
+    dots: ['Ikki qo\'shni nuqta orasiga chiziq chizing.', 'Katakning 4-chizig\'ini chizgan uni oladi va yana yuradi.', 'Ko\'proq katak yopgan yutadi. Raqibga 3-chiziqni tashlab qo\'ymang!'],
+    tosiq: ['Maqsad: raqib tomonidagi chetki qatorga birinchi yetish.', 'Navbatda yoki 1 katak yurasiz, yoki 2 katakli to\'siq qo\'yasiz (har kimda 10 ta).', 'To\'siq yo\'lni butunlay yopa olmaydi. Raqib yoningizda bo\'lsa, uning ustidan sakraysiz.'],
+    xo: ['3×3 taxtada uchta belgini bir qatorga birinchi tergan yutadi.', 'Taxta to\'lsa — durrang.'],
+    durak: ['36 talik koloda, har kimda 6 karta; oxirgi ochilgan karta — kozir.', 'Hujumchi karta tashlaydi, himoyachi uni shu masti kattarog\'i yoki kozir bilan yopadi.', 'Hujumchi stoldagi kartalar qiymatidagi kartalarni qo\'sha oladi (6 tagacha).', 'Yopa olmasa — hamma kartani oladi. Hammasi yopilsa — "Bito", kartalar chiqadi va navbat almashadi.', 'Koloda tugagach kartasi birinchi tugagan yutadi; oxirgi qolgan — durak!'],
+    qumaloq: ['To\'qqiz qumaloq: har kimda 9 ta uya, har birida 9 tadan tosh.', 'O\'z uyangizdan barcha toshni olib, bittasini o\'sha uyaga, qolganini keyingilariga bittadan tashlaysiz.', 'Oxirgi tosh raqib uyasiga tushib, u yerda juft son bo\'lsa — hammasini olasiz.', 'Oxirgi tosh raqib uyasida 3 ta qilsa — u uya "tuzdik"ingiz bo\'ladi (bitta, 9-uya emas): unga tushgan toshlar sizniki.', '81 tadan ko\'p tosh yig\'gan yutadi.'],
+  };
+  function showRules(k) {
+    k = k || kind;
+    const p = openPanel('rules');
+    addText(p, 'h1', `📖 ${GAME_NAMES[k] || ''}`);
+    const box = document.createElement('div'); box.className = 'rules';
+    const ul = document.createElement('ul');
+    for (const line of RULES_TEXT[k] || []) addText(ul, 'li', line);
+    box.appendChild(ul); p.appendChild(box);
+    p.append(bigBtn('{check} Tushunarli', hideOverlay, 'pri'));
+    store.set('rules_' + k, '1');
+  }
+  $('lobRules').onclick = () => { haptic('light'); showRules(); };
+  $('rulesBtn').onclick = (e) => { e.stopPropagation(); haptic('light'); showRules(game ? game.kind : kind); };
+
+  // ---------- the lucky wheel ----------
+  const WHEEL_LABELS = ['20', '50', '100', '200', 'VIP', '500', 'Skin', '1000'];
+  const WHEEL_COLORS = ['#2f7bff', '#ff2d46', '#2ee66b', '#c084fc', '#ffc531', '#ff7a1a', '#2fd0ff', '#ff4fa3'];
+  function drawWheel(c, ang) {
+    const x = c.getContext('2d'), R = 128, n = WHEEL_LABELS.length;
+    x.clearRect(0, 0, 260, 260);
+    x.save(); x.translate(130, 130); x.rotate(ang);
+    for (let i = 0; i < n; i++) {
+      const a0 = -Math.PI / 2 + (i - 0.5) * 2 * Math.PI / n, a1 = a0 + 2 * Math.PI / n;
+      x.fillStyle = WHEEL_COLORS[i]; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, R, a0, a1); x.closePath(); x.fill();
+      x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = 2; x.stroke();
+      x.save(); x.rotate((a0 + a1) / 2); x.fillStyle = '#fff'; x.font = '900 17px system-ui'; x.textAlign = 'right'; x.textBaseline = 'middle';
+      x.fillText(WHEEL_LABELS[i] === 'VIP' || WHEEL_LABELS[i] === 'Skin' ? WHEEL_LABELS[i] : WHEEL_LABELS[i] + ' 🪙', R - 12, 0); x.restore();
+    }
+    x.fillStyle = '#0d1230'; x.beginPath(); x.arc(0, 0, 24, 0, 7); x.fill(); x.fillStyle = '#ffc531'; x.font = '900 18px system-ui'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🎡', 0, 1);
+    x.restore();
+  }
+  async function showWheel() {
+    await refreshWallet();
+    const p = openPanel('wheel');
+    addText(p, 'h1', "🎡 Omad g'ildiragi");
+    addText(p, 'p', wallet.freeSpin ? 'Kuniga bitta bepul aylantirish!' : `Bugungi bepul aylantirish ishlatildi. Yana: ${wallet.spinPrice} 🪙`);
+    const wrap = document.createElement('div'); wrap.className = 'wheel-wrap';
+    const c = document.createElement('canvas'), d = window.devicePixelRatio || 1; c.width = 260 * d; c.height = 260 * d; c.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+    wrap.appendChild(c); p.appendChild(wrap); drawWheel(c, 0);
+    let ang = 0;
+    const go = bigBtn(wallet.freeSpin ? '🎡 Aylantirish (bepul)' : `🎡 Aylantirish (${wallet.spinPrice} 🪙)`, async () => {
+      go.disabled = true;
+      const r = await postApi('spin', {});
+      if (!r || !r.ok) { go.disabled = false; return toast('{alert} ' + ((r && r.msg) || 'Xato')); }
+      // spin a few turns and stop with the prize under the arrow
+      const n = WHEEL_LABELS.length, target = 6 * Math.PI * 2 - r.index * 2 * Math.PI / n, start = performance.now(), from = ang % (Math.PI * 2);
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / 3800), e = 1 - Math.pow(1 - t, 3);
+        ang = from + (target - from) * e; drawWheel(c, ang);
+        if (Math.floor(e * 40) !== tick.k) { tick.k = Math.floor(e * 40); Snd.play('tick'); }
+        if (t < 1) return requestAnimationFrame(tick);
+        wallet = r; paintWallet(); Snd.play('win'); burst(); haptic('success');
+        toast(`🎉 Yutuq: ${r.prize}!`);
+        go.disabled = false; go.innerHTML = lbl(`🎡 Yana (${r.spinPrice} 🪙)`);
+      };
+      requestAnimationFrame(tick);
+    }, 'pri');
+    p.append(go, bigBtn('Yopish', hideOverlay));
+  }
+
+  // ---------- share a win to Telegram Stories ----------
+  async function shareStory(won, draw) {
+    const W = 1080, H = 1920, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0a0f28'); g.addColorStop(0.5, '#1b1450'); g.addColorStop(1, '#070b1f'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    for (const [cx, cy, col] of [[150, 300, 'rgba(255,45,70,.35)'], [930, 1500, 'rgba(47,123,255,.35)'], [800, 400, 'rgba(255,197,49,.25)']]) {
+      const r = x.createRadialGradient(cx, cy, 0, cx, cy, 500); r.addColorStop(0, col); r.addColorStop(1, 'transparent'); x.fillStyle = r; x.fillRect(0, 0, W, H);
+    }
+    x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = '900 120px system-ui'; x.shadowColor = '#2f7bff'; x.shadowBlur = 40; x.fillText('RAQIB', W / 2, 260);
+    x.shadowBlur = 0; x.font = '600 46px system-ui'; x.fillStyle = '#c4cbef'; x.fillText("o'yinlar markazi", W / 2, 330);
+    x.font = '900 150px system-ui'; x.fillStyle = '#ffc531'; x.shadowColor = '#ffc531'; x.shadowBlur = 50; x.fillText(draw ? 'DURRANG' : "G'ALABA!", W / 2, 760);
+    x.shadowBlur = 0; x.font = '800 64px system-ui'; x.fillStyle = '#fff'; x.fillText(GAME_NAMES[kind], W / 2, 900);
+    x.font = '600 52px system-ui'; x.fillStyle = '#d8ddff'; x.fillText(`${myName}  vs  ${names[1 - you] || 'Bot'}`, W / 2, 1010);
+    if (eloInfo && mode === 'online') { const dd = eloInfo.delta[you]; x.font = '900 90px system-ui'; x.fillStyle = dd >= 0 ? '#2ee66b' : '#ff6b7d'; x.fillText(`${eloInfo.now[you]} ELO (${dd >= 0 ? '+' : ''}${dd})`, W / 2, 1180); }
+    x.font = '800 58px system-ui'; x.fillStyle = '#fff'; x.fillText('Meni yengib ko\'r! 👇', W / 2, 1560);
+    x.font = '600 46px system-ui'; x.fillStyle = '#9cc0ff'; x.fillText(config.bot ? '@' + config.bot : 'Telegram: RAQIB', W / 2, 1640);
+    toast('⏳ Tayyorlanmoqda...');
+    const r = await postApi('story', { image: c.toDataURL('image/jpeg', 0.88) });
+    if (!r || !r.ok) return toast('{alert} ' + ((r && r.msg) || 'Xato'));
+    try { tg.shareToStory(location.origin + location.pathname.replace(/[^/]*$/, '') + r.url, { text: `${GAME_NAMES[kind]}da g'alaba! 🏆 Meni yengib ko'r: ${appLink()}` }); }
+    catch (e) { toast("{alert} Stories'ga ulashib bo'lmadi"); }
+  }
+
   // ---------- emoji reactions (online games) ----------
   const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
+  const PHRASES = ['Salom! 👋', 'Omad! 🍀', 'Yaxshi yurish! 👍', 'Voy! 😮', 'Tezroq 😅', "Yaxshi o'yin! 🤝", 'Rahmat! 🙏', "Yana o'ynaymizmi? 🔁"];
+  const phraseRow = () => { const r = document.createElement('div'); r.className = 'phr'; for (const t of PHRASES) { const b = document.createElement('button'); b.textContent = t; b.onclick = () => sendReaction(t); r.appendChild(b); } return r; };
   function sendReaction(e) {
     $('reactBar').classList.add('hide');
     if (mode !== 'online' || !ws || ws.readyState !== 1) return;
@@ -2815,10 +2935,10 @@
     ws.send(JSON.stringify({ t: 'react', e })); // the server echoes it back to both players
   }
   function showReaction(e, mine) {
-    if (!REACTIONS.includes(e)) return;
+    if (!REACTIONS.includes(e) && !PHRASES.includes(e)) return;
     Snd.play('pop'); if (!mine) haptic('light');
     // on the sender's side, at the bottom, with who sent it; the border is the sender's colour (green = you)
-    const b = document.createElement('div'); b.className = 'rbub ' + (mine ? 'me' : 'opp');
+    const b = document.createElement('div'); b.className = 'rbub ' + (mine ? 'me' : 'opp') + (PHRASES.includes(e) ? ' phrase' : '');
     addText(b, 'span', e); addText(b, 'small', mine ? 'Siz' : names[1 - you] || 'Raqib');
     b.style.setProperty('--bc', mine ? 'var(--green)' : COLORS[1 - you]);
     document.body.appendChild(b);
@@ -2836,6 +2956,7 @@
   (() => {
     const bar = $('reactBar');
     for (const e of REACTIONS) { const b = document.createElement('button'); b.className = 'rx'; b.textContent = e; b.onclick = () => sendReaction(e); bar.appendChild(b); }
+    bar.appendChild(phraseRow());
     $('reactBtn').onclick = (ev) => {
       ev.stopPropagation(); haptic('light');
       if (!bar.classList.contains('hide')) return bar.classList.add('hide');
@@ -3223,7 +3344,7 @@
   function goBack() {
     if (replay) return closeReplay();
     if (!$('admin').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); hideAdmin(); return showTabs('profile'); }
-    if (['player', 'pick', 'tour', 'tcreate', 'challenge', 'addfriend'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
+    if (['player', 'pick', 'tour', 'tcreate', 'challenge', 'addfriend', 'rules', 'wheel'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
     if (!$('rating').classList.contains('hide') || !$('profile').classList.contains('hide') || !$('shop').classList.contains('hide') || !$('friends').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
     if (!$('hub').classList.contains('hide')) return;
     if (!$('lobby').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
@@ -3289,6 +3410,7 @@
     setBackButton(true);
     buildTimeSeg();
     setWhere(kind);
+    if (!store.get('rules_' + kind) && RULES_TEXT[kind]) setTimeout(() => { if (!$('lobby').classList.contains('hide') && !$('overlay').dataset.kind) showRules(kind); }, 400);
     openLobbySocket();
     if (pendingChallenge) { const c = pendingChallenge; pendingChallenge = null; setTimeout(() => showIncomingChallenge(c.m), 300); }
   }
