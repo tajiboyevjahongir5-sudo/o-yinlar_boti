@@ -448,9 +448,12 @@
   .rbub { position:fixed; z-index:9; pointer-events:none; font-size:40px; line-height:1; padding:8px 10px; border-radius:20px;
     background:rgba(12,18,48,.92); border:1.5px solid var(--bc, var(--blue)); box-shadow:0 0 16px var(--bc, var(--blue));
     animation:bubble 2.4s ease-out forwards; }
-  /* stickers pop up in the bottom-right corner; several at once stack upwards */
-  .rbub { right:calc(14px + env(safe-area-inset-right)); display:flex; flex-direction:column; align-items:center; gap:3px;
-    transform-origin:100% 100%; transition:bottom .25s ease-out; }
+  /* stickers pop up at the bottom, on the sender's side (you: left, like your card; opponent: right);
+     several at once stack upwards */
+  .rbub.opp { right:calc(14px + env(safe-area-inset-right)); transform-origin:100% 100%; }
+  .rbub.me { left:calc(14px + env(safe-area-inset-left)); transform-origin:0 100%; }
+  .rbub { display:flex; flex-direction:column; align-items:center; gap:3px;
+    transition:bottom .25s ease-out; }
   .rbub small { font-size:10.5px; font-weight:800; color:#dfe5ff; max-width:72px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   @keyframes bubble { 0% { transform:translateY(16px) scale(.4); opacity:0; } 12% { transform:translateY(0) scale(1.15); opacity:1; }
     20% { transform:scale(1); } 75% { opacity:1; transform:translateY(0); } 100% { transform:translateY(-30px); opacity:0; } }
@@ -1208,18 +1211,21 @@
   function showReaction(e, mine) {
     if (!REACTIONS.includes(e)) return;
     Snd.play('pop'); if (!mine) haptic('light');
-    // bottom-right corner, with who sent it; the border is the sender's colour (green = you)
-    const b = document.createElement('div'); b.className = 'rbub';
+    // on the sender's side, at the bottom, with who sent it; the border is the sender's colour (green = you)
+    const b = document.createElement('div'); b.className = 'rbub ' + (mine ? 'me' : 'opp');
     addText(b, 'span', e); addText(b, 'small', mine ? 'Siz' : names[1 - you] || 'Raqib');
     b.style.setProperty('--bc', mine ? 'var(--green)' : COLORS[1 - you]);
     document.body.appendChild(b);
     stackReactions();
     setTimeout(() => { b.remove(); stackReactions(); }, 2500);
   }
-  function stackReactions() { // newest at the bottom, older ones pushed up
-    const all = [...document.querySelectorAll('.rbub')].reverse();
-    let y = 22 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sb')) || 0);
-    for (const el of all) { el.style.bottom = `calc(${y}px + env(safe-area-inset-bottom))`; y += el.offsetHeight + 8; }
+  function stackReactions() { // per side: newest at the bottom, older ones pushed up
+    for (const side of ['me', 'opp']) {
+      let y = 22;
+      for (const el of [...document.querySelectorAll('.rbub.' + side)].reverse()) {
+        el.style.bottom = `calc(${y}px + env(safe-area-inset-bottom))`; y += el.offsetHeight + 8;
+      }
+    }
   }
   (() => {
     const bar = $('reactBar');
