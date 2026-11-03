@@ -21,6 +21,60 @@ Damka butun diagonal bo'ylab yuradi va uradi; urilgan donalar yurish tugaguncha 
 urilmaydi. Raqibda dona qolmasa yoki yurishga joyi bo'lmasa — g'alaba. 15 yurish davomida faqat damkalar yurib,
 urish bo'lmasa — durrang. Har o'yinchiga 5 daqiqa. Qoidalar: `public/checkers.js`.
 
+## Mukofotlar: skinlar va ramkalar
+
+Reytingli o'yinlarda **eng yuqori ELO** (peak) ma'lum chegaraga yetganda mukofot ochiladi. ELO keyin tushsa ham
+mukofot qoladi. Profil → **Kolleksiya**da bosib kiyiladi; raqiblar ham ko'radi (server tekshiradi).
+
+| ELO | To'siq Jangi (personaj) | Shaxmat (donalar) | Shashka (donalar) | X va O (belgilar) | Ramka (istalgan o'yin) |
+|---|---|---|---|---|---|
+| 1100 | Ninja | Oltin | Oltin | Oltin | Bronza |
+| 1200 | Ritsar | Neon | Neon | Kamalak | Kumush |
+| 1300 | Qirol | Kristall | Olov | Olov | Oltin |
+| 1500 | Kosmik | Olov | Olmos | Kosmik | Olmos |
+
+Maxsus ramkalar: **Hafta qiroli** (haftalik reytingda 1-o'rin) va **Chempion** (turnir g'olibi).
+Katalog: `public/rewards.js` (server ham, ilova ham ishlatadi).
+
+## Yutuqlar
+
+18 ta nishon: birinchi g'alaba, 10/50 g'alaba, 5 ta ketma-ket, mot, damka, 10 ta to'siq bilan yutish, uchtalik,
+hamma o'yinda yutish, 1200/1500 ELO, 1 daqiqalik o'yinda yutish, revanshda qasos, birinchi do'st, tomosha,
+"Qiyin" botni yutish, turnir g'olibi, hafta qiroli. Onlayn o'yinlar (xona, reytingli, turnir) hisoblanadi, ikkala
+o'yinchi tasdiqlangan (Telegram) bo'lishi kerak. Yangi yutuq ilovada darhol ko'rsatiladi.
+
+## Haftalik reyting
+
+Reyting → **Shu hafta**: shu haftada reytingli o'yinlarda yig'ilgan ELO (+/-) bo'yicha. Hafta dushanba 00:00
+(Toshkent vaqti) da yangilanadi; har bir o'yinning haftalik g'olibi 👑 "Hafta qiroli" nishoni va ramkasini oladi.
+Ma'lumot: `data/meta.json`.
+
+## Do'stlar, chaqiruv va tomosha
+
+- **Do'st qo'shish**: o'yin tugagach natija oynasidan yoki Reyting ro'yxatida o'yinchini bosib.
+- **Do'stlar** bo'limi: kim onlayn, kim o'ynayapti; **Chaqirish** (o'yin va vaqtni tanlab) — do'stingizga ilovada
+  darhol oyna chiqadi va bot orqali "Xonaga kirish" tugmali xabar boradi. Rad etsa, sizga xabar keladi.
+- **Tomosha**: Xonalar ro'yxatida ketayotgan ochiq, reytingli va turnir o'yinlarida "Tomosha" tugmasi bor;
+  do'stingizning o'yinini (maxfiy bo'lsa ham) Do'stlar bo'limidan ko'rasiz. Tomoshabin yura olmaydi.
+- O'yinchilar bir-birining Telegram ID'sini ko'rmaydi — faqat qisqa ochiq ID (`pid`).
+
+## Turnirlar
+
+Xonalar sahifasida **Turnir yaratish**: 4, 8 yoki 16 kishilik, tanlangan o'yin va vaqt bilan. To'lishi bilan
+boshlanadi (yaratuvchi 3+ kishi bilan oldinroq boshlashi mumkin; yetmagan joylar keyingi bosqichga bepul o'tadi).
+Navbat kelganda o'yin o'zi ochiladi; 1 daqiqada kelmagan o'yinchi yutqazadi; durrang qayta o'ynaladi. Jadvalda
+ketayotgan o'yinni bosib tomosha qilish mumkin. Turnir o'yinlari ELO bermaydi; g'olib "Chempion" ramkasini oladi.
+
+## Vaqt, bot darajasi, durrang, qaytarish, yurishlarni ko'rish
+
+- **Vaqt**: Xonalar sahifasida 1 / 3 / 5 / 10 daqiqa — reytingli qidiruv (faqat shu vaqtni tanlaganlar bilan
+  juftlanadi), yangi xona, turnir va botga qarshi o'yin uchun.
+- **Bot darajasi**: Oson / O'rta / Qiyin (har o'yinda). Qiyin shaxmat boti ko'pi bilan ~1 soniya o'ylaydi.
+- **Durrang taklifi** (Shaxmat, Shashka): 🤝 tugmasi; raqib rozi bo'lsa durrang. Har o'yinda 3 martagacha,
+  yurish qilish taklifni rad etadi. Bot o'z holati yaxshi bo'lmasa rozi bo'ladi.
+- **Yurishni qaytarish** (↺, faqat botga qarshi, hamma o'yinda).
+- **Yurishlarni ko'rish**: o'yin tugagach ⏮ ◀ ▶ ⏭ bilan butun o'yinni qadamma-qadam ko'rish.
+
 ## Revansh, reaksiyalar va ovoz
 
 - **🔁 Revansh**: o'yin tugagach o'sha raqib bilan yana o'ynash. Ikkala o'yinchi ham rozi bo'lishi kerak: birinchi
@@ -153,6 +207,7 @@ o'yinlar ro'yxati, o'yindagi kartalar va reytingda ko'rinadi; bo'lmasa personaj/
 
 - `public/game.js` — To'siq Jangi qoidalari (server ham, brauzer ham ishlatadi) va bot
 - `public/xo.js`, `public/checkers.js`, `public/chess.js` — X va O, Shashka, Shaxmat qoidalari va botlari
+- `public/rewards.js` — skinlar, ramkalar va yutuqlar katalogi
 - `public/index.html` — o'yin interfeysi (canvas, Telegram haptik)
 - `server.js` — statik fayllar + WebSocket xonalar (`/ws`)
 

@@ -15,8 +15,9 @@
   const sq = (i) => FILES[i % N] + (N - Math.floor(i / N));
   const colorOf = (g, p) => (p === g.starter ? 'w' : 'b');
 
-  function newGame(starter) {
+  function newGame(starter, minutes) {
     starter = starter || 0;
+    const ms = minutes ? minutes * 60000 : CLOCK_MS;
     const back = 'rnbqkbnr', board = Array(64).fill(null);
     for (let c = 0; c < N; c++) {
       board[c] = back[c]; board[8 + c] = 'p';
@@ -28,8 +29,8 @@
       ep: -1,     // en passant target square, or -1
       half: 0,    // plies since the last capture or pawn move (50-move rule)
       reps: {},   // position key -> times seen (cleared on irreversible moves)
-      log: [], n: 0, last: null, check: false,
-      clock: [CLOCK_MS, CLOCK_MS], turnStart: null,
+      log: [], n: 0, last: null, check: false, hist: [], base: ms,
+      clock: [ms, ms], turnStart: null,
     };
     g.reps[posKey(g, 'w')] = 1;
     return g;
@@ -208,6 +209,7 @@
     g.log.push(note);
     g.last = { p, t: 'move', from, to, cap: cap || null, castle: m.castle || null, promo: m.promo || null, check: g.check };
     g.n++;
+    g.hist.push({ t: 'move', from, to, promo: m.promo || undefined });
     g.clock[p] -= now - g.turnStart;
     g.turnStart = now;
     g.turn = 1 - p;
@@ -266,7 +268,10 @@
     }
     return alpha;
   }
+  let deadline = Infinity;
+  const TIMEOUT = {};
   function negamax(g, side, depth, alpha, beta) {
+    if (Date.now() > deadline) throw TIMEOUT;
     const enemy = side === 'w' ? 'b' : 'w';
     if (depth === 0) return quiesce(g, side, alpha, beta, 4);
     const moves = order(g.board, legalMoves(g, side));
@@ -281,7 +286,9 @@
     }
     return best;
   }
-  function botAction(g, p, mistake = 0.1) {
+  // level: 0 easy (1 ply + captures, often careless), 1 normal (3 plies), 2 hard (4 plies, no slips)
+  function botAction(g, p, level = 1) {
+    const mistake = [0.3, 0.1, 0][level] ?? 0.1, depth = [0, 2, 3][level] ?? 2;
     const side = colorOf(g, p), enemy = side === 'w' ? 'b' : 'w';
     const moves = legalMoves(g, side);
     if (!moves.length) return null;
@@ -291,17 +298,27 @@
       const pool = safe.length ? safe : moves, m = pool[Math.floor(Math.random() * pool.length)];
       return { t: 'move', from: m.from, to: m.to, promo: m.promo };
     }
-    let best = -Infinity, picks = [];
-    for (const m of order(g.board, moves)) {
-      const n = copy(g); make(n, m);
-      const v = -negamax(n, enemy, 2, -Infinity, Infinity) + Math.random() * 12;
-      if (v > best) { best = v; picks = [m]; }
+    // iterative deepening: a deeper search only replaces the answer if it finishes within the time budget
+    let pick = null;
+    deadline = Date.now() + 900;
+    for (let d = Math.min(depth, 1); d <= depth; d++) {
+      let best = -Infinity, cand = null;
+      try {
+        for (const m of order(g.board, moves)) {
+          const n = copy(g); make(n, m);
+          const v = -negamax(n, enemy, d, -Infinity, Infinity) + Math.random() * (level === 2 ? 4 : 12);
+          if (v > best) { best = v; cand = m; }
+        }
+      } catch (e) { if (e !== TIMEOUT) throw e; break; }
+      pick = cand;
     }
-    const m = picks[0];
+    deadline = Infinity;
+    const m = pick || moves[0];
     return { t: 'move', from: m.from, to: m.to, promo: m.promo };
   }
 
-  const api = { N, CLOCK_MS, newGame, start, colorOf, colorOfPiece, isWhite, legalMoves, inCheck, kingSq, checkTimeout, resign, apply,
+  const score = (g, p) => evaluate(g.board, colorOf(g, p));
+  const api = { score, N, CLOCK_MS, newGame, start, colorOf, colorOfPiece, isWhite, legalMoves, inCheck, kingSq, checkTimeout, resign, apply,
     botAction, sq };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else window.Chess = api;

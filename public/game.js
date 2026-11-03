@@ -6,14 +6,15 @@
   const LETTERS = 'abcdefghi';
   const GOAL = [0, ROWS - 1];
 
-  function newGame(starter) {
+  function newGame(starter, minutes) {
+    const ms = minutes ? minutes * 60000 : CLOCK_MS;
     return {
       cols: COLS, rows: ROWS, turn: starter || 0, starter: starter || 0, winner: null, reason: null,
       pawns: [{ r: ROWS - 1, c: 4 }, { r: 0, c: 4 }],
       left: [FENCES, FENCES],
       fences: [], // {o:'h'|'v', r, c, p}
       log: [],    // move notation, e.g. "e2", "d3h"
-      clock: [CLOCK_MS, CLOCK_MS],
+      clock: [ms, ms], base: ms, hist: [],
       turnStart: null, // ms timestamp when the current turn began; null = clocks not running yet
     };
   }
@@ -135,17 +136,21 @@
     g.turnStart = now;
     g.last = Object.assign({ p }, act);
     g.log.push(notation(act));
+    g.hist.push(act);
     if (g.winner === null) g.turn = 1 - p;
     return null;
   }
 
-  function botAction(g, p) {
+  // level: 0 easy (often just walks, blocks late), 1 normal, 2 hard (blocks as soon as it is not ahead)
+  function botAction(g, p, level = 1) {
     const E = edges(g.fences);
     const myDist = distMap(E, GOAL[p]), opDist = distMap(E, GOAL[1 - p]);
     const me = g.pawns[p], op = g.pawns[1 - p];
     const myLen = myDist[me.r][me.c], opLen = opDist[op.r][op.c];
     // block when the opponent is ahead in the race (or about to win)
-    if (g.left[p] > 0 && (opLen < myLen || opLen <= 2)) {
+    const wantBlock = level === 0 ? (opLen <= 1 || (opLen < myLen - 2 && Math.random() < 0.5))
+      : level === 2 ? (opLen <= myLen || opLen <= 3) : (opLen < myLen || opLen <= 2);
+    if (g.left[p] > 0 && wantBlock) {
       let best = null, bestScore = 0;
       for (const o of ['h', 'v']) for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         if (fenceError(g, o, r, c)) continue;
@@ -157,6 +162,7 @@
       if (best && bestScore >= 1) return best;
     }
     const moves = validMoves(g, p, E);
+    if (level === 0 && Math.random() < 0.3) return Object.assign({ t: 'move' }, moves[Math.floor(Math.random() * moves.length)]);
     const bestD = Math.min(...moves.map(m => myDist[m.r][m.c]));
     const pick = moves.filter(m => myDist[m.r][m.c] === bestD);
     return Object.assign({ t: 'move' }, pick[Math.floor(Math.random() * pick.length)]);

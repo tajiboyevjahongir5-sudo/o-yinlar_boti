@@ -17,7 +17,8 @@
    * o = {
    *   color, kind: 'human'|'bot', dir: 'down'|'up'|'left'|'right',
    *   walk: phase (radians), moving: 0..1, hop: px above ground, squash: -0.2..0.2,
-   *   pose: 'idle'|'win'|'lose', t: ms clock, blink: bool, glow: 0..1, ring: bool, shadow: bool
+   *   pose: 'idle'|'win'|'lose', t: ms clock, blink: bool, glow: 0..1, ring: bool, shadow: bool,
+   *   skin: null|'ninja'|'ritsar'|'qirol'|'kosmik'  (rewards for To'siq Jangi ELO)
    * }
    */
   function draw(ctx, x, y, S, o) {
@@ -74,6 +75,15 @@
     if (side >= 0) arm(-bw / 2 + S * 0.02, aL);
     if (side <= 0) arm(bw / 2 - S * 0.02, aR);
 
+    const skin = o.kind === 'bot' ? null : o.skin;
+    if (skin === 'qirol') { // red cape behind the body
+      const fl = Math.sin(t / 260) * S * 0.03;
+      ctx.fillStyle = '#c4122f';
+      ctx.beginPath(); ctx.moveTo(bx + bw * 0.12, bTop + bh * 0.25); ctx.lineTo(bx + bw * 0.88, bTop + bh * 0.25);
+      ctx.lineTo(bx + bw + S * 0.06 + fl, -legH * 0.6); ctx.lineTo(bx - S * 0.06 - fl, -legH * 0.6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f4f6ff'; ctx.fillRect(bx + bw * 0.1, bTop + bh * 0.22, bw * 0.8, bh * 0.06);
+    }
+
     // body (bean) with neon glow
     ctx.save();
     ctx.shadowColor = c; ctx.shadowBlur = 6 + 12 * (o.glow || 0);
@@ -108,14 +118,20 @@
         ctx.fillStyle = 'rgba(10,16,40,.55)'; rr(ctx, -bw * 0.22, bTop + bh * 0.3, bw * 0.44, bh * 0.3, S * 0.04); ctx.fill();
         ctx.fillStyle = Math.sin(t / 200) > 0 ? '#7fe3ff' : '#ffd166';
         ctx.beginPath(); ctx.arc(-bw * 0.08, bTop + bh * 0.45, S * 0.025, 0, 7); ctx.arc(bw * 0.08, bTop + bh * 0.45, S * 0.025, 0, 7); ctx.fill();
-      } else { // headband with knot ribbons fluttering
-        ctx.fillStyle = '#f4f6ff'; ctx.fillRect(bx + 1, bTop + bh * 0.2, bw - 2, bh * 0.11);
+      } else if (!skin || skin === 'ninja') { // headband with knot ribbons fluttering
+        ctx.fillStyle = skin === 'ninja' ? '#14141f' : '#f4f6ff'; ctx.fillRect(bx + 1, bTop + bh * 0.2, bw - 2, bh * 0.11);
+        if (skin === 'ninja') ctx.fillStyle = '#e0283c';
         const fl = Math.sin(t / 150) * S * 0.03;
         ctx.beginPath(); ctx.moveTo(0, bTop + bh * 0.25); ctx.lineTo(-S * 0.1, bTop + bh * 0.45 + fl); ctx.lineTo(-S * 0.03, bTop + bh * 0.4); ctx.fill();
         ctx.beginPath(); ctx.moveTo(0, bTop + bh * 0.25); ctx.lineTo(S * 0.1, bTop + bh * 0.47 - fl); ctx.lineTo(S * 0.03, bTop + bh * 0.4); ctx.fill();
       }
     } else {
-      if (o.kind !== 'bot') { // headband
+      if (skin === 'ninja') { // black mask across the eyes, red ribbon
+        ctx.fillStyle = '#14141f'; rr(ctx, bx + 1, faceY - bh * 0.14, bw - 2, bh * 0.25, bh * 0.08); ctx.fill();
+        ctx.fillStyle = '#e0283c'; ctx.fillRect(bx + 1, bTop + bh * 0.13, bw - 2, bh * 0.06);
+        const fl = Math.sin(t / 150) * 2, sx = side ? -side : 1;
+        ctx.beginPath(); ctx.moveTo(sx * bw * 0.46, bTop + bh * 0.16); ctx.lineTo(sx * bw * 0.78, bTop + bh * 0.3 + fl); ctx.lineTo(sx * bw * 0.5, bTop + bh * 0.24); ctx.fill();
+      } else if (o.kind !== 'bot' && !skin) { // headband
         ctx.fillStyle = '#f4f6ff'; ctx.fillRect(bx + 1, bTop + bh * 0.13, bw - 2, bh * 0.1);
         if (side) { ctx.beginPath(); ctx.moveTo(-side * bw * 0.48, bTop + bh * 0.18); ctx.lineTo(-side * bw * 0.72, bTop + bh * 0.3 + Math.sin(t / 150) * 2); ctx.lineTo(-side * bw * 0.5, bTop + bh * 0.28); ctx.fill(); }
       } else { // visor
@@ -124,8 +140,36 @@
       drawFace(ctx, fx, faceY, S, o, bw, bh);
     }
 
-    // crown for the winner
-    if (o.pose === 'win') {
+    if (skin === 'ritsar') { // silver helmet with a visor slit and a red plume
+      const hg = ctx.createLinearGradient(bx, bTop, bx + bw, bTop);
+      hg.addColorStop(0, '#9aa3b8'); hg.addColorStop(0.45, '#f1f4fb'); hg.addColorStop(1, '#7c859c');
+      ctx.fillStyle = hg;
+      ctx.beginPath(); ctx.moveTo(bx - S * 0.01, bTop + bh * 0.3);
+      ctx.bezierCurveTo(bx - S * 0.01, bTop - bh * 0.12, bx + bw + S * 0.01, bTop - bh * 0.12, bx + bw + S * 0.01, bTop + bh * 0.3);
+      ctx.closePath(); ctx.fill();
+      if (!back) { ctx.fillStyle = '#1b2140'; ctx.fillRect(bx + bw * 0.18 + fx, bTop + bh * 0.18, bw * 0.64, bh * 0.05); }
+      ctx.fillStyle = '#e0283c';
+      const pw = Math.sin(t / 240) * S * 0.02;
+      ctx.beginPath(); ctx.moveTo(-S * 0.02, bTop - bh * 0.03); ctx.quadraticCurveTo(S * 0.02 + pw, bTop - S * 0.24, S * 0.14 + pw, bTop - S * 0.2);
+      ctx.quadraticCurveTo(S * 0.06, bTop - S * 0.08, S * 0.04, bTop - bh * 0.02); ctx.closePath(); ctx.fill();
+    }
+    if (skin === 'kosmik') { // glass bubble helmet and orbiting stars
+      ctx.save();
+      ctx.strokeStyle = 'rgba(190,235,255,.85)'; ctx.lineWidth = Math.max(1.5, S * 0.025);
+      ctx.fillStyle = 'rgba(150,220,255,.13)';
+      ctx.beginPath(); ctx.ellipse(0, bTop + bh * 0.36, bw * 0.62, bh * 0.5, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.6)';
+      ctx.beginPath(); ctx.ellipse(-bw * 0.3, bTop + bh * 0.08, bw * 0.08, bh * 0.05, -0.7, 0, 7); ctx.fill();
+      for (let k = 0; k < 3; k++) {
+        const a = t / 700 + k * 2.1, sx2 = Math.cos(a) * bw * 0.8, sy2 = bTop + bh * 0.4 + Math.sin(a) * bh * 0.25;
+        ctx.fillStyle = ['#ffd34d', '#9cf', '#f9f'][k]; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(sx2, sy2, S * 0.025, 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // crown for the winner (and always for the king skin)
+    if (o.pose === 'win' || skin === 'qirol') {
       ctx.save(); ctx.translate(0, bTop - S * (o.kind === 'bot' ? 0.18 : 0.02)); ctx.rotate(Math.sin(t / 200) * 0.08);
       ctx.fillStyle = '#ffc531'; ctx.shadowColor = '#ffc531'; ctx.shadowBlur = 10;
       const cw = S * 0.34, ch = S * 0.17;

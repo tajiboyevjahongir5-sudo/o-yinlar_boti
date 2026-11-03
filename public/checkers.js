@@ -19,8 +19,9 @@
   const inside = (r, c) => r >= 0 && r < N && c >= 0 && c < N;
   const sq = (i) => FILES[i % N] + (N - Math.floor(i / N));
 
-  function newGame(starter) {
+  function newGame(starter, minutes) {
     starter = starter || 0;
+    const ms = minutes ? minutes * 60000 : CLOCK_MS;
     const board = Array(N * N).fill(null);
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if ((r + c) % 2 === 1) {
       if (r < 3) board[r * N + c] = 'b';
@@ -31,8 +32,8 @@
       chain: null,      // square of the piece in the middle of a multi-capture
       taken: [],        // squares captured during the current move (removed when it ends)
       quiet: 0,         // plies in a row by kings without a capture
-      log: [], n: 0, last: null,
-      clock: [CLOCK_MS, CLOCK_MS], turnStart: null,
+      log: [], n: 0, last: null, hist: [], base: ms,
+      clock: [ms, ms], turnStart: null,
     };
   }
   function start(g, now) { if (g.turnStart === null) g.turnStart = now; }
@@ -163,6 +164,7 @@
     else g.log[g.log.length - 1] += ':' + sq(to);
     g.last = { p, t: 'move', from, to, cap: s.over !== undefined ? s.over : null, crowned: res.crowned, more: res.more };
     g.n++;
+    g.hist.push({ t: 'move', from, to });
     if (res.more) return null; // same player keeps capturing; the clock keeps running
     g.clock[p] -= now - g.turnStart;
     g.turnStart = now;
@@ -226,7 +228,9 @@
     return best;
   }
   // returns the first step of the best full move; a multi-capture is replayed step by step
-  function botAction(g, p, mistake = 0.12) {
+  // level: 0 easy, 1 normal, 2 hard
+  function botAction(g, p, level = 1) {
+    const mistake = [0.3, 0.12, 0][level] ?? 0.12, depth = [1, 3, 6][level] ?? 3;
     const moves = fullMoves(g, p);
     if (!moves.length) return null;
     let pick;
@@ -234,7 +238,7 @@
     else {
       let best = -Infinity, picks = [];
       for (const m of moves) {
-        const v = search(m.g, p, 1 - p, 5, -Infinity, Infinity) + Math.random() * 6;
+        const v = search(m.g, p, 1 - p, depth, -Infinity, Infinity) + Math.random() * 6;
         if (v > best) { best = v; picks = [m]; }
       }
       pick = picks[0];
@@ -243,7 +247,9 @@
     return { t: 'move', from: s.from, to: s.to };
   }
 
-  const api = { N, CLOCK_MS, newGame, start, colorOf, ownerOf, isKing, legalSteps, checkTimeout, resign, apply, botAction, sq,
+  // the bot's view of the position for player p (used to decide on a draw offer)
+  const score = (g, p) => evaluate(g, p);
+  const api = { score, N, CLOCK_MS, newGame, start, colorOf, ownerOf, isKing, legalSteps, checkTimeout, resign, apply, botAction, sq,
     count };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else window.Shashka = api;

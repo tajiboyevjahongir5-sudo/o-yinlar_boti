@@ -4,11 +4,13 @@
   const CLOCK_MS = 60 * 1000;
   const LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
 
-  function newGame(starter) {
+  // minutes: the time control (each player's clock); defaults to CLOCK_MS
+  function newGame(starter, minutes) {
+    const ms = minutes ? minutes * 60000 : CLOCK_MS;
     return {
       kind: 'xo', board: Array(9).fill(null), turn: starter || 0, starter: starter || 0,
-      winner: null, reason: null, line: null, log: [],
-      clock: [CLOCK_MS, CLOCK_MS], turnStart: null,
+      winner: null, reason: null, line: null, log: [], hist: [], base: ms,
+      clock: [ms, ms], turnStart: null,
     };
   }
 
@@ -43,6 +45,7 @@
     g.clock[p] -= now - g.turnStart;
     g.turnStart = now;
     g.last = { p, t: 'move', i };
+    g.hist.push({ t: 'move', i });
     g.log.push(symbol(g, p) + ':' + 'abc'[i % 3] + (3 - Math.floor(i / 3)));
     const ln = lineOf(g.board, p);
     if (ln) { g.winner = p; g.reason = 'line'; g.line = ln; }
@@ -67,7 +70,9 @@
   }
 
   // plays the best move, but slips now and then so it can be beaten
-  function botAction(g, p, mistake = 0.22) {
+  // level: 0 easy, 1 normal, 2 hard (never slips)
+  function botAction(g, p, level = 1) {
+    const mistake = [0.5, 0.22, 0][level] ?? 0.22;
     const free = g.board.map((v, i) => (v === null ? i : -1)).filter(i => i >= 0);
     if (Math.random() < mistake) return { t: 'move', i: free[Math.floor(Math.random() * free.length)] };
     let best = -99, picks = [];

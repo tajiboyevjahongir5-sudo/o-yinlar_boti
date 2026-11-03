@@ -10,6 +10,7 @@ const kindOf = (k) => (GAMES[k] ? k : 'tosiq');
 const rulesOf = (room) => GAMES[room.kind];
 
 const crypto = require('crypto');
+const Rewards = require('./public/rewards.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -49,13 +50,15 @@ const ranked = (kind) => Object.entries(players).filter(([, p]) => p.stats[kind]
   .map(([id, p]) => [id, p.name, p.stats[kind], p.photo || null])
   .sort((a, b) => b[2].elo - a[2].elo || b[2].wins - a[2].wins);
 
-// rate a finished online game once; both players must be verified (see verifyInitData)
+// rate a finished online game once; both players must be verified (see verifyInitData).
+// Every online game counts for achievements; only rated games change ELO and the weekly table.
 function rateGame(room) {
   const g = room.game, [a, b] = room.players;
   if (g.winner === null || room.rated) return;
   room.rated = true;
-  if (!room.ranked) return; // games in open/private rooms are casual
   if (!a || !b || !a.verified || !b.verified || a.uid === b.uid) return;
+  recordOnline(room);
+  if (!room.ranked) return; // games in open/private rooms are casual
   const pa = statsOf(a.uid, room.kind, a.name, a.photo), pb = statsOf(b.uid, room.kind, b.name, b.photo);
   // winner -1 is a draw (X va O), worth half a point
   const expA = 1 / (1 + Math.pow(10, (pb.elo - pa.elo) / 400)), scoreA = g.winner === -1 ? 0.5 : g.winner === 0 ? 1 : 0;
@@ -70,6 +73,12 @@ function rateGame(room) {
     p.history = p.history.slice(0, 20);
   });
   room.elo = { delta: [dA, -dA], now: [pa.elo, pb.elo] };
+  [[a.uid, pa, dA], [b.uid, pb, -dA]].forEach(([uid, st, d]) => {
+    const p = players[uid], w = weekOf(p);
+    w.gain[room.kind] = (w.gain[room.kind] || 0) + d; w.games[room.kind] = (w.games[room.kind] || 0) + 1;
+    if (st.peak >= 1200) award(uid, 'elo1200');
+    if (st.peak >= 1500) award(uid, 'elo1500');
+  });
   savePlayers();
 }
 
@@ -89,6 +98,193 @@ function verifyInitData(initData) {
     return { uid: 'tg' + u.id, name: String(u.username || u.first_name || "O'yinchi").slice(0, 24), photo: cleanPhoto(u.photo_url) };
   } catch (e) { return null; }
 }
+
+// who sent this request: a verified Telegram user, or (only without BOT_TOKEN, for local testing) the uid it claims
+function whoIs(m) {
+  const v = verifyInitData(m && m.initData);
+  if (v) return v;
+  if (BOT_TOKEN || !m || !m.uid) return null;
+  return { uid: String(m.uid).slice(0, 64), name: String(m.name || "O'yinchi").slice(0, 24), photo: cleanPhoto(m.photo) };
+}
+
+// ---------- public ids, achievements, rewards, weekly table ----------
+// other players never see a uid (it carries the Telegram id), only this short hash of it
+const pidOf = (uid) => crypto.createHash('sha256').update('pid:' + uid).digest('base64url').slice(0, 12);
+const pidIndex = new Map();
+function uidOfPid(pid) {
+  if (!pidIndex.has(pid)) for (const u of Object.keys(players)) pidIndex.set(pidOf(u), u);
+  return pidIndex.get(pid) || null;
+}
+function playerRec(uid, name, photo) {
+  const p = players[uid] || (players[uid] = { name: name || "O'yinchi", stats: {} });
+  if (name) p.name = name;
+  if (photo !== undefined && photo !== null) p.photo = photo;
+  p.ach = p.ach || {}; p.friends = p.friends || []; p.equip = p.equip || { frame: null, skin: {} };
+  p.counters = p.counters || { wins: 0, streak: 0, best: 0, won: {} };
+  pidIndex.set(pidOf(uid), uid);
+  return p;
+}
+function award(uid, id) {
+  const p = playerRec(uid);
+  if (p.ach[id]) return;
+  p.ach[id] = Date.now();
+  notify(uid, { t: 'ach', id });
+  savePlayers();
+}
+// what the player shows to others: the frame, and the skin for this game (only if still unlocked)
+function looksOf(uid, kind) {
+  const p = players[uid];
+  if (!p || !p.equip) return { frame: null, skin: null };
+  const frame = p.equip.frame && Rewards.frameUnlocked(p, p.equip.frame) ? p.equip.frame : null;
+  const sk = kind && p.equip.skin && p.equip.skin[kind];
+  return { frame, skin: sk && Rewards.skinUnlocked(p, kind, sk) ? sk : null };
+}
+const champOf = (uid) => Object.keys(meta.champs || {}).filter(k => meta.champs[k].uid === uid);
+
+// the week starts on Monday 00:00 Tashkent time (UTC+5); the key is that Monday's date
+function weekKey(t = Date.now()) {
+  const d = new Date(t + 5 * 3600 * 1000), day = (d.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day)).toISOString().slice(0, 10);
+}
+function weekOf(p) {
+  if (!p.week || p.week.key !== weekKey()) p.week = { key: weekKey(), gain: {}, games: {} };
+  return p.week;
+}
+const META_FILE = path.join(DATA_DIR, 'meta.json');
+let meta = { week: weekKey(), champs: {} };
+try { meta = Object.assign(meta, JSON.parse(fs.readFileSync(META_FILE, 'utf8'))); } catch (e) {}
+const saveMeta = () => fs.writeFile(META_FILE, JSON.stringify(meta), () => {});
+// when a new week begins, last week's best ELO gain in each game becomes that game's "Hafta qiroli"
+function rollWeek() {
+  const cur = weekKey();
+  if (meta.week === cur) return;
+  const champs = {};
+  for (const kind of Object.keys(GAMES)) {
+    let best = null;
+    for (const [uid, p] of Object.entries(players)) {
+      if (!p.week || p.week.key !== meta.week || !p.week.games[kind]) continue;
+      const gain = p.week.gain[kind] || 0;
+      if (gain > 0 && (!best || gain > best.gain)) best = { uid, name: p.name, photo: p.photo || null, gain, week: meta.week };
+    }
+    if (best) { champs[kind] = best; award(best.uid, 'weekly'); }
+  }
+  meta.champs = champs; meta.week = cur;
+  saveMeta();
+}
+setInterval(rollWeek, 10 * 60 * 1000); // also run once when the server starts listening
+
+// counters and badges after every online game between two verified players
+function recordOnline(room) {
+  const g = room.game, kind = room.kind;
+  const uids = room.players.map(x => x.uid);
+  room.players.forEach((pl, i) => {
+    const p = playerRec(pl.uid, pl.name, pl.photo), c = p.counters, won = g.winner === i;
+    if (won) {
+      c.wins++; c.streak++; c.best = Math.max(c.best, c.streak); c.won[kind] = 1;
+      award(pl.uid, 'first_win');
+      if (c.wins >= 10) award(pl.uid, 'wins10');
+      if (c.wins >= 50) award(pl.uid, 'wins50');
+      if (c.streak >= 5) award(pl.uid, 'streak5');
+      if (Object.keys(GAMES).every(k => c.won[k])) award(pl.uid, 'all4');
+      if (room.minutes === 1) award(pl.uid, 'blitz');
+      if (kind === 'shaxmat' && g.reason === 'mate') award(pl.uid, 'mate');
+      if (kind === 'shashka' && g.board.includes(GAMES.shashka.colorOf(g, i) === 'w' ? 'W' : 'B')) award(pl.uid, 'damka');
+      if (kind === 'tosiq' && g.reason === 'goal' && g.left[i] === 0) award(pl.uid, 'wall');
+      if (kind === 'xo' && g.reason === 'line') award(pl.uid, 'xo3');
+      if (room.prevWinner === uids[1 - i]) award(pl.uid, 'revansh');
+    } else if (g.winner !== -1) c.streak = 0;
+  });
+  room.prevWinner = g.winner >= 0 ? uids[g.winner] : null;
+  savePlayers();
+}
+
+// ---------- presence: every open app keeps one socket, so friends can see each other and be challenged ----------
+const presence = new Map(); // uid -> Set of sockets
+function notify(uid, msg) {
+  const set = presence.get(uid);
+  if (!set) return;
+  const s = JSON.stringify(msg);
+  for (const w of set) if (w.readyState === 1) w.send(s);
+}
+function statusOf(uid) {
+  for (const r of rooms.values()) {
+    if (!r.players.some(p => p && p.uid === uid && p.ws)) continue;
+    if (r.game.winner === null && r.game.turnStart !== null) return { state: 'playing', kind: r.kind, room: r.id };
+  }
+  return { state: presence.has(uid) ? 'online' : 'offline' };
+}
+function cardOf(uid, me) {
+  const p = players[uid] || {}, l = looksOf(uid);
+  const elo = {};
+  for (const k of Object.keys(GAMES)) if (p.stats && p.stats[k]) elo[k] = { elo: p.stats[k].elo, games: p.stats[k].games, wins: p.stats[k].wins };
+  return { pid: pidOf(uid), name: p.name || "O'yinchi", photo: p.photo || null, frame: l.frame, elo, status: statusOf(uid),
+    ach: Object.keys(p.ach || {}), champ: champOf(uid), friend: !!(me && players[me] && (players[me].friends || []).includes(uid)), me: uid === me };
+}
+
+const MINUTES = [1, 3, 5, 10];
+const DEFAULT_MIN = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10 };
+const minutesOf = (kind, m) => (MINUTES.includes(Number(m)) ? Number(m) : DEFAULT_MIN[kind]);
+
+const readJson = (req) => new Promise((res) => {
+  let body = '';
+  req.on('data', (c) => { body += c; if (body.length > 20000) req.destroy(); });
+  req.on('end', () => { try { res(JSON.parse(body || '{}')); } catch (e) { res({}); } });
+});
+
+// POST /api/<name>: small authenticated actions
+const ACTIONS = {
+  // add or remove a friend (by public id)
+  friend(me, m) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid || uid === me.uid || !players[uid]) return { ok: false, msg: "O'yinchi topilmadi" };
+    const p = playerRec(me.uid, me.name, me.photo);
+    p.friends = p.friends.filter(x => x !== uid);
+    if (!m.remove) { if (p.friends.length >= 100) return { ok: false, msg: "Do'stlar ro'yxati to'la" }; p.friends.unshift(uid); award(me.uid, 'friend'); }
+    savePlayers();
+    return { ok: true, friend: !m.remove };
+  },
+  // challenge a friend: a private room is made for both; the friend gets an in-app card and a bot message
+  async challenge(me, m) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid || uid === me.uid) return { ok: false, msg: "O'yinchi topilmadi" };
+    const kind = kindOf(m.kind), minutes = minutesOf(kind, m.minutes);
+    const r = { id: freshCode(), kind, pub: false, created: Date.now(), game: GAMES[kind].newGame(0, minutes), starter: 0, minutes,
+      players: [null, null], reserved: [me.uid, uid], code: null, watchers: new Set() };
+    r.code = freshCode();
+    rooms.set(r.id, r);
+    r.cleanup = setTimeout(() => { if (r.players.every(x => !x || !x.ws)) { rooms.delete(r.id); lobbyChanged(); } }, 10 * 60 * 1000);
+    const from = cardOf(me.uid);
+    notify(uid, { t: 'challenge', from, kind, minutes, room: r.id, code: r.code });
+    if (BOT_TOKEN && uid.startsWith('tg')) {
+      const g = GAME_INFO[kind];
+      tgApi('sendMessage', { chat_id: Number(uid.slice(2)), parse_mode: 'HTML',
+        text: `⚔️ <b>${esc(me.name)}</b> sizni <b>${g.title}</b> o'yiniga chaqiryapti! (${minutes} daqiqa)\n\n👇 Qabul qilish uchun tugmani bosing`,
+        reply_markup: keyboard([playButton(r.code)]) }).catch(() => {});
+    }
+    return { ok: true, room: r.id, code: r.code };
+  },
+  decline(me, m) {
+    const r = rooms.get(clean(m.room));
+    if (r && r.reserved && r.reserved[1] === me.uid) { notify(r.reserved[0], { t: 'declined', name: me.name }); rooms.delete(r.id); }
+    return { ok: true };
+  },
+  equip(me, m) {
+    const p = playerRec(me.uid, me.name, me.photo);
+    if ('frame' in m) {
+      if (m.frame && !Rewards.frameUnlocked(p, m.frame)) return { ok: false, msg: 'Bu ramka hali ochilmagan' };
+      p.equip.frame = m.frame || null;
+    }
+    if (m.kind) {
+      const kind = kindOf(m.kind);
+      if (m.skin && !Rewards.skinUnlocked(p, kind, m.skin)) return { ok: false, msg: 'Bu skin hali ochilmagan' };
+      p.equip.skin[kind] = m.skin || null;
+    }
+    savePlayers();
+    return { ok: true, equip: p.equip };
+  },
+  // a win against the bot on "Qiyin" (reported by the app; only unlocks a badge)
+  botwin(me, m) { if (Number(m.level) === 2) award(me.uid, 'bothard'); return { ok: true }; },
+};
 
 const GAME_INFO = {
   tosiq: { title: "To'siq Jangi", emoji: '🧱', line: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing!" },
@@ -172,16 +368,57 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (url.pathname === '/api/leaderboard') {
-    const me = url.searchParams.get('uid'), list = ranked(kindOf(url.searchParams.get('kind')));
-    const row = ([id, name, p, photo], i) => ({ rank: i + 1, name, photo, elo: p.elo, wins: p.wins, losses: p.losses, draws: p.draws || 0, me: id === me });
+    const me = url.searchParams.get('uid'), kind = kindOf(url.searchParams.get('kind'));
+    rollWeek();
+    // period=week: this week's ELO gain in rated games; otherwise the overall ELO
+    const week = url.searchParams.get('period') === 'week', wk = weekKey();
+    const list = week
+      ? Object.entries(players).filter(([, p]) => p.week && p.week.key === wk && p.week.games[kind])
+        .map(([id, p]) => [id, p.name, Object.assign({}, p.stats[kind], { gain: p.week.gain[kind] || 0, wgames: p.week.games[kind] }), p.photo || null])
+        .sort((a, b) => b[2].gain - a[2].gain || b[2].elo - a[2].elo)
+      : ranked(kind);
+    const row = ([id, name, p, photo], i) => ({ rank: i + 1, pid: pidOf(id), name, photo, frame: looksOf(id).frame, elo: p.elo, gain: p.gain,
+      wgames: p.wgames, wins: p.wins, losses: p.losses, draws: p.draws || 0, me: id === me, champ: champOf(id).length > 0 });
     const mine = list.findIndex(([id]) => id === me);
-    return sendJson(res, { top: list.slice(0, 50).map(row), me: mine >= 0 ? row(list[mine], mine) : null, total: list.length });
+    const c = meta.champs[kind];
+    return sendJson(res, { top: list.slice(0, 50).map(row), me: mine >= 0 ? row(list[mine], mine) : null, total: list.length,
+      champ: c ? { pid: pidOf(c.uid), name: c.name, photo: c.photo, gain: c.gain, week: c.week } : null,
+      weekEnds: new Date(Date.parse(wk + 'T00:00:00Z') + 7 * 86400000 - 5 * 3600000).getTime() });
   }
   if (url.pathname === '/api/profile') {
     const id = url.searchParams.get('uid'), kind = kindOf(url.searchParams.get('kind'));
-    const st = (players[id] && players[id].stats[kind]) || freshStats();
+    const p = players[id] || { stats: {} };
+    const st = p.stats[kind] || freshStats();
     const rank = ranked(kind).findIndex(([pid]) => pid === id);
-    return sendJson(res, Object.assign({}, st, { rank: rank >= 0 ? rank + 1 : null }));
+    const skins = {};
+    for (const k of Object.keys(GAMES)) skins[k] = Rewards.SKINS[k].filter(x => Rewards.skinUnlocked(p, k, x.id)).map(x => x.id);
+    const w = p.week && p.week.key === weekKey() ? p.week : { gain: {}, games: {} };
+    return sendJson(res, Object.assign({}, st, { rank: rank >= 0 ? rank + 1 : null, pid: pidOf(id || ''),
+      ach: p.ach || {}, equip: p.equip || { frame: null, skin: {} }, skins,
+      frames: Rewards.FRAMES.filter(f => Rewards.frameUnlocked(p, f.id)).map(f => f.id),
+      counters: p.counters || null, week: { gain: w.gain[kind] || 0, games: w.games[kind] || 0 }, champ: champOf(id),
+      friends: (p.friends || []).length }));
+  }
+  if (url.pathname === '/api/player') { // someone else's public card
+    const uid = uidOfPid(String(url.searchParams.get('pid') || ''));
+    if (!uid || !players[uid]) return sendJson(res, { ok: false });
+    return sendJson(res, Object.assign({ ok: true }, cardOf(uid, url.searchParams.get('uid'))));
+  }
+  if (url.pathname === '/api/friends') {
+    const p = players[url.searchParams.get('uid')];
+    const list = (p && p.friends || []).filter(u => players[u]).map(u => cardOf(u));
+    const order = { playing: 0, online: 1, offline: 2 };
+    list.sort((a, b) => order[a.status.state] - order[b.status.state]);
+    return sendJson(res, { friends: list });
+  }
+  const act = url.pathname.match(/^\/api\/(friend|challenge|decline|equip|botwin)$/);
+  if (act && req.method === 'POST') {
+    readJson(req).then(async (body) => {
+      const me = whoIs(body);
+      if (!me) return sendJson(res, { ok: false, msg: 'Faqat Telegram ichida ishlaydi' });
+      try { sendJson(res, await ACTIONS[act[1]](me, body)); } catch (e) { sendJson(res, { ok: false, msg: 'Xato' }); }
+    });
+    return;
   }
   const file = path.normalize(path.join(PUBLIC, url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname)));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
@@ -212,18 +449,25 @@ function lobbyData() {
   for (const ws of lobby) if (ws.uid) uids.add(ws.uid);
   for (const r of rooms.values()) for (const p of r.players) if (p && p.ws) uids.add(p.uid);
   for (const q of queue) uids.add(q.uid);
+  for (const u of presence.keys()) uids.add(u);
   const list = [];
   for (const r of rooms.values()) {
-    if (r.ranked) continue;
     const host = r.players.find(p => p && p.ws);
     if (!host) continue; // nobody is there right now
     const waiting = r.game.turnStart === null && r.players.filter(Boolean).length < 2;
+    if ((r.ranked || r.tour || r.reserved) && (waiting || r.game.turnStart === null)) continue; // not open to others
+    if (r.reserved && !r.tour) continue; // a friend's challenge stays private
+    const running = r.game.winner === null && r.game.turnStart !== null;
     list.push({ id: r.id, kind: r.kind, pub: r.pub, name: host.name, status: waiting ? 'waiting' : 'playing',
+      names: r.players.map(x => x && x.name), ranked: !!r.ranked, tour: !!r.tour, minutes: r.minutes || DEFAULT_MIN[r.kind],
+      // open rooms, rated and tournament games can be watched while they run
+      watch: running && (r.pub || !!r.ranked || !!r.tour), watchers: r.watchers ? r.watchers.size : 0,
       age: Math.round((now - r.created) / 1000) });
   }
   // joinable rooms first, newest first
   list.sort((a, b) => (a.status === b.status ? a.age - b.age : a.status === 'waiting' ? -1 : 1));
-  return { rooms: list.slice(0, 60), online: uids.size };
+  const tl = [...tours.values()].filter(t => t.status !== 'done' || now - t.ended < 10 * 60 * 1000).map(tourBrief);
+  return { rooms: list.slice(0, 60), online: uids.size, tours: tl };
 }
 
 // push the room list to everyone in the lobby, at most every 150 ms and only when it changed
@@ -255,7 +499,7 @@ function matchTick() {
     queue.sort((a, b) => a.since - b.since);
     outer: for (let i = 0; i < queue.length; i++) for (let j = i + 1; j < queue.length; j++) {
       const a = queue[i], b = queue[j];
-      if (a.uid === b.uid || a.kind !== b.kind) continue;
+      if (a.uid === b.uid || a.kind !== b.kind || a.minutes !== b.minutes) continue;
       if (Math.abs(a.elo - b.elo) <= Math.min(searchRange(a, now), searchRange(b, now))) {
         queue.splice(j, 1); queue.splice(i, 1);
         startRanked(a, b);
@@ -267,21 +511,22 @@ function matchTick() {
   for (const q of queue) if (q.ws.readyState === 1) {
     const r = searchRange(q, now);
     q.ws.send(JSON.stringify({ t: 'searching', elo: q.elo, range: r, waited: Math.round((now - q.since) / 1000),
-      size: queue.filter(x => x.kind === q.kind).length }));
+      size: queue.filter(x => x.kind === q.kind && x.minutes === q.minutes).length, minutes: q.minutes }));
   }
 }
 setInterval(matchTick, 1000);
 
 function startRanked(a, b) {
   const starter = Math.random() < 0.5 ? 0 : 1;
-  const r = { id: freshCode(), kind: a.kind, pub: false, ranked: true, created: Date.now(), game: GAMES[a.kind].newGame(starter), starter,
+  const r = { id: freshCode(), kind: a.kind, pub: false, ranked: true, created: Date.now(), game: GAMES[a.kind].newGame(starter, a.minutes), starter,
+    minutes: a.minutes, watchers: new Set(),
     players: [a, b].map(q => ({ uid: q.uid, name: q.name, photo: q.photo, ws: q.ws, verified: true })), hold: true };
   rooms.set(r.id, r);
   [a, b].forEach((q, i) => {
     const o = i ? a : b;
     q.ws.attach(r, i);
-    q.ws.send(JSON.stringify({ t: 'matched', me: { name: q.name, elo: q.elo, photo: q.photo }, opp: { name: o.name, elo: o.elo, photo: o.photo },
-      starter: starter === i }));
+    q.ws.send(JSON.stringify({ t: 'matched', me: { name: q.name, elo: q.elo, photo: q.photo, frame: looksOf(q.uid).frame },
+      opp: { name: o.name, elo: o.elo, photo: o.photo, frame: looksOf(o.uid).frame }, starter: starter === i, minutes: a.minutes }));
   });
   // a short "opponent found" screen; the clocks start when it ends
   r.holdTimer = setTimeout(() => { r.hold = false; broadcast(r); }, 3500);
@@ -298,22 +543,158 @@ function broadcast(room) {
     room.clockTimer = setTimeout(() => { if (G.checkTimeout(room.game, Date.now())) broadcast(room); }, Math.max(0, left) + 50);
   }
   rateGame(room);
+  if (g.winner !== null) room.drawOffer = null;
+  if (room.tour) tourGameChanged(room);
   const now = Date.now();
+  const base = {
+    t: 'state', game: g, kind: room.kind, now, room: room.id, pub: room.pub, ranked: !!room.ranked, elo: room.elo || null,
+    names: room.players.map(x => x && x.name), rematch: room.rematch || [false, false],
+    photos: room.players.map(x => (x && x.photo) || null),
+    online: room.players.map(x => !!(x && x.ws)),
+    looks: room.players.map(x => (x ? looksOf(x.uid, room.kind) : { frame: null, skin: null })),
+    pids: room.players.map(x => (x ? pidOf(x.uid) : null)),
+    minutes: room.minutes || DEFAULT_MIN[room.kind], drawOffer: room.drawOffer == null ? null : room.drawOffer,
+    watchers: room.watchers ? room.watchers.size : 0, tour: room.tour || null,
+  };
   room.players.forEach((pl, i) => {
     if (!pl || !pl.ws) return;
-    pl.ws.send(JSON.stringify({
-      t: 'state', game: g, kind: room.kind, you: i, now, room: room.id, pub: room.pub, code: room.code, ranked: !!room.ranked, elo: room.elo || null,
-      names: room.players.map(x => x && x.name), rematch: room.rematch || [false, false],
-      photos: room.players.map(x => (x && x.photo) || null),
-      online: room.players.map(x => !!(x && x.ws)),
-    }));
+    pl.ws.send(JSON.stringify(Object.assign({}, base, { you: i, code: room.code })));
   });
+  if (room.watchers && room.watchers.size) {
+    const msg = JSON.stringify(Object.assign({}, base, { you: -1 }));
+    for (const w of room.watchers) if (w.readyState === 1) w.send(msg);
+  }
   lobbyChanged();
+}
+
+// ---------- tournaments: single elimination, 4 / 8 / 16 players, games are not rated ----------
+const tours = new Map();
+const tourBrief = (t) => ({ id: t.id, kind: t.kind, minutes: t.minutes, size: t.size, count: t.players.length, host: t.players[0] ? t.players[0].name : '',
+  status: t.status, winner: t.winner != null ? t.players[t.winner].name : null });
+const tourPublic = (t) => Object.assign(tourBrief(t), {
+  players: t.players.map(p => ({ pid: pidOf(p.uid), name: p.name, photo: p.photo || null, frame: looksOf(p.uid).frame })),
+  rounds: t.rounds.map(r => r.map(m => ({ a: m.a, b: m.b, w: m.w, room: m.room || null,
+    live: !!(m.room && rooms.get(m.room) && rooms.get(m.room).game.turnStart !== null && m.w == null) }))),
+  hostPid: t.players[0] ? pidOf(t.players[0].uid) : null, winner: t.winner,
+});
+function tourChanged(t) {
+  const msg = { t: 'tour', tour: tourPublic(t) };
+  for (const p of t.players) notify(p.uid, msg);
+  for (const p of t.left || []) notify(p, msg);
+  lobbyChanged();
+}
+function tourOf(uid) { return [...tours.values()].find(t => t.status !== 'done' && t.players.some(p => p.uid === uid)); }
+function startTour(t) {
+  t.status = 'running'; clearTimeout(t.expire);
+  for (let i = t.players.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [t.players[i], t.players[j]] = [t.players[j], t.players[i]]; }
+  let size = 2; while (size < t.players.length) size *= 2;
+  const seeds = t.players.map((_, i) => i).concat(Array(size - t.players.length).fill(-1));
+  // pair the top half with the bottom half, so the empty seats (byes) never meet each other
+  t.rounds = [Array.from({ length: size / 2 }, (_, i) => ({ a: seeds[i], b: seeds[size - 1 - i], w: null }))];
+  playRound(t);
+}
+function playRound(t) {
+  const round = t.rounds[t.rounds.length - 1];
+  for (const m of round) {
+    if (m.w != null) continue;
+    if (m.b === -1 || m.a === -1) { m.w = m.b === -1 ? m.a : m.b; continue; }
+    const A = t.players[m.a], B = t.players[m.b], starter = Math.random() < 0.5 ? 0 : 1;
+    const r = { id: freshCode(), code: freshCode(), kind: t.kind, pub: false, tour: t.id, created: Date.now(), minutes: t.minutes,
+      game: GAMES[t.kind].newGame(starter, t.minutes), starter, players: [null, null], reserved: [A.uid, B.uid], watchers: new Set() };
+    rooms.set(r.id, r);
+    m.room = r.id;
+    for (const [P, O] of [[A, B], [B, A]]) notify(P.uid, { t: 'tmatch', tour: t.id, room: r.id, code: r.code, kind: t.kind, opp: O.name });
+    // whoever doesn't come to the board within a minute loses that match
+    r.noShow = setTimeout(() => {
+      if (m.w != null || r.game.turnStart !== null) return;
+      const here = r.players.map(x => !!(x && x.ws));
+      endMatch(t, m, here[1] && !here[0] ? m.b : here[0] && !here[1] ? m.a : Math.random() < 0.5 ? m.a : m.b);
+      rooms.delete(r.id);
+    }, 60 * 1000);
+  }
+  tourChanged(t);
+  checkRound(t);
+}
+function tourGameChanged(room) {
+  const t = tours.get(room.tour), g = room.game;
+  if (!t || g.winner === null || room.tourDone) return;
+  const m = t.rounds[t.rounds.length - 1].find(x => x.room === room.id);
+  if (!m) return;
+  if (g.winner === -1) { // a draw is replayed (colours swap) until somebody wins
+    if (room.replayTimer) return;
+    room.replayTimer = setTimeout(() => {
+      room.replayTimer = null; room.starter = 1 - room.starter; room.game = GAMES[room.kind].newGame(room.starter, room.minutes);
+      room.rated = false; broadcast(room);
+    }, 4000);
+    return;
+  }
+  room.tourDone = true;
+  const uid = room.players[g.winner].uid;
+  endMatch(t, m, t.players.findIndex(p => p.uid === uid));
+}
+function endMatch(t, m, w) {
+  if (m.w != null) return;
+  m.w = w;
+  tourChanged(t);
+  checkRound(t);
+}
+function checkRound(t) {
+  const round = t.rounds[t.rounds.length - 1];
+  if (t.status !== 'running' || round.some(m => m.w == null)) return;
+  if (round.length === 1) {
+    t.status = 'done'; t.winner = round[0].w; t.ended = Date.now();
+    const champ = t.players[t.winner];
+    award(champ.uid, 'tour');
+    const p = playerRec(champ.uid); p.tourWins = (p.tourWins || 0) + 1; savePlayers();
+    tourChanged(t);
+    setTimeout(() => { tours.delete(t.id); lobbyChanged(); }, 10 * 60 * 1000);
+    return;
+  }
+  const next = [];
+  for (let i = 0; i < round.length; i += 2) next.push({ a: round[i].w, b: round[i + 1].w, w: null });
+  t.rounds.push(next);
+  tourChanged(t);
+  setTimeout(() => playRound(t), 6000); // a short break to look at the bracket
+}
+// tournament actions come over the presence socket (ws.user is the verified player)
+function tourAction(ws, m) {
+  const me = ws.user, say = (msg) => ws.send(JSON.stringify({ t: 'toast', msg }));
+  if (!me) return say("Turnir faqat Telegram ichida ishlaydi");
+  if (m.t === 'tcreate') {
+    if (tourOf(me.uid)) return say("Siz allaqachon turnirdasiz");
+    const kind = kindOf(m.kind), size = [4, 8, 16].includes(Number(m.size)) ? Number(m.size) : 8;
+    const t = { id: freshCode(), kind, minutes: minutesOf(kind, m.minutes), size, status: 'open', created: Date.now(),
+      players: [{ uid: me.uid, name: me.name, photo: me.photo }], rounds: [], left: [] };
+    tours.set(t.id, t);
+    // an unfilled tournament is dropped after 30 minutes
+    t.expire = setTimeout(() => { if (t.status === 'open') { t.status = 'done'; t.ended = 0; tourChanged(t); tours.delete(t.id); lobbyChanged(); } }, 30 * 60 * 1000);
+    return tourChanged(t);
+  }
+  const t = tours.get(clean(m.id));
+  if (!t) return say('Turnir topilmadi');
+  if (m.t === 'tview') return ws.send(JSON.stringify({ t: 'tour', tour: tourPublic(t) }));
+  if (t.status !== 'open') return say('Turnir allaqachon boshlangan');
+  const i = t.players.findIndex(p => p.uid === me.uid);
+  if (m.t === 'tjoin') {
+    if (i >= 0) return tourChanged(t);
+    if (tourOf(me.uid)) return say("Siz boshqa turnirdasiz");
+    if (t.players.length >= t.size) return say("Turnir to'lgan");
+    t.players.push({ uid: me.uid, name: me.name, photo: me.photo });
+    t.left = t.left.filter(u => u !== me.uid);
+    if (t.players.length === t.size) startTour(t); else tourChanged(t);
+  } else if (m.t === 'tleave' && i >= 0) {
+    t.players.splice(i, 1); t.left.push(me.uid);
+    if (!t.players.length) { t.status = 'done'; t.ended = 0; tourChanged(t); tours.delete(t.id); return lobbyChanged(); }
+    tourChanged(t);
+  } else if (m.t === 'tstart' && i === 0) { // the host may start early with at least 3 players
+    if (t.players.length < 3) return say("Kamida 3 o'yinchi kerak");
+    startTour(t);
+  }
 }
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws) => {
-  let room = null, slot = -1;
+  let room = null, slot = -1, watching = null;
   const send = (m) => ws.send(JSON.stringify(m));
   const fail = (code, msg) => send({ t: 'err', code, msg });
   ws.attach = (r, s) => { room = r; slot = s; }; // used when matchmaking seats this socket
@@ -329,6 +710,30 @@ wss.on('connection', (ws) => {
       return lobbyChanged();
     }
 
+    if (m.t === 'hello') { // the app's presence socket
+      const me = whoIs(m);
+      if (!me) return;
+      ws.user = me;
+      playerRec(me.uid, me.name, me.photo);
+      if (!presence.has(me.uid)) presence.set(me.uid, new Set());
+      presence.get(me.uid).add(ws);
+      const t = tourOf(me.uid);
+      send({ t: 'hi', pid: pidOf(me.uid), tour: t ? tourPublic(t) : null });
+      return lobbyChanged();
+    }
+    if (['tcreate', 'tjoin', 'tleave', 'tstart', 'tview'].includes(m.t)) return tourAction(ws, m);
+
+    if (m.t === 'watch') { // spectate a running game
+      const r = rooms.get(clean(m.room));
+      if (!r) return fail('notfound', "O'yin topilmadi yoki tugagan");
+      const me = whoIs(m), friendOf = me && players[me.uid] && r.players.some(x => x && (players[me.uid].friends || []).includes(x.uid));
+      if (!(r.pub || r.ranked || r.tour || friendOf)) return fail('notfound', "Bu o'yinni tomosha qilib bo'lmaydi");
+      if (watching) watching.watchers.delete(ws);
+      watching = r; r.watchers = r.watchers || new Set(); r.watchers.add(ws);
+      if (me && !r.players.some(x => x && x.uid === me.uid)) award(me.uid, 'watcher');
+      return broadcast(r);
+    }
+
     if (m.t === 'queue') { // search for a rated opponent
       if (room) return;
       const v = verifyInitData(m.initData);
@@ -338,7 +743,7 @@ wss.on('connection', (ws) => {
       leaveQueue(ws);
       for (const q of queue.filter(x => x.uid === uid)) { leaveQueue(q.ws); q.ws.close(); } // one search per player
       const kind = kindOf(m.kind);
-      queue.push({ ws, uid, name, kind, photo: v ? v.photo : cleanPhoto(m.photo), elo: eloOf(uid, kind), since: Date.now() });
+      queue.push({ ws, uid, name, kind, minutes: minutesOf(kind, m.minutes), photo: v ? v.photo : cleanPhoto(m.photo), elo: eloOf(uid, kind), since: Date.now() });
       lobbyChanged();
       return matchTick();
     }
@@ -352,8 +757,9 @@ wss.on('connection', (ws) => {
       let r;
       if (m.create) {                       // new room
         const pub = !!m.create.pub;
-        const kind = kindOf(m.create.kind);
-        r = { id: freshCode(), kind, pub, created: Date.now(), game: GAMES[kind].newGame(0), starter: 0, players: [null, null] };
+        const kind = kindOf(m.create.kind), minutes = minutesOf(kind, m.create.minutes);
+        r = { id: freshCode(), kind, pub, created: Date.now(), game: GAMES[kind].newGame(0, minutes), starter: 0, minutes,
+          players: [null, null], watchers: new Set() };
         if (!pub) r.code = freshCode();
         rooms.set(r.id, r);
       } else if (m.room) {                  // a room picked from the list (or a reconnect)
@@ -369,7 +775,8 @@ wss.on('connection', (ws) => {
 
       clearTimeout(r.cleanup);
       let s = r.players.findIndex(p => p && p.uid === uid);
-      if (s < 0) s = r.players.findIndex(p => !p);
+      if (r.reserved) s = r.reserved.indexOf(uid); // a friend's challenge or a tournament match: fixed seats
+      else if (s < 0) s = r.players.findIndex(p => !p);
       if (s < 0) return send({ t: 'full' });
       room = r; slot = s;
       if (r.players[s] && r.players[s].ws && r.players[s].ws !== ws) r.players[s].ws.close();
@@ -383,10 +790,25 @@ wss.on('connection', (ws) => {
       if (!room.players[1 - slot]) return send({ t: 'err', msg: 'Raqib hali qo\'shilmadi' });
       const err = G.apply(room.game, slot, m, Date.now());
       if (err) { send({ t: 'err', msg: err }); if (room.game.winner !== null) broadcast(room); return; }
+      room.drawOffer = null; // making a move turns down a pending draw offer
+      broadcast(room);
+    } else if (m.t === 'drawoffer') { // shaxmat / shashka: offer a draw (3 times per game at most)
+      const g = room.game;
+      if (!['shaxmat', 'shashka'].includes(room.kind) || g.winner !== null || g.turnStart === null || room.drawOffer != null) return;
+      room.drawCount = room.drawCount || [0, 0];
+      if (room.drawCount[slot] >= 3) return send({ t: 'err', msg: "Durrang taklifi juda ko'p" });
+      room.drawCount[slot]++; room.drawOffer = slot;
+      broadcast(room);
+    } else if (m.t === 'drawreply') {
+      if (room.drawOffer !== 1 - slot) return;
+      room.drawOffer = null;
+      const g = room.game, now = Date.now();
+      if (m.accept && g.winner === null && !G.checkTimeout(g, now)) { g.clock[g.turn] -= now - g.turnStart; g.turnStart = now; g.winner = -1; g.reason = 'agreed'; }
+      else if (!m.accept) { const o = room.players[slot]; if (o) notify(room.players[1 - slot].uid, { t: 'toast', msg: "Raqib durrangni rad etdi" }); }
       broadcast(room);
     } else if (m.t === 'resign') {
       if (G.resign(room.game, slot)) broadcast(room);
-    } else if (m.t === 'rematch' && room.game.winner !== null) {
+    } else if (m.t === 'rematch' && room.game.winner !== null && !room.tour) {
       // a rematch needs both players: the first request is shown to the opponent, the second starts the game
       // (a rated game's rematch is rated too)
       const other = room.players[1 - slot];
@@ -396,8 +818,8 @@ wss.on('connection', (ws) => {
       if (room.rematch.every(Boolean)) {
         room.rematch = null;
         room.starter = 1 - room.starter;
-        room.game = G.newGame(room.starter);
-        room.rated = false; room.elo = null;
+        room.game = G.newGame(room.starter, room.minutes);
+        room.rated = false; room.elo = null; room.drawOffer = null; room.drawCount = null;
       }
       broadcast(room);
     } else if (m.t === 'react') { // a quick emoji for both screens, at most one per 1.2 s
@@ -413,6 +835,12 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     if (lobby.delete(ws)) lobbyChanged();
     leaveQueue(ws);
+    if (ws.user && presence.has(ws.user.uid)) {
+      const set = presence.get(ws.user.uid); set.delete(ws);
+      if (!set.size) presence.delete(ws.user.uid);
+      lobbyChanged();
+    }
+    if (watching) { watching.watchers.delete(ws); if (rooms.has(watching.id)) broadcast(watching); }
     if (!room || !room.players[slot] || room.players[slot].ws !== ws) return;
     room.players[slot].ws = null;
     if (room.ranked && room.game.turnStart === null) { // left during "opponent found": put the other one back in the queue
@@ -424,7 +852,8 @@ wss.on('connection', (ws) => {
     }
     if (room.game.turnStart === null) { // nobody has played yet: free the seat, and close the room once empty
       room.players[slot] = null;
-      if (room.players.every(p => !p)) { rooms.delete(room.id); return lobbyChanged(); }
+      // (a challenge or a tournament match keeps its room until it is played or times out)
+      if (room.players.every(p => !p) && !room.reserved) { rooms.delete(room.id); return lobbyChanged(); }
     }
     broadcast(room);
     if (room.players.every(p => !p || !p.ws)) {
@@ -506,7 +935,7 @@ function welcomeText(firstName) {
     + `❌⭕ <b>X va O</b> — uchta belgini bir qatorga birinchi bo'lib ter\n`
     + `⚫ <b>Shashka</b> — raqib donalarini urib ol, damka bilan g'alaba qil\n`
     + `♟️ <b>Shaxmat</b> — klassik shaxmat, raqib shohiga mot qo'y\n\n`
-    + `🏆 Reytingli o'yinlar va ELO\n👥 Do'stlar bilan ochiq va maxfiy xonalar\n🤖 Botga qarshi mashq\n\n`
+    + `🏆 Reytingli o'yinlar, ELO va haftalik reyting\n⚔️ Turnirlar va do'stlarni chaqirish\n🎨 ELO uchun skinlar va ramkalar\n🤖 Botga qarshi mashq (3 daraja)\n\n`
     + `👇 Boshlash uchun <b>O'ynash</b> tugmasini bos!`;
 }
 const HELP_TEXT = `ℹ️ <b>Qanday o'ynaladi?</b>\n\n`
@@ -514,7 +943,9 @@ const HELP_TEXT = `ℹ️ <b>Qanday o'ynaladi?</b>\n\n`
   + `2️⃣ <b>⭐ Reytingli o'yin</b> — sizga kuchi teng raqib topiladi, g'alaba uchun ELO beriladi\n`
   + `3️⃣ <b>Xona yaratish</b> — do'stingiz bilan o'ynang: ochiq xonaga istalgan kishi, maxfiy xonaga faqat kod bilan kiriladi\n`
   + `4️⃣ <b>🤖 Botga qarshi</b> — mashq qiling\n`
-  + `5️⃣ O'yin tugagach <b>🔁 Revansh</b> — o'sha raqib bilan yana bir bor\n\n`
+  + `5️⃣ O'yin tugagach <b>🔁 Revansh</b> — o'sha raqib bilan yana bir bor\n`
+  + `6️⃣ <b>🏆 Turnirlar</b>, <b>👥 Do'stlar</b> (chaqirish va tomosha qilish), <b>👑 haftalik reyting</b>\n\n`
+  + `🎨 Reytingda ELO oshgani sari personaj skinlari va profil ramkalari ochiladi!\n`
   + `O'yin paytida raqibga 👍😂🔥 emoji yuborishingiz mumkin.\n`
   + `Reyting va profilingiz ilovaning pastki menyusida.`;
 
@@ -601,4 +1032,4 @@ async function runBot() {
   }
 }
 
-server.listen(PORT, () => { console.log(`O'yinlar serveri: http://localhost:${PORT}`); runBot(); });
+server.listen(PORT, () => { rollWeek(); console.log(`O'yinlar serveri: http://localhost:${PORT}`); runBot(); });

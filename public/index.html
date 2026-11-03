@@ -464,6 +464,100 @@
   .btn-row { display:flex; gap:8px; width:100%; } .btn-row .big { flex:1; padding:13px 8px; font-size:14.5px; }
   .sumrow { cursor:pointer; } .sumrow b.k { flex:1; min-width:0; } .sumrow .el2 { font-weight:900; color:#9cc0ff; }
 
+  /* ---------- profile frames (rewards), shown around avatars everywhere ---------- */
+  .fr { position:relative; }
+  .fr-bronza { border-color:#d98a4a !important; box-shadow:0 0 0 2px #7a3e12, 0 0 12px #e3934f !important; }
+  .fr-kumush { border-color:#e6ecf7 !important; box-shadow:0 0 0 2px #7f8aa3, 0 0 14px #dfe8ff !important; }
+  .fr-oltin { border-color:#ffd34d !important; box-shadow:0 0 0 2px #9a6a00, 0 0 16px #ffc531 !important; }
+  .fr-olmos { border-color:#9ff3ff !important; box-shadow:0 0 0 2px #4b7dff, 0 0 18px #7fe9ff, 0 0 30px rgba(196,132,252,.6) !important;
+    animation:frGlow 2.4s ease-in-out infinite; }
+  .fr-hafta { border-color:#ffc531 !important; box-shadow:0 0 0 2px #c4122f, 0 0 18px #ffc531 !important; }
+  .fr-chempion { border-color:#c084fc !important; box-shadow:0 0 0 2px #ffc531, 0 0 18px #c084fc, 0 0 26px rgba(255,197,49,.5) !important;
+    animation:frGlow 2s ease-in-out infinite; }
+  @keyframes frGlow { 50% { filter:brightness(1.35) saturate(1.2); } }
+  .fr-hafta::after, .fr-chempion::after { content:"👑"; position:absolute; top:-0.75em; left:50%; transform:translateX(-50%) rotate(-8deg);
+    font-size:max(11px, 34%); line-height:1; filter:drop-shadow(0 0 4px #ffc531); }
+  .fr-chempion::after { content:"🏆"; }
+  .av.fr, .ini.fr, .pav.fr { overflow:visible; } .av.fr img, .ini.fr img { border-radius:50%; }
+  .pphoto.fr, .pav.fr { overflow:visible; } .pphoto.fr img { border-radius:50%; }
+
+  /* ---------- lobby extras: time control, tournaments; game action buttons ---------- */
+  .tseg { display:flex; align-items:center; gap:8px; }
+  .tseg > small { color:var(--mute); font-weight:700; font-size:12.5px; white-space:nowrap; }
+  .tseg .seg { flex:1; } .tseg .seg button { min-width:0; padding:7px 4px; }
+  .room .vs2 { font-size:12px; color:#c4cbef; }
+  .room button.watch { border-color:#c084fc; background:rgba(192,132,252,.14); box-shadow:0 0 8px #c084fc; }
+  .tag.rk { color:var(--yellow); border-color:rgba(255,197,49,.6); } .tag.tr { color:#c084fc; border-color:rgba(192,132,252,.6); }
+  .tour-row { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:16px; border:1px solid rgba(192,132,252,.45);
+    background:linear-gradient(120deg, rgba(192,132,252,.14), rgba(8,13,36,.85) 60%); }
+  .tour-row .meta { flex:1; min-width:0; } .tour-row b { display:block; font-size:15px; } .tour-row small { color:var(--mute); font-size:12px; }
+  .tour-row button { flex:none; border:2px solid #c084fc; background:rgba(192,132,252,.14); color:#fff; font-weight:800; font-size:13.5px;
+    border-radius:12px; padding:8px 12px; box-shadow:0 0 8px #c084fc; }
+  .bracket { display:flex; gap:10px; width:100%; overflow-x:auto; padding-bottom:4px; touch-action:pan-x; }
+  .bcol { flex:1; min-width:118px; display:flex; flex-direction:column; justify-content:space-around; gap:8px; }
+  .bcol > small { text-align:center; color:var(--mute); font-weight:800; font-size:11px; }
+  .bm { border-radius:10px; border:1px solid rgba(120,140,255,.35); background:rgba(255,255,255,.04); font-size:12px; text-align:left; overflow:hidden; }
+  .bm div { padding:5px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bm div + div { border-top:1px solid rgba(120,140,255,.2); }
+  .bm .w { color:var(--green); font-weight:900; } .bm .l { color:var(--mute); text-decoration:line-through; }
+  .bm.live { border-color:var(--yellow); box-shadow:0 0 8px rgba(255,197,49,.5); }
+  .bm.mine { border-color:var(--green); }
+  .plist { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .plist span { font-size:12px; padding:3px 9px; border-radius:10px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); }
+  #replayBar { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(14px + env(safe-area-inset-bottom)); z-index:6;
+    display:flex; align-items:center; gap:6px; padding:8px; border-radius:18px; background:rgba(12,18,48,.97);
+    border:1px solid rgba(120,140,255,.5); box-shadow:0 0 18px rgba(47,123,255,.45); }
+  #replayBar.hide { display:none; }
+  #replayBar button { border:1.5px solid rgba(120,140,255,.5); background:rgba(255,255,255,.06); color:#fff; border-radius:12px;
+    min-width:42px; height:40px; font-weight:800; font-size:14px; display:grid; place-items:center; padding:0 10px; }
+  #replayBar b { min-width:64px; text-align:center; font-variant-numeric:tabular-nums; }
+  .opt-row { display:flex; gap:8px; width:100%; } .opt-row .opt { flex:1; flex-direction:column; text-align:center; gap:4px; padding:12px 6px; }
+  .opt.sel { background:color-mix(in srgb, var(--c) 25%, #050a1e); box-shadow:0 0 18px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 40%, transparent); }
+  .opt.lv0 { --c:var(--green); } .opt.lv1 { --c:var(--yellow); } .opt.lv2 { --c:var(--red); }
+  .lbl2 { align-self:flex-start; color:var(--mute); font-size:12.5px; font-weight:800; margin-bottom:-6px; }
+
+  /* ---------- friends, player cards, achievements, collection ---------- */
+  .frow { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; border:1px solid rgba(120,140,255,.25);
+    background:rgba(8,13,36,.85); }
+  .frow .ini { width:40px; height:40px; border-radius:50%; flex:none; display:grid; place-items:center; font-weight:900; background:#18214a;
+    border:2px solid rgba(120,140,255,.4); }
+  .frow .who2 { flex:1; min-width:0; cursor:pointer; } .frow .who2 b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .frow .who2 small { color:var(--mute); font-size:12px; }
+  .frow button { flex:none; border:2px solid var(--green); background:rgba(46,230,107,.12); color:#fff; font-weight:800; font-size:13px;
+    border-radius:12px; padding:7px 10px; box-shadow:0 0 8px var(--green); }
+  .frow button.watch { border-color:#c084fc; background:rgba(192,132,252,.14); box-shadow:0 0 8px #c084fc; }
+  .st-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; background:#4b5480; }
+  .st-dot.online { background:var(--green); box-shadow:0 0 6px var(--green); } .st-dot.playing { background:var(--yellow); box-shadow:0 0 6px var(--yellow); }
+  .pc-av { width:84px; height:84px; border-radius:50%; display:grid; place-items:center; font-size:34px; font-weight:900; background:#18214a;
+    border:3px solid var(--blue); overflow:visible; }
+  .pc-av img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+  .pc-elo { display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; width:100%; }
+  .pc-elo div { border-radius:12px; padding:7px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); font-size:12px; color:var(--mute); }
+  .pc-elo b { display:block; font-size:17px; color:#9cc0ff; }
+  .badges { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:8px; }
+  .badge { border-radius:14px; padding:10px 6px; text-align:center; background:rgba(8,13,36,.85); border:1px solid rgba(255,197,49,.45);
+    box-shadow:inset 0 0 12px rgba(255,197,49,.12); cursor:pointer; }
+  .badge .e { font-size:26px; display:block; line-height:1.2; } .badge b { display:block; font-size:11.5px; margin-top:4px; }
+  .badge.off { border-color:rgba(120,140,255,.2); box-shadow:none; } .badge.off .e { filter:grayscale(1) opacity(.35); } .badge.off b { color:var(--mute); }
+  .mini-badges { font-size:20px; letter-spacing:2px; text-align:center; }
+  .coll { display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:8px; }
+  .item { position:relative; border-radius:14px; padding:8px 4px 8px; text-align:center; background:rgba(8,13,36,.85); border:1.5px solid rgba(120,140,255,.3);
+    display:flex; flex-direction:column; align-items:center; gap:4px; color:#fff; font-size:11.5px; }
+  .item canvas { width:64px; height:64px; }
+  .item .ring { width:46px; height:46px; border-radius:50%; border:3px solid var(--blue); background:#18214a; margin:8px 0 6px; display:grid; place-items:center; }
+  .item b { font-size:12.5px; } .item small { color:var(--mute); font-size:10.5px; line-height:1.25; }
+  .item.on { border-color:var(--green); box-shadow:0 0 12px rgba(46,230,107,.55); }
+  .item.on::before { content:"✓"; position:absolute; top:4px; right:7px; color:var(--green); font-weight:900; }
+  .item.locked { opacity:.55; } .item.locked b::before { content:"🔒 "; font-size:10px; }
+  .prog { width:100%; height:5px; border-radius:3px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .prog i { display:block; height:100%; background:linear-gradient(90deg, var(--blue), var(--green)); }
+  .champ-card { display:flex; align-items:center; gap:12px; padding:12px; border-radius:16px; border:2px solid var(--yellow);
+    background:linear-gradient(120deg, rgba(255,197,49,.16), rgba(5,10,30,.85) 60%); box-shadow:0 0 14px rgba(255,197,49,.4); }
+  .champ-card .ini { width:44px; height:44px; border-radius:50%; flex:none; display:grid; place-items:center; font-weight:900; background:#18214a; border:2px solid var(--yellow); }
+  .champ-card b { display:block; } .champ-card small { color:#f3dfa6; font-size:12px; }
+  .lrow { cursor:pointer; } .lrow .el.gain { color:var(--green); text-shadow:0 0 8px rgba(46,230,107,.5); }
+  #nav button { font-size:10.5px; }
+
   /* ---------- Telegram fullscreen: keep clear of the status bar and Telegram's Close / ⋯ buttons ---------- */
   :root { --st:calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
     --sb:var(--tg-safe-area-inset-bottom, 0px); }
@@ -534,7 +628,7 @@
     <div class="card" id="card0"><div class="av"></div><div class="who"><div class="nm"></div><div class="fc"><i></i><span></span></div></div><div class="clk"></div></div>
     <div class="card opp" id="card1"><div class="av"></div><div class="who"><div class="nm"></div><div class="fc"><i></i><span></span></div></div><div class="clk"></div></div>
   </div>
-  <div id="log"><span class="ic"><i data-ic="history"></i></span><div class="tx"></div><button id="inviteBtn" class="hide"><i data-ic="send"></i> Taklif</button><button id="reactBtn" class="tiny-btn hide" aria-label="Reaksiya"><i data-ic="smile"></i></button><button id="sndBtn" class="tiny-btn snd" aria-label="Ovoz"></button><button id="exitBtn"><i data-ic="exit"></i> Chiqish</button></div>
+  <div id="log"><span class="ic"><i data-ic="history"></i></span><div class="tx"></div><button id="inviteBtn" class="hide"><i data-ic="send"></i> Taklif</button><button id="reactBtn" class="tiny-btn hide" aria-label="Reaksiya"><i data-ic="smile"></i></button><button id="drawBtn" class="tiny-btn hide" aria-label="Durrang taklif qilish"><i data-ic="draw"></i></button><button id="undoBtn" class="tiny-btn hide" aria-label="Yurishni qaytarish"><i data-ic="again"></i></button><button id="sndBtn" class="tiny-btn snd" aria-label="Ovoz"></button><button id="exitBtn"><i data-ic="exit"></i> Chiqish</button></div>
   <div id="banner" class="off"><span class="st"></span><div id="msg"></div><span class="st r"></span></div>
   <div id="wrap"><canvas id="c"></canvas></div>
   <div id="xoTray" class="hide">
@@ -559,29 +653,37 @@
   </div>
   <button class="ranked" id="lobRanked"><span class="rk-ic"><i data-ic="star"></i></span><span class="tx2"><b>Reytingli o'yin</b>
     <small>Sizga mos raqib topiladi · ELO uchun</small></span><span class="go"><i data-ic="next"></i></span></button>
+  <div class="tseg"><small><i data-ic="timer"></i> Vaqt</small><div class="seg" id="lobTime"></div></div>
   <div class="lob-actions">
     <button class="act" id="lobCode"><i data-ic="key"></i> Kod bilan kirish</button>
     <button class="act" id="lobBot"><i data-ic="bot"></i> Botga qarshi</button>
   </div>
+  <div class="sec"><i data-ic="rating"></i> Turnirlar <span id="tourCount"></span></div>
+  <div id="tours" style="display:flex;flex-direction:column;gap:10px"></div>
   <div class="sec"><i data-ic="rooms"></i> Xonalar <span id="lobCount"></span><small>· ELO berilmaydi</small></div>
   <div id="rooms"></div>
 </div></div>
 <div id="rating" class="tab hide"><div class="hub-in">
   <div class="hub-title"><i data-ic="rating"></i> Reyting</div>
   <div class="seg" id="rtSeg"></div>
-  <div class="rt-sub">Reytingli o'yinlardagi ELO bo'yicha eng kuchli o'yinchilar</div>
+  <div class="seg" id="rtPeriod"><button data-p="all" class="on">Umumiy</button><button data-p="week">Shu hafta</button></div>
+  <div id="rtChamp"></div>
+  <div class="rt-sub" id="rtSub">Reytingli o'yinlardagi ELO bo'yicha eng kuchli o'yinchilar</div>
   <div id="podium"></div>
   <div id="board"></div>
 </div></div>
+<div id="friends" class="tab hide"><div class="hub-in" id="friendsIn"></div></div>
 <div id="profile" class="tab hide"><div class="hub-in" id="profIn"></div></div>
 <nav id="nav" class="hide"><div class="in">
   <button data-tab="hub" class="on"><span><i data-ic="games"></i></span>O'yinlar</button>
   <button data-tab="rating"><span><i data-ic="rating"></i></span>Reyting</button>
+  <button data-tab="friends"><span><i data-ic="users"></i></span>Do'stlar</button>
   <button data-tab="profile"><span><i data-ic="profile"></i></span>Profil</button>
 </div></nav>
 <div id="overlay"></div>
 <div id="toast"></div>
 <div id="reactBar" class="hide"></div>
+<div id="replayBar" class="hide"><button id="rpFirst">⏮</button><button id="rpPrev">◀</button><b id="rpPos"></b><button id="rpNext">▶</button><button id="rpLast">⏭</button><button id="rpClose">✕</button></div>
 <div id="drag"></div>
 <div id="xoGhost"></div>
 <canvas id="fx"></canvas>
@@ -592,6 +694,7 @@
 <script src="xo.js"></script>
 <script src="checkers.js"></script>
 <script src="chess.js"></script>
+<script src="rewards.js"></script>
 <script>
 (() => {
   const F = window.FenceRace, { COLS, ROWS } = F;
@@ -717,6 +820,18 @@
   // 8x8 boards: selected square, its legal targets, the last move's slide, and a piece being dragged
   let sel8 = null, targets8 = [], anim8 = null, drag8 = null, dropped8 = false, rematchState = [false, false];
   let round = 0; // bumped whenever a new game starts
+  // looks[p] = { frame, skin } of each seat; pids[p] = public ids (for "add friend"); watching = spectator mode
+  let looks = [{}, {}], pids = [null, null], watching = false, watchers = 0, drawOffer = null, roomTour = null, roomMinutes = null;
+  let botLevel = 1, botHist = [], replay = null;
+  // my own profile bits (equipped frame/skins, what is unlocked), refreshed from the server
+  let myInfo = { pid: null, equip: { frame: null, skin: {} }, skins: {}, frames: [] };
+  const MIN_DEFAULT = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10 };
+  const minutesFor = (k) => { const v = Number(store.get('min_' + k)); return [1, 3, 5, 10].includes(v) ? v : MIN_DEFAULT[k]; };
+  const frameCls = (f) => (f ? 'fr fr-' + f : '');
+  function setFrame(el, f) { el.classList.remove(...[...el.classList].filter(c => c === 'fr' || c.startsWith('fr-'))); if (f) el.classList.add('fr', 'fr-' + f); }
+  // the skin to draw for seat p
+  const skinOf = (p) => (mode === 'bot' ? (p === you ? (myInfo.equip.skin || {})[kind] || null : null) : (looks[p] || {}).skin || null);
+  const frameOf = (p) => (mode === 'bot' ? (p === you ? myInfo.equip.frame : null) : (looks[p] || {}).frame || null);
 
   fetch('config.json').then(r => r.json()).then(c => config = c).catch(() => {});
 
@@ -742,14 +857,16 @@
     if (ms) flash.t = setTimeout(refreshMsg, ms);
   }
   function refreshMsg() {
+    if (replay) return flash(`{history} Yurishlarni ko'rish: ${replay.i} / ${replay.list.length - 1}`);
     if (!game || game.winner !== null) return flash('');
+    if (watching) return flash(`{search} Tomosha · ${names[game.turn] || ''} yuradi` + (watchers > 1 ? ` · ${watchers} tomoshabin` : ''));
     if (mode === 'online' && !online[1 - you]) return flash('{hourglass} Raqib kutilmoqda...');
     if (game.turn === you && game.chain != null) return flash('{swords} Urishni davom ettiring!');
     if (game.turn === you && game.check) return flash('{alert} Shoh! Shohingizni himoya qiling');
     flash(game.turn === you ? (tool ? "To'siq joyini tanlang" : 'Sizning navbatingiz!') : game.check ? 'Raqibga shoh! Raqib navbati...' : 'Raqib navbati...');
   }
 
-  const myTurn = () => game && game.winner === null && game.turn === you && game.turnStart !== null
+  const myTurn = () => game && !watching && !replay && game.winner === null && game.turn === you && game.turnStart !== null
     && (mode !== 'online' || online[1 - you]);
 
   function render() {
@@ -764,6 +881,7 @@
       el.style.setProperty('--pc', COLORS[p]);
       const isBot = mode === 'bot' && p !== you;
       setAvatar(el.querySelector('.av'), isBot ? null : mode === 'bot' ? myPhoto : photos[p], isBot ? ICON_BOT : ICON_USER);
+      setFrame(el.querySelector('.av'), frameOf(p));
       el.querySelector('.fc i').style.display = kind === 'tosiq' ? '' : 'none';
       el.querySelector('.fc span').innerHTML = kind === 'xo' ? `<span class="sym">${XO.symbol(game, p)}</span> <small>${p === you ? 'siz' : 'raqib'}</small>`
         : kind === 'shashka' ? `<span class="disc"></span> ${Shashka.count(game, p)} <small>dona</small>`
@@ -773,7 +891,11 @@
     document.documentElement.style.setProperty('--you', COLORS[you]);
     $('tools').style.display = kind === 'tosiq' ? '' : 'none';
     $('inviteBtn').classList.toggle('hide', !(mode === 'online' && !roomRanked && !online[1 - you] && game.turnStart === null));
-    $('reactBtn').classList.toggle('hide', !(mode === 'online' && names[1 - you]));
+    $('reactBtn').classList.toggle('hide', !(mode === 'online' && !watching && names[1 - you]));
+    const running = game.winner === null && game.turnStart !== null;
+    $('drawBtn').classList.toggle('hide', !(is8(kind) && running && !watching && !replay && (mode === 'bot' || (mode === 'online' && online[1 - you]))));
+    $('undoBtn').classList.toggle('hide', !(mode === 'bot' && running && !replay && botHist.length > 0));
+    if (watching) $('inviteBtn').classList.add('hide');
     // X va O: your own mark waits in the tray below the board
     $('xoTray').classList.toggle('hide', kind !== 'xo');
     if (kind === 'xo') {
@@ -795,11 +917,11 @@
     }
     L.scrollLeft = L.scrollWidth;
     refreshMsg();
-    if (game.winner !== null && !shownWinner) {
+    if (game.winner !== null && !shownWinner && !replay) {
       shownWinner = true;
-      const won = game.winner === you, draw = game.winner === -1;
+      const won = game.winner === you && !watching, draw = game.winner === -1;
       haptic(won ? 'success' : draw ? 'warning' : 'error');
-      setTimeout(() => Snd.play(won ? 'win' : draw ? 'draw' : 'lose'), 350);
+      setTimeout(() => Snd.play(watching ? 'notify' : won ? 'win' : draw ? 'draw' : 'lose'), 350);
       // let the board celebrate / mourn for a moment first
       // (compare rounds, not objects: a later update of the same finished game must not cancel the card)
       const r = round;
@@ -835,8 +957,10 @@
 
   // ---------- actions ----------
   function act(a) {
-    if (!myTurn()) return flash('Hozir sizning navbatingiz emas', 1200);
+    if (!myTurn()) return flash(watching ? "Siz tomosha qilyapsiz" : 'Hozir sizning navbatingiz emas', 1200);
     if (mode === 'online') { ws.send(JSON.stringify(a)); ghost = null; return; }
+    // keep the position before each of my moves, so "undo" can go back (bot games only)
+    if (game.chain == null) { botHist.push(JSON.stringify(game)); if (botHist.length > 200) botHist.shift(); }
     const g = JSON.parse(JSON.stringify(game));
     const err = R().apply(g, you, a, Date.now());
     if (err) { haptic('warning'); Snd.play('error'); return flash(err, 1500); }
@@ -847,7 +971,7 @@
   }
   function botTurn() {
     if (mode !== 'bot' || game.winner !== null || game.turn === you) return;
-    const g = JSON.parse(JSON.stringify(game)), a = R().botAction(g, 1 - you);
+    const g = JSON.parse(JSON.stringify(game)), a = R().botAction(g, 1 - you, botLevel);
     if (!a) return;
     R().apply(g, 1 - you, a, Date.now());
     setState(g);
@@ -860,10 +984,55 @@
       haptic('light');
       return ws.send(JSON.stringify({ t: 'rematch' }));
     }
-    hideOverlay();
-    const g = R().newGame(1 - (game.starter || 0)); // take turns starting
+    hideOverlay(); closeReplay(true); botHist = [];
+    const g = R().newGame(1 - (game.starter || 0), game.base / 60000); // take turns starting
     R().start(g, Date.now()); setTool(null); setState(g);
     if (g.turn !== you) setTimeout(botTurn, 600);
+  }
+
+  // undo (bot games): back to the position before my last move; my clock keeps what it had then
+  function undo() {
+    if (mode !== 'bot' || !botHist.length || game.winner !== null) return;
+    const g = JSON.parse(botHist.pop());
+    g.turnStart = Date.now();
+    haptic('light'); Snd.play('tap');
+    game = null; round--; // a full redraw without counting as a new game
+    setState(g); setTool(null);
+    toast("{again} Yurish qaytarildi");
+  }
+  $('undoBtn').onclick = (e) => { e.stopPropagation(); undo(); };
+
+  // draw offers (shaxmat, shashka). The bot accepts when its own position is not better.
+  function offerDraw() {
+    if (!game || game.winner !== null) return;
+    if (mode === 'bot') {
+      const p = openPanel('confirm');
+      addText(p, 'h1', '{draw} Durrang taklif qilish');
+      addText(p, 'p', "Botga durrang taklif qilasizmi? Bot holati yaxshiroq bo'lsa, rad etadi.");
+      p.append(bigBtn('{draw} Taklif qilish', () => {
+        hideOverlay();
+        const bot = 1 - you, sc = R().score(game, bot);
+        if (sc <= 40) { const g = JSON.parse(JSON.stringify(game)); g.winner = -1; g.reason = 'agreed'; toast("{check} Bot durrangga rozi bo'ldi"); setState(g); }
+        else { toast("{close} Bot rad etdi — u yutishga ishonadi"); Snd.play('error'); }
+      }, 'pri'), bigBtn('Bekor qilish', hideOverlay));
+      return;
+    }
+    if (drawOffer === you) return toast('{hourglass} Taklifingiz raqibda');
+    const p = openPanel('confirm');
+    addText(p, 'h1', '{draw} Durrang taklif qilish');
+    addText(p, 'p', "Raqibga durrang taklif qilasizmi? U rozi bo'lsa, o'yin durrang bilan tugaydi. (Har o'yinda 3 martagacha)");
+    p.append(bigBtn('{draw} Taklif qilish', () => { hideOverlay(); ws.send(JSON.stringify({ t: 'drawoffer' })); toast('{send} Taklif yuborildi'); }, 'pri'),
+      bigBtn('Bekor qilish', hideOverlay));
+  }
+  $('drawBtn').onclick = (e) => { e.stopPropagation(); haptic('light'); offerDraw(); };
+  function showDrawOffer() {
+    if ($('overlay').dataset.kind === 'drawoffer') return;
+    Snd.play('notify'); haptic('medium');
+    const p = openPanel('drawoffer');
+    addText(p, 'h1', '{draw} Durrang taklifi');
+    addText(p, 'p', `${names[1 - you] || 'Raqib'} durrang taklif qilyapti. Rozimisiz?`);
+    const reply = (accept) => { hideOverlay(); ws.send(JSON.stringify({ t: 'drawreply', accept })); };
+    p.append(bigBtn('{check} Roziman, durrang', () => reply(true), 'pri'), bigBtn("{close} Yo'q, davom etamiz", () => reply(false)));
   }
 
   function setTool(t) {
@@ -958,17 +1127,25 @@
   function connect() {
     mode = 'online';
     hideHub(); hideLobby(); hideOverlay();
-    game = null; rematchState = [false, false]; sel8 = null; targets8 = []; anim8 = null;
+    game = null; rematchState = [false, false]; sel8 = null; targets8 = []; anim8 = null; drawOffer = null; closeReplay(true);
+    watching = !!watchRoom; looks = [{}, {}]; pids = [null, null];
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const sock = ws = new WebSocket(`${proto}://${location.host}/ws`);
     const join = Object.assign({ initData: tg ? tg.initData : '', photo: myPhoto },
       pendingCreate ? { create: pendingCreate } : roomId ? { room: roomId, code: roomCode } : { code: joinCode });
-    const queueMsg = () => JSON.stringify({ t: 'queue', kind, uid, name: myName, photo: myPhoto, initData: tg ? tg.initData : '' });
-    sock.onopen = () => sock.send(searching ? queueMsg() : JSON.stringify(Object.assign({ t: 'join', uid, name: myName }, join)));
+    const queueMsg = () => JSON.stringify({ t: 'queue', kind, uid, name: myName, photo: myPhoto, initData: tg ? tg.initData : '', minutes: minutesFor(kind) });
+    sock.onopen = () => sock.send(searching ? queueMsg()
+      : watchRoom ? JSON.stringify({ t: 'watch', room: watchRoom, uid, name: myName, initData: tg ? tg.initData : '' })
+      : JSON.stringify(Object.assign({ t: 'join', uid, name: myName }, join)));
     sock.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.t === 'state') {
-        you = m.you; names = m.names; online = m.online; clockOffset = m.now - Date.now(); photos = m.photos || [null, null];
+        watching = m.you === -1; you = watching ? 0 : m.you; // a spectator sees the board from the first seat
+        names = m.names; online = m.online; clockOffset = m.now - Date.now(); photos = m.photos || [null, null];
+        looks = m.looks || [{}, {}]; pids = m.pids || [null, null]; watchers = m.watchers || 0; roomTour = m.tour || null; roomMinutes = m.minutes;
+        const offerBefore = drawOffer; drawOffer = m.drawOffer;
+        if (!watching && drawOffer === 1 - you && offerBefore !== drawOffer && m.game.winner === null) setTimeout(showDrawOffer, 50);
+        if (drawOffer == null && $('overlay').dataset.kind === 'drawoffer') hideOverlay();
         pendingCreate = null; joinCode = null; roomId = m.room; roomPub = m.pub; roomCode = m.code || roomCode; eloInfo = m.elo;
         roomRanked = m.ranked; searching = false; if (m.kind) kind = m.kind;
         const rm = m.rematch || [false, false];
@@ -976,7 +1153,7 @@
         rematchState = rm;
         if (online[0] && online[1] && ['wait', 'vs', 'search'].includes($('overlay').dataset.kind)) hideOverlay();
         setState(m.game);
-        if (!(online[0] && online[1]) && m.game.turnStart === null) showWaiting();
+        if (!watching && !(online[0] && online[1]) && m.game.turnStart === null) showWaiting();
       } else if (m.t === 'searching') updateSearch(m);
       else if (m.t === 'matched') { searching = false; showVersus(m); }
       else if (m.t === 'requeue') { searching = true; roomId = null; sock.send(queueMsg()); showSearch(); toast("Raqib chiqib ketdi — qayta qidirilmoqda"); }
@@ -1063,6 +1240,14 @@
   function showWaiting() {
     // open rooms wait right on the board (the banner says "waiting"); only private rooms need the code card
     if (roomPub || $('overlay').dataset.kind === 'wait') return;
+    if (challengeTo || roomTour) { // a friend's challenge or a tournament match: just wait for the other one
+      const p = openPanel('wait');
+      addText(p, 'h1', roomTour ? '{rating} Turnir o\'yini' : "{swords} Chaqiruv yuborildi");
+      p.insertAdjacentHTML('beforeend', '<div class="waiting"><i></i><i></i><i></i></div>');
+      addText(p, 'p', roomTour ? "Raqibingiz kutilmoqda. 1 daqiqada kelmasa, siz g'olib bo'lasiz." : `${challengeTo} javobini kutyapmiz. Unga ilovada va bot orqali xabar bordi.`);
+      p.append(bigBtn('{close} Bekor qilish', showLobby));
+      return;
+    }
     const p = openPanel('wait');
     addText(p, 'h1', '{hourglass} Raqib kutilmoqda');
     p.insertAdjacentHTML('beforeend', '<div class="waiting"><i></i><i></i><i></i></div>');
@@ -1091,6 +1276,7 @@
     o.classList.remove('hide');
   }
   function showResult(won, draw) {
+    if (watching) return showWatchResult();
     const g = game, starter = g.starter || 0;
     const mine = g.log.filter((_, i) => (i % 2 === 0) === (starter === you));
     const walls = mine.filter(m => /[hv]$/.test(m)).length, steps = mine.length - walls;
@@ -1100,7 +1286,7 @@
     const opp = names[g.winner] || 'Raqib';
     const DRAWS = { stalemate: "Pat — yurishga joy yo'q. Durrang!", material: "Mot qo'yishga kuch yetmaydi. Durrang!",
       fifty: "50 yurish davomida urish ham, piyoda yurishi ham bo'lmadi. Durrang!", repetition: "Bir xil holat 3 marta takrorlandi. Durrang!",
-      'time-draw': "Vaqt tugadi, lekin mot qo'yishga kuch yo'q edi. Durrang!",
+      'time-draw': "Vaqt tugadi, lekin mot qo'yishga kuch yo'q edi. Durrang!", agreed: "Ikkala tomon durrangga kelishdi.",
       draw: kind === 'shashka' ? "15 yurish davomida faqat damkalar yurdi va urish bo'lmadi. Durrang!" : "Hech kim yutmadi — kuchlar teng!" };
     const why = draw ? DRAWS[g.reason] || DRAWS.draw
       : g.reason === 'resign' ? (won ? "Raqib o'yindan chiqib ketdi." : "Siz o'yindan chiqdingiz.")
@@ -1129,7 +1315,7 @@
       panel.querySelector('.stats').after(line);
     } else if (mode === 'bot') {
       addText(panel, 'div', "{bot} Botga qarshi o'yin reytingga (ELO) ta'sir qilmaydi").className = 'note';
-    } else if (mode === 'online' && !roomRanked) {
+    } else if (mode === 'online' && !roomRanked && !roomTour) {
       addText(panel, 'div', "ℹ️ Xona o'yini reytingga ta'sir qilmaydi. ELO uchun \"Reytingli o'yin\"ni tanlang").className = 'note';
     }
     if (mode === 'online') { // quick emoji right on the result card ("gg", "😭"...)
@@ -1137,22 +1323,46 @@
       for (const e of REACTIONS) { const b = document.createElement('button'); b.className = 'rx'; b.textContent = e; b.onclick = () => sendReaction(e); row.appendChild(b); }
       panel.appendChild(row);
     }
+    const oppPid = pids[1 - you];
+    if (mode === 'online' && oppPid) { // add the opponent as a friend right from here
+      const fb = bigBtn("{invite} Do'stlarga qo'shish", async () => {
+        fb.disabled = true;
+        const r = await postApi('friend', { pid: oppPid });
+        if (r && r.ok) { fb.innerHTML = lbl("{check} Do'stlar ro'yxatida"); Snd.play('notify'); } else { fb.disabled = false; toast('{alert} ' + ((r && r.msg) || 'Xato')); }
+      });
+      api('player', null, '&pid=' + encodeURIComponent(oppPid)).then(d => { if (d && d.friend) { fb.disabled = true; fb.innerHTML = lbl("{check} Do'stlar ro'yxatida"); } });
+      panel.appendChild(fb);
+    }
+    if (roomTour) { // tournament match: no rematch, the bracket decides what comes next
+      addText(panel, 'div', draw ? "{again} Durrang — o'yin ranglar almashib qayta boshlanadi" : won ? "{rating} Keyingi bosqichga chiqdingiz!" : "Turnir siz uchun tugadi.").className = 'note';
+      const row = document.createElement('div'); row.className = 'btn-row';
+      row.append(bigBtn('{rating} Turnir jadvali', () => showTour(roomTour), 'pri'), bigBtn('{history} Yurishlar', openReplay));
+      panel.appendChild(row);
+      panel.appendChild(bigBtn('{back} Xonalar', showLobby));
+      return finishResult(o, panel, won, draw);
+    }
     addText(panel, 'div', '').className = 'rm-note';
     const again = bigBtn(mode === 'online' ? '{again} Revansh' : "{again} Qayta o'ynash", rematch, 'pri');
     again.classList.add('rm-btn');
     panel.appendChild(again);
+    panel.appendChild(bigBtn("{history} Yurishlarni ko'rish", openReplay));
+    if (mode === 'bot' && won && botLevel === 2) postApi('botwin', { kind, level: 2 });
     if (mode === 'online' && roomRanked) {
       const row = document.createElement('div'); row.className = 'btn-row';
       row.append(bigBtn('{search} Yangi raqib', startSearch), bigBtn('{back} Xonalar', showLobby));
       panel.appendChild(row);
     } else panel.appendChild(bigBtn('{back} Xonalar', showLobby));
+    finishResult(o, panel, won, draw);
+    if (mode === 'online' && eloInfo) checkUnlocks();
+  }
+  function finishResult(o, panel, won, draw) {
     o.appendChild(panel);
     updateRematch();
     o.classList.remove('hide');
     const c = panel.querySelector('canvas'), dpr = window.devicePixelRatio || 1;
     c.width = 150 * dpr; c.height = 140 * dpr;
     const hctx = c.getContext('2d'); hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    resultHero = { ctx: hctx, won, draw, color: COLORS[you] };
+    resultHero = { ctx: hctx, won, draw, color: COLORS[you], skin: kind === 'tosiq' ? skinOf(you) : null };
     recordResult(won, draw);
     if (won) burst();
   }
@@ -1179,7 +1389,7 @@
     }
     const hop = h.won ? Math.abs(Math.sin(now / 200)) * 22 : h.draw ? Math.abs(Math.sin(now / 320)) * 6 : 0;
     const sq = h.won ? (hop < 3 ? 0.12 : -0.04) : 0.06;
-    Hero.draw(x, 75, 128, 110, { color: h.color, kind: 'human', dir: 'down', pose: h.won ? 'win' : h.draw ? 'idle' : 'lose', blink: now % 3000 < 120,
+    Hero.draw(x, 75, 128, 110, { color: h.color, kind: 'human', skin: h.skin, dir: 'down', pose: h.won ? 'win' : h.draw ? 'idle' : 'lose', blink: now % 3000 < 120,
       t: now, hop, squash: sq, glow: 1 });
   }
 
@@ -1196,6 +1406,323 @@
     btn.classList.toggle('pulse', theirs && !mine && !gone);
     btn.innerHTML = lbl(gone ? '{again} Revansh' : mine ? '{hourglass} Raqib javobi kutilmoqda...' : theirs ? '{check} Revanshni qabul qilish' : '{again} Revansh');
     note.innerHTML = lbl(gone ? "{offline} Raqib o'yindan chiqib ketdi" : theirs && !mine ? "{again} Raqib revansh so'rayapti!" : '');
+  }
+
+
+  // ---------- talking to the server: signed actions ----------
+  const authBody = (o) => Object.assign({ initData: tg ? tg.initData : '', uid, name: myName, photo: myPhoto }, o);
+  const postApi = (what, o) => fetch('api/' + what, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(authBody(o)) })
+    .then(r => r.json()).catch(() => null);
+  // my equipped frame / skins and what is unlocked (any kind returns all of it)
+  async function loadMyInfo() {
+    const d = await api('profile', kind);
+    if (d) myInfo = { pid: d.pid, equip: d.equip || { frame: null, skin: {} }, skins: d.skins || {}, frames: d.frames || [], ach: d.ach || {} };
+    return d;
+  }
+  // after a rated game: did a new skin or frame open up?
+  async function checkUnlocks() {
+    const before = myInfo, d = await loadMyInfo();
+    if (!d || !before.skins) return;
+    const newSkins = (myInfo.skins[kind] || []).filter(x => !(before.skins[kind] || []).includes(x));
+    const newFrames = myInfo.frames.filter(x => !(before.frames || []).includes(x));
+    for (const id of newSkins) { const it = Rewards.SKINS[kind].find(x => x.id === id); unlockToast(`${GAME_NAMES[kind]} uchun "${it.name}" skini ochildi!`); }
+    for (const id of newFrames) { const it = Rewards.FRAMES.find(x => x.id === id); unlockToast(`"${it.name}" ramkasi ochildi!`); }
+  }
+  function unlockToast(text) {
+    setTimeout(() => { Snd.play('crown'); haptic('success'); toast('{sparkles} ' + text + ' Profil → Kolleksiya'); }, 2200);
+  }
+
+  // ---------- spectators ----------
+  function showWatchResult() {
+    const g = game, p = openPanel('result');
+    addText(p, 'h1', g.winner === -1 ? 'DURRANG' : "O'YIN TUGADI");
+    addText(p, 'p', g.winner === -1 ? "O'yin durrang bilan tugadi." : `${names[g.winner] || "O'yinchi"} g'alaba qozondi!`);
+    p.append(bigBtn("{history} Yurishlarni ko'rish", openReplay, 'pri'), bigBtn('{back} Xonalar', showLobby));
+  }
+  function watchGame(id, k) {
+    if (k) { kind = k; viewKind = k; }
+    haptic('light');
+    roomId = null; roomCode = null; joinCode = null; pendingCreate = null; challengeTo = null; watchRoom = id;
+    connect();
+  }
+
+  // ---------- replay: step through a finished game ----------
+  function openReplay() {
+    const g = game;
+    if (!g || !g.hist) return toast("{alert} Yurishlar saqlanmagan");
+    const R0 = R(), list = [];
+    let cur = R0.newGame(g.starter || 0, (g.base || R0.CLOCK_MS) / 60000);
+    R0.start(cur, 0);
+    list.push(JSON.parse(JSON.stringify(cur)));
+    for (const a of g.hist) { R0.apply(cur, cur.turn, a, 0); list.push(JSON.parse(JSON.stringify(cur))); }
+    // keep the real clocks on every frame so they don't look like they reset
+    for (const f of list) { f.clock = g.clock.slice(); f.turnStart = null; }
+    replay = { list, i: list.length - 1, real: g };
+    hideOverlay(); sel8 = null; targets8 = [];
+    $('replayBar').classList.remove('hide');
+    replayGo(0);
+  }
+  function replayGo(d) {
+    if (!replay) return;
+    replay.i = Math.max(0, Math.min(replay.list.length - 1, replay.i + d));
+    const g = replay.list[replay.i];
+    const prev = game;
+    game = g;
+    if (g.pawns) anim = g.pawns.map(newAnim);
+    if (is8(g.kind) && g.last && g.last.from !== undefined && d !== 0 && Math.abs(d) === 1) anim8 = { from: g.last.from, to: g.last.to, at: performance.now() };
+    if (g.kind === 'xo') { xoPlaced = {}; g.board.forEach((v, i) => { if (v !== null) xoPlaced[i] = 0; }); xoEndAt = 0; }
+    $('rpPos').textContent = `${replay.i} / ${replay.list.length - 1}`;
+    if (prev !== g && d) Snd.play(g.last && g.last.cap != null ? 'capture' : 'move');
+    render();
+  }
+  function closeReplay(silent) {
+    if (!replay) return;
+    const r = replay; replay = null;
+    $('replayBar').classList.add('hide');
+    game = r.real;
+    if (game.pawns) anim = game.pawns.map(newAnim);
+    if (game.kind === 'xo') { xoPlaced = {}; game.board.forEach((v, i) => { if (v !== null) xoPlaced[i] = 0; }); }
+    if (silent) return;
+    render();
+    if (watching) showWatchResult(); else showResult(game.winner === you, game.winner === -1);
+  }
+  $('rpFirst').onclick = () => replayGo(-1e9); $('rpPrev').onclick = () => replayGo(-1);
+  $('rpNext').onclick = () => replayGo(1); $('rpLast').onclick = () => replayGo(1e9);
+  $('rpClose').onclick = () => closeReplay();
+
+  // ---------- presence: one socket for the whole app (friends' status, challenges, tournaments, badges) ----------
+  let pres = null, presRetry = null, myTour = null;
+  function openPresence() {
+    clearTimeout(presRetry);
+    const s = pres = new WebSocket(wsUrl());
+    s.onopen = () => s.send(JSON.stringify(authBody({ t: 'hello' })));
+    s.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; }
+      else if (m.t === 'ach') {
+        const a = Rewards.ACHIEVEMENTS.find(x => x.id === m.id);
+        if (a) { myInfo.ach = Object.assign({}, myInfo.ach, { [m.id]: Date.now() }); setTimeout(() => { Snd.play('crown'); haptic('success'); toast(`${a.icon} Yangi yutuq: ${a.name}!`); }, 1800); }
+      } else if (m.t === 'challenge') showIncomingChallenge(m);
+      else if (m.t === 'declined') { if (challengeTo) { toast(`{close} ${m.name} chaqiruvni rad etdi`); Snd.play('error'); showLobby(); } }
+      else if (m.t === 'toast') toast('{info} ' + m.msg);
+      else if (m.t === 'tour') onTour(m.tour);
+      else if (m.t === 'tmatch') onTourMatch(m);
+    };
+    s.onclose = () => { if (pres === s) presRetry = setTimeout(openPresence, 3000); };
+  }
+  const presSend = (o) => { if (pres && pres.readyState === 1) pres.send(JSON.stringify(o)); else toast("{offline} Serverga ulanib bo'lmadi"); };
+
+  // ---------- friends: challenge, incoming challenge, player card ----------
+  function pickGameAndTime(title, onGo, fixedKind) {
+    const p = openPanel('pick');
+    addText(p, 'h1', title);
+    let k = fixedKind || kind, m = minutesFor(k);
+    addText(p, 'div', "O'yin").className = 'lbl2';
+    const games = document.createElement('div'); games.className = 'seg';
+    const times = document.createElement('div'); times.className = 'seg';
+    const paint = () => {
+      games.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+      times.querySelectorAll('button').forEach(b => b.classList.toggle('on', Number(b.dataset.m) === m));
+    };
+    for (const g of Object.keys(GAME_NAMES)) {
+      const b = document.createElement('button'); b.dataset.k = g; b.textContent = SHORT_NAMES[g];
+      b.onclick = () => { k = g; m = minutesFor(g); haptic('light'); paint(); }; games.appendChild(b);
+    }
+    for (const v of [1, 3, 5, 10]) { const b = document.createElement('button'); b.dataset.m = v; b.textContent = v + ' daq'; b.onclick = () => { m = v; haptic('light'); paint(); }; times.appendChild(b); }
+    if (!fixedKind) p.appendChild(games);
+    addText(p, 'div', 'Vaqt (har biriga)').className = 'lbl2';
+    p.appendChild(times); paint();
+    p.append(bigBtn('{swords} Chaqirish', () => onGo(k, m), 'pri'), bigBtn('Bekor qilish', hideOverlay));
+  }
+  function challengeFriend(pid, name) {
+    pickGameAndTime(`{swords} ${name}ni chaqirish`, async (k, m) => {
+      const r = await postApi('challenge', { pid, kind: k, minutes: m });
+      if (!r || !r.ok) return toast('{alert} ' + ((r && r.msg) || "Chaqirib bo'lmadi"));
+      kind = k; viewKind = k; store.set('min_' + k, m);
+      roomId = r.room; roomCode = r.code; joinCode = null; pendingCreate = null; watchRoom = null; challengeTo = name;
+      Snd.play('notify'); connect();
+    });
+  }
+  function showIncomingChallenge(m) {
+    Snd.play('notify'); haptic('medium');
+    const busy = mode === 'online' && game && game.winner === null && game.turnStart !== null && !watching;
+    const accept = () => {
+      kind = m.kind; viewKind = m.kind;
+      roomId = m.room; roomCode = m.code; joinCode = null; pendingCreate = null; watchRoom = null; challengeTo = null;
+      leaveOnline(); connect();
+    };
+    const decline = () => { hideOverlay(); postApi('decline', { room: m.room }); };
+    if (busy || mode === 'bot') { toast(`{swords} ${m.from.name} sizni ${GAME_NAMES[m.kind]}ga chaqiryapti — o'yindan keyin javob bering`); pendingChallenge = { m, accept, decline }; return; }
+    const p = openPanel('challenge');
+    p.classList.add('gold');
+    const av = document.createElement('div'); av.className = 'pc-av ' + frameCls(m.from.frame);
+    if (isPhoto(m.from.photo)) setAvatar(av, m.from.photo, initial(m.from.name)); else av.textContent = initial(m.from.name);
+    p.appendChild(av);
+    addText(p, 'h1', `{swords} Chaqiruv!`);
+    addText(p, 'p', `${m.from.name} sizni ${GAME_NAMES[m.kind]} o'yiniga chaqiryapti (${m.minutes} daqiqa).`);
+    p.append(bigBtn('{check} Qabul qilish', accept, 'pri'), bigBtn('{close} Rad etish', decline));
+  }
+  let pendingChallenge = null;
+
+  async function showPlayer(pid) {
+    if (!pid) return;
+    const p = openPanel('player');
+    addText(p, 'div', 'Yuklanmoqda...').className = 'note';
+    const d = await api('player', null, '&pid=' + encodeURIComponent(pid));
+    if ($('overlay').dataset.kind !== 'player') return;
+    p.innerHTML = '';
+    if (!d || !d.ok) { addText(p, 'p', "O'yinchi topilmadi"); return p.append(bigBtn('Yopish', hideOverlay)); }
+    const av = document.createElement('div'); av.className = 'pc-av ' + frameCls(d.frame);
+    if (isPhoto(d.photo)) setAvatar(av, d.photo, initial(d.name)); else av.textContent = initial(d.name);
+    p.appendChild(av);
+    addText(p, 'h1', d.name + (d.champ.length ? ' 👑' : '')).style.fontSize = '22px';
+    const st = d.status.state;
+    addText(p, 'div', st === 'playing' ? `{games} Hozir ${GAME_NAMES[d.status.kind]} o'ynayapti` : st === 'online' ? '{check} Onlayn' : 'Oflayn').className = 'note';
+    const grid = document.createElement('div'); grid.className = 'pc-elo';
+    for (const k of Object.keys(GAME_NAMES)) {
+      const e = d.elo[k], c = document.createElement('div');
+      c.innerHTML = `<b>${e ? e.elo : 1000}</b>`; c.append(`${SHORT_NAMES[k]} · ${e ? e.games : 0} o'yin`);
+      grid.appendChild(c);
+    }
+    p.appendChild(grid);
+    if (d.ach.length) addText(p, 'div', d.ach.map(id => (Rewards.ACHIEVEMENTS.find(a => a.id === id) || {}).icon || '').join(' ')).className = 'mini-badges';
+    if (!d.me) {
+      const fb = bigBtn(d.friend ? "{close} Do'stlardan o'chirish" : "{invite} Do'st qo'shish", async () => {
+        const r = await postApi('friend', { pid, remove: d.friend });
+        if (r && r.ok) { toast(r.friend ? "{check} Do'stlar ro'yxatiga qo'shildi" : "Do'stlardan o'chirildi"); showPlayer(pid); if (!$('friends').classList.contains('hide')) loadFriends(); }
+        else toast('{alert} ' + ((r && r.msg) || 'Xato'));
+      }, d.friend ? '' : 'pri');
+      p.appendChild(fb);
+      p.appendChild(bigBtn('{swords} Chaqirish', () => challengeFriend(pid, d.name), d.friend ? 'pri' : ''));
+      if (st === 'playing') p.appendChild(bigBtn("{search} O'yinini tomosha qilish", () => watchGame(d.status.room, d.status.kind)));
+    }
+    p.appendChild(bigBtn('Yopish', hideOverlay));
+  }
+
+  async function loadFriends() {
+    const box = $('friendsIn'), ver = loadFriends.v = (loadFriends.v || 0) + 1;
+    if (!box.children.length) box.innerHTML = '<div class="note">Yuklanmoqda...</div>';
+    const d = await api('friends');
+    if ($('friends').classList.contains('hide') || ver !== loadFriends.v) return;
+    box.innerHTML = '';
+    addText(box, 'div', "{users} Do'stlar").className = 'hub-title';
+    const list = (d && d.friends) || [];
+    if (!list.length) {
+      addText(box, 'div', "Hali do'stlaringiz yo'q.\n\nO'yin tugagach natija oynasidagi \"Do'stlarga qo'shish\" tugmasini bosing yoki Reyting ro'yxatidan o'yinchini tanlang.").className = 'empty2';
+      box.lastChild.style.whiteSpace = 'pre-line';
+    }
+    for (const f of list) {
+      const row = document.createElement('div'); row.className = 'frow';
+      const av = document.createElement('div'); av.className = 'ini ' + frameCls(f.frame);
+      if (isPhoto(f.photo)) setAvatar(av, f.photo, initial(f.name)); else av.textContent = initial(f.name);
+      const who = document.createElement('div'); who.className = 'who2';
+      addText(who, 'b', f.name + (f.champ.length ? ' 👑' : ''));
+      const sm = document.createElement('small'), stt = f.status.state;
+      sm.innerHTML = `<span class="st-dot ${stt}"></span>`;
+      sm.append(stt === 'playing' ? `${GAME_NAMES[f.status.kind]} o'ynayapti` : stt === 'online' ? 'Onlayn' : 'Oflayn');
+      who.appendChild(sm); who.onclick = () => showPlayer(f.pid);
+      row.append(av, who);
+      if (stt === 'playing') { const b = document.createElement('button'); b.className = 'watch'; b.innerHTML = lbl('{search} Tomosha'); b.onclick = () => watchGame(f.status.room, f.status.kind); row.appendChild(b); }
+      else { const b = document.createElement('button'); b.innerHTML = lbl('{swords} Chaqirish'); b.onclick = () => challengeFriend(f.pid, f.name); row.appendChild(b); }
+      box.appendChild(row);
+    }
+    if (myInfo.pid) addText(box, 'div', "Do'stlaringiz onlayn bo'lsa, chaqiruv ilovada darhol chiqadi; bo'lmasa bot orqali xabar boradi.").className = 'note';
+    clearTimeout(loadFriends.t);
+    loadFriends.t = setTimeout(() => { if (!$('friends').classList.contains('hide')) loadFriends(); }, 8000);
+  }
+
+  // ---------- tournaments ----------
+  let tourOpen = null, tourWant = null; // the bracket shown right now / just requested
+  function onTour(t) {
+    if (t.status === 'done' && t.winner != null && myTour && myTour.id === t.id && myTour.status !== 'done') {
+      const champ = t.players[t.winner];
+      if (champ.pid === myInfo.pid) { Snd.play('win'); burst(); toast('{rating} Siz turnir g\'olibisiz! 🏆'); }
+      else toast(`{rating} Turnir tugadi: ${champ.name} g'olib!`);
+    }
+    myTour = t.players.some(p => p.pid === myInfo.pid) && t.status !== 'done' ? t : (myTour && myTour.id === t.id ? t : myTour);
+    // refresh the bracket if it is on screen, or open it when it was just asked for
+    if (tourOpen === t.id && ($('overlay').dataset.kind === 'tour' || tourWant === t.id)) { tourWant = null; showTour(t); }
+  }
+  function onTourMatch(m) {
+    Snd.play('start'); haptic('success');
+    toast(`{swords} Turnir o'yini: raqibingiz ${m.opp}`);
+    const go = () => { kind = m.kind; viewKind = m.kind; roomId = m.room; roomCode = m.code; joinCode = null; pendingCreate = null; watchRoom = null; challengeTo = null; leaveOnline(); connect(); };
+    // don't pull a player out of a game that is still running
+    const busy = mode === 'online' && game && game.winner === null && game.turnStart !== null && !watching;
+    if (busy) return setTimeout(() => onTourMatch(m), 3000);
+    setTimeout(go, 1200);
+  }
+  async function showTour(t) {
+    if (typeof t === 'string') { presSend({ t: 'tview', id: t }); tourOpen = t; tourWant = t; return; }
+    tourOpen = t.id;
+    const p = openPanel('tour');
+    addText(p, 'h1', `{rating} Turnir · ${GAME_NAMES[t.kind]}`);
+    addText(p, 'div', `${t.count}/${t.size} o'yinchi · ${t.minutes} daqiqa · ` + (t.status === 'open' ? "ro'yxatga olish" : t.status === 'running' ? 'davom etmoqda' : 'tugadi')).className = 'note';
+    const me = myInfo.pid, inIt = t.players.some(x => x.pid === me);
+    if (t.status === 'open') {
+      const pl = document.createElement('div'); pl.className = 'plist';
+      t.players.forEach((x, i) => addText(pl, 'span', (i === 0 ? '👑 ' : '') + x.name + (x.pid === me ? ' (siz)' : '')));
+      p.appendChild(pl);
+      addText(p, 'p', t.count < t.size ? `Yana ${t.size - t.count} o'yinchi kerak. To'lishi bilan turnir boshlanadi.` : '');
+      if (!inIt) p.appendChild(bigBtn("{plus} Qo'shilish", () => presSend({ t: 'tjoin', id: t.id }), 'pri'));
+      else {
+        if (t.hostPid === me) p.appendChild(bigBtn('{play} Hozir boshlash', () => presSend({ t: 'tstart', id: t.id }), 'pri'));
+        p.appendChild(bigBtn("{invite} Do'stlarni taklif qilish", () => showInvite(null)));
+        p.appendChild(bigBtn("{exit} Turnirdan chiqish", () => presSend({ t: 'tleave', id: t.id }), 'danger'));
+      }
+    } else {
+      const br = document.createElement('div'); br.className = 'bracket';
+      const nameOf = (i) => (i === -1 ? '—' : t.players[i] ? t.players[i].name : '?');
+      t.rounds.forEach((r, ri) => {
+        const col = document.createElement('div'); col.className = 'bcol';
+        addText(col, 'small', r.length === 1 ? 'Final' : r.length === 2 ? 'Yarim final' : r.length === 4 ? 'Chorak final' : `${ri + 1}-bosqich`);
+        for (const m of r) {
+          const el = document.createElement('div'); el.className = 'bm' + (m.live ? ' live' : '') + ([m.a, m.b].some(i => t.players[i] && t.players[i].pid === me) ? ' mine' : '');
+          for (const i of [m.a, m.b]) addText(el, 'div', nameOf(i)).className = m.w == null ? '' : m.w === i ? 'w' : 'l';
+          if (m.live && m.room) { el.style.cursor = 'pointer'; el.onclick = () => watchGame(m.room, t.kind); el.title = 'Tomosha'; }
+          col.appendChild(el);
+        }
+        br.appendChild(col);
+      });
+      p.appendChild(br);
+      if (t.status === 'done' && t.winner != null) addText(p, 'h1', `🏆 ${t.players[t.winner].name}`).style.fontSize = '22px';
+      else addText(p, 'div', "Sariq ramkali o'yinni bosib tomosha qilishingiz mumkin. Navbatingiz kelganda o'yin o'zi ochiladi.").className = 'note';
+    }
+    p.appendChild(bigBtn('Yopish', () => { tourOpen = null; hideOverlay(); }));
+  }
+  function createTour() {
+    const p = openPanel('tcreate');
+    addText(p, 'h1', `{rating} Turnir yaratish`);
+    addText(p, 'p', `${GAME_NAMES[kind]} · ${minutesFor(kind)} daqiqa. Necha o'yinchi qatnashadi?`);
+    const row = document.createElement('div'); row.className = 'opt-row';
+    for (const n of [4, 8, 16]) {
+      const b = document.createElement('button'); b.className = 'opt';
+      b.innerHTML = `<span class="e">${ic('users')}</span><b>${n} kishi</b><small>${Math.log2(n)} bosqich</small>`;
+      b.onclick = () => { haptic('medium'); presSend({ t: 'tcreate', kind, minutes: minutesFor(kind), size: n }); hideOverlay(); toast('{rating} Turnir yaratildi — ishtirokchilar kutilmoqda'); };
+      row.appendChild(b);
+    }
+    p.append(row);
+    addText(p, 'div', "Turnir o'yinlari reytingga ta'sir qilmaydi. Durrang bo'lsa, o'yin qayta o'ynaladi. G'olib \"Chempion\" ramkasi va nishonini oladi.").className = 'note';
+    p.append(bigBtn('Bekor qilish', hideOverlay));
+  }
+  function renderTours(list) {
+    const box = $('tours');
+    box.innerHTML = '';
+    const mine = (list || []).filter(t => t.kind === kind);
+    $('tourCount').textContent = mine.length ? `(${mine.length})` : '';
+    for (const t of mine) {
+      const row = document.createElement('div'); row.className = 'tour-row';
+      const meta = document.createElement('div'); meta.className = 'meta';
+      addText(meta, 'b', `🏆 ${t.host} turniri`);
+      addText(meta, 'small', `${t.count}/${t.size} o'yinchi · ${t.minutes} daq · ` + (t.status === 'open' ? "qo'shilish mumkin" : t.status === 'running' ? 'davom etmoqda' : `g'olib: ${t.winner || '—'}`));
+      const b = document.createElement('button'); b.textContent = t.status === 'open' ? "Qo'shilish" : "Ko'rish";
+      b.onclick = () => { haptic('light'); showTour(t.id); };
+      row.append(meta, b);
+      box.appendChild(row);
+    }
+    const nb = document.createElement('button'); nb.className = 'act'; nb.style.cssText = '--c:#c084fc';
+    nb.innerHTML = lbl('{plus} Turnir yaratish'); nb.onclick = () => { haptic('light'); createTour(); };
+    box.appendChild(nb);
   }
 
   // ---------- emoji reactions (online games) ----------
@@ -1271,7 +1798,7 @@
     mode = null; resultHero = null; confetti = [];
     hideOverlay(); setTool(null);
     $('hubName').textContent = myName;
-    setAvatar($('hubAv'), myPhoto, ICON_USER);
+    setAvatar($('hubAv'), myPhoto, ICON_USER); setFrame($('hubAv'), myInfo.equip.frame);
     const list = $('games');
     list.innerHTML = ''; hubThumbs = [];
     for (const g of GAMES) {
@@ -1311,7 +1838,7 @@
   }
   // ---------- bottom tabs: games / rating / profile ----------
   let eloInfo = null, profHero = null;
-  const api = (what, k) => fetch(`api/${what}?uid=${encodeURIComponent(uid)}&kind=${k || viewKind}`, { cache: 'no-store' })
+  const api = (what, k, extra) => fetch(`api/${what}?uid=${encodeURIComponent(uid)}&kind=${k || viewKind}${extra || ''}`, { cache: 'no-store' })
     .then(r => r.json()).catch(() => null);
   // game switch shown on the rating and profile tabs
   function buildSeg(el, onChange) {
@@ -1328,16 +1855,17 @@
   const initial = (n) => (n || '?').replace(/^anon-/, '').charAt(0).toUpperCase();
 
   function showTabs(tab) {
-    for (const t of ['hub', 'rating', 'profile']) $(t).classList.toggle('hide', t !== tab);
+    for (const t of ['hub', 'rating', 'friends', 'profile']) $(t).classList.toggle('hide', t !== tab);
     $('nav').classList.remove('hide');
     document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     setBackButton(tab !== 'hub');
     profHero = null;
     if (tab === 'rating') loadRating();
     if (tab === 'profile') loadProfile();
+    if (tab === 'friends') loadFriends();
   }
   function hideTabs() {
-    for (const t of ['rating', 'profile', 'nav']) $(t).classList.add('hide');
+    for (const t of ['rating', 'friends', 'profile', 'nav']) $(t).classList.add('hide');
     profHero = null;
   }
   document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
@@ -1345,15 +1873,33 @@
     if (b.dataset.tab === 'hub') showHub(); else showTabs(b.dataset.tab);
   });
 
+  let rtPeriod = 'all';
   async function loadRating() {
     const pod = $('podium'), board = $('board');
     buildSeg($('rtSeg'), loadRating);
-    pod.innerHTML = ''; board.innerHTML = '<div class="note">Yuklanmoqda...</div>';
-    const d = await api('leaderboard');
+    const week = rtPeriod === 'week';
+    $('rtPeriod').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.p === rtPeriod);
+      b.onclick = () => { if (b.dataset.p === rtPeriod) return; haptic('light'); rtPeriod = b.dataset.p; loadRating(); }; });
+    $('rtSub').textContent = week ? "Shu haftada reytingli o'yinlarda eng ko'p ELO yig'ganlar. Hafta g'olibi 👑 \"Hafta qiroli\" ramkasini oladi."
+      : "Reytingli o'yinlardagi ELO bo'yicha eng kuchli o'yinchilar";
+    pod.innerHTML = ''; board.innerHTML = '<div class="note">Yuklanmoqda...</div>'; $('rtChamp').innerHTML = '';
+    const d = await api('leaderboard', null, week ? '&period=week' : '');
     if ($('rating').classList.contains('hide')) return;
     board.innerHTML = '';
     if (!d) return addText(board, 'div', "{offline} Serverga ulanib bo'lmadi").className = 'empty2';
-    if (!d.top.length) return addText(board, 'div', "Hali reyting yo'q. Onlayn o'yinda g'alaba qozonib, birinchi bo'ling!").className = 'empty2';
+    if (week) { // last week's king and the time left in this one
+      const box = $('rtChamp');
+      if (d.champ) {
+        const c = document.createElement('div'); c.className = 'champ-card';
+        const av = document.createElement('div'); av.className = 'ini';
+        if (isPhoto(d.champ.photo)) setAvatar(av, d.champ.photo, initial(d.champ.name)); else av.textContent = initial(d.champ.name);
+        const t = document.createElement('div'); addText(t, 'small', "👑 O'tgan hafta qiroli"); addText(t, 'b', `${d.champ.name} · +${d.champ.gain} ELO`);
+        c.append(av, t); c.onclick = () => showPlayer(d.champ.pid); box.appendChild(c);
+      }
+      const left = Math.max(0, d.weekEnds - Date.now()), dd = Math.floor(left / 86400000), hh = Math.floor(left / 3600000) % 24;
+      addText(box, 'div', `{timer} Hafta tugashiga: ${dd} kun ${hh} soat`).className = 'note';
+    }
+    if (!d.top.length) return addText(board, 'div', week ? "Bu hafta hali reytingli o'yin bo'lmadi. Birinchi bo'ling!" : "Hali reyting yo'q. Onlayn o'yinda g'alaba qozonib, birinchi bo'ling!").className = 'empty2';
     // podium in 2-1-3 order
     [d.top[1], d.top[0], d.top[2]].forEach((r, k) => {
       if (!r) return;
@@ -1361,9 +1907,11 @@
       el.innerHTML = `<div class="pav"></div><b></b><small></small><div class="ped">${place}</div>`;
       const pav = el.querySelector('.pav');
       if (isPhoto(r.photo)) setAvatar(pav, r.photo, initial(r.name)); else pav.append(initial(r.name));
-      if (place === 1) pav.insertAdjacentHTML('afterbegin', `<span class="crown">${ic('crown')}</span>`);
-      el.querySelector('b').textContent = r.name + (r.me ? ' (siz)' : '');
-      el.querySelector('small').textContent = r.elo;
+      if (place === 1 && !r.frame) pav.insertAdjacentHTML('afterbegin', `<span class="crown">${ic('crown')}</span>`);
+      setFrame(pav, r.frame);
+      el.querySelector('b').textContent = r.name + (r.champ ? ' 👑' : '') + (r.me ? ' (siz)' : '');
+      el.querySelector('small').textContent = week ? '+' + r.gain : r.elo;
+      el.style.cursor = 'pointer'; el.onclick = () => showPlayer(r.pid);
       pod.appendChild(el);
     });
     const row = (r) => {
@@ -1371,9 +1919,13 @@
       el.innerHTML = '<div class="rk"></div><div class="ini"></div><div class="who2"><b></b><small></small></div><div class="el"></div>';
       el.querySelector('.rk').textContent = '#' + r.rank;
       if (isPhoto(r.photo)) setAvatar(el.querySelector('.ini'), r.photo, initial(r.name)); else el.querySelector('.ini').textContent = initial(r.name);
-      el.querySelector('b').textContent = r.name + (r.me ? ' (siz)' : '');
-      el.querySelector('small').innerHTML = `${ic('win')} ${r.wins} · ${ic('lose')} ${r.losses}` + (r.draws ? ` · ${ic('draw')} ${r.draws}` : '');
-      el.querySelector('.el').innerHTML = `${r.elo}<small>ELO</small>`;
+      setFrame(el.querySelector('.ini'), r.frame);
+      el.querySelector('b').textContent = r.name + (r.champ ? ' 👑' : '') + (r.me ? ' (siz)' : '');
+      el.querySelector('small').innerHTML = week ? `${ic('games')} ${r.wgames} o'yin · ${r.elo} ELO`
+        : `${ic('win')} ${r.wins} · ${ic('lose')} ${r.losses}` + (r.draws ? ` · ${ic('draw')} ${r.draws}` : '');
+      if (week) { el.querySelector('.el').classList.add('gain'); el.querySelector('.el').innerHTML = `+${r.gain}<small>ELO</small>`; }
+      else el.querySelector('.el').innerHTML = `${r.elo}<small>ELO</small>`;
+      el.onclick = () => showPlayer(r.pid);
       return el;
     };
     d.top.slice(3).forEach(r => board.appendChild(row(r)));
@@ -1386,6 +1938,7 @@
     box.innerHTML = '<div class="note">Yuklanmoqda...</div>';
     const d = await api('profile');
     if ($('profile').classList.contains('hide') || ver !== loadProfile.v) return;
+    if (d) myInfo = { pid: d.pid, equip: d.equip || { frame: null, skin: {} }, skins: d.skins || {}, frames: d.frames || [], ach: d.ach || {} };
     box.innerHTML = '';
     const seg = document.createElement('div'); seg.className = 'seg'; box.appendChild(seg);
     buildSeg(seg, loadProfile);
@@ -1394,12 +1947,15 @@
     const card = document.createElement('div'); card.className = 'pcard';
     // the Telegram photo when we have one, otherwise the animated character
     card.innerHTML = (myPhoto ? '<div class="pphoto"></div>' : '<canvas></canvas>')
-      + '<h2></h2><span class="ptitle"></span><div class="pelo"></div><div class="ppeak"></div>';
-    if (myPhoto) setAvatar(card.querySelector('.pphoto'), myPhoto, ICON_USER);
+      + '<h2></h2><span class="ptitle"></span><div class="pelo"></div><div class="ppeak"></div><div class="ppeak pweek"></div>';
+    if (myPhoto) { setAvatar(card.querySelector('.pphoto'), myPhoto, ICON_USER); setFrame(card.querySelector('.pphoto'), myInfo.equip.frame); }
     card.querySelector('h2').textContent = myName;
     card.querySelector('.ptitle').innerHTML = lbl(eloTitle(p.elo));
     card.querySelector('.pelo').innerHTML = `${p.elo}<small>ELO</small>`;
     card.querySelector('.ppeak').textContent = `Eng yuqori: ${p.peak}` + (p.rank ? ` · Reytingda #${p.rank}` : '');
+    const wk = p.week || { gain: 0, games: 0 };
+    card.querySelector('.pweek').innerHTML = lbl(`{trend} Shu hafta: ${wk.gain >= 0 ? '+' : ''}${wk.gain} ELO (${wk.games} o'yin)`)
+      + (p.champ && p.champ.length ? ` · 👑 Hafta qiroli: ${p.champ.map(k => SHORT_NAMES[k]).join(', ')}` : '');
     box.appendChild(card);
     const c = card.querySelector('canvas');
     if (c) {
@@ -1419,6 +1975,9 @@
       const cell = document.createElement('div'); addText(cell, 'b', String(v)); addText(cell, 'small', l); grid.appendChild(cell);
     });
     box.appendChild(grid);
+    box.dataset.curPeak = p.peak || 1000;
+    renderCollection(box);
+    renderBadges(box, p.ach || {});
     // every game at a glance; tap a row to open its details
     addText(box, 'div', "{games} Barcha o'yinlar").className = 'sec';
     const sum = document.createElement('div'); sum.style.cssText = 'display:flex;flex-direction:column;gap:8px';
@@ -1448,11 +2007,81 @@
     }
     addText(box, 'div', "{star} ELO faqat \"Reytingli o'yin\"da (mos raqib bilan) beriladi: g'alaba uchun qo'shiladi, mag'lubiyat uchun ayiriladi. Kuchliroq raqibni yutsangiz ko'proq ball olasiz.").className = 'note';
   }
+  // ---------- achievements & collection (frames, skins) ----------
+  function renderBadges(box, ach) {
+    const n = Object.keys(ach).length;
+    addText(box, 'div', `{medal} Yutuqlar · ${n}/${Rewards.ACHIEVEMENTS.length}`).className = 'sec';
+    const grid = document.createElement('div'); grid.className = 'badges';
+    for (const a of Rewards.ACHIEVEMENTS) {
+      const b = document.createElement('div'); b.className = 'badge' + (ach[a.id] ? '' : ' off');
+      addText(b, 'span', a.icon).className = 'e'; addText(b, 'b', a.name);
+      b.onclick = () => { haptic('light'); toast(`${a.icon} ${a.name}: ${a.desc}` + (ach[a.id] ? ' ✓' : '')); };
+      grid.appendChild(b);
+    }
+    box.appendChild(grid);
+  }
+  function previewSkin(c, k, skin, now) {
+    const x = c.getContext('2d'); x.clearRect(0, 0, 64, 64);
+    if (k === 'tosiq') Hero.draw(x, 32, 58, 48, { color: COLORS[0], kind: 'human', dir: 'down', pose: 'idle', t: now, skin, glow: 0.5, blink: now % 3000 < 120 });
+    else if (k === 'shaxmat') { drawChessPiece(x, 22, 34, 34, 'K', COLORS[0], skin); drawChessPiece(x, 44, 36, 30, 'n', COLORS[1], skin); }
+    else if (k === 'shashka') { drawDisc(x, 22, 36, 34, COLORS[0], true, 1, skin); drawDisc(x, 44, 30, 30, COLORS[1], false, 1, skin); }
+    else { xoMark(x, 20, 32, 30, 'X', COLORS[0], 1, skin); xoMark(x, 44, 32, 30, 'O', COLORS[1], 1, skin); }
+  }
+  let skinPreviews = [];
+  async function equip(o) {
+    haptic('light');
+    const r = await postApi('equip', o);
+    if (!r || !r.ok) return toast('{alert} ' + ((r && r.msg) || 'Xato'));
+    myInfo.equip = r.equip; Snd.play('crown'); toast("{check} Kiyildi! Raqiblaringiz ham ko'radi");
+    loadProfile();
+  }
+  function renderCollection(box) {
+    addText(box, 'div', `{sparkles} Kolleksiya`).className = 'sec';
+    addText(box, 'div', "Reytingli o'yinlarda ELO oshgani sari yangi ramka va skinlar ochiladi. Bosib kiying — raqiblaringiz ham ko'radi.").className = 'note';
+    // frames
+    addText(box, 'div', 'Profil ramkasi').className = 'lbl2';
+    const fr = document.createElement('div'); fr.className = 'coll';
+    const cur = myInfo.equip.frame || null;
+    [{ id: null, name: 'Oddiy', desc: 'Ramkasiz' }].concat(Rewards.FRAMES).forEach(f => {
+      const open = !f.id || myInfo.frames.includes(f.id);
+      const it = document.createElement('div'); it.className = 'item' + (cur === f.id ? ' on' : '') + (open ? '' : ' locked');
+      const ring = document.createElement('div'); ring.className = 'ring ' + frameCls(f.id);
+      if (myPhoto) setAvatar(ring, myPhoto, initial(myName)); else ring.textContent = initial(myName);
+      it.appendChild(ring); addText(it, 'b', f.name); addText(it, 'small', f.desc);
+      it.onclick = () => open ? (cur !== f.id && equip({ frame: f.id })) : toast(`{lock} ${f.name}: ${f.desc}`);
+      fr.appendChild(it);
+    });
+    box.appendChild(fr);
+    // skins of the game picked at the top
+    const k = viewKind, list = Rewards.SKINS[k], mine = myInfo.skins[k] || [], on = (myInfo.equip.skin || {})[k] || null;
+    addText(box, 'div', `${GAME_NAMES[k]} skinlari`).className = 'lbl2';
+    const grid = document.createElement('div'); grid.className = 'coll';
+    skinPreviews = [];
+    const peakNow = Number(box.dataset.curPeak) || 1000;
+    [{ id: null, name: 'Oddiy', desc: 'Standart', elo: 1000 }].concat(list).forEach(sk => {
+      const open = !sk.id || mine.includes(sk.id);
+      const it = document.createElement('div'); it.className = 'item' + (on === sk.id ? ' on' : '') + (open ? '' : ' locked');
+      const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+      c.width = 64 * dpr; c.height = 64 * dpr; c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+      it.appendChild(c); skinPreviews.push([c, k, sk.id]);
+      addText(it, 'b', sk.name);
+      addText(it, 'small', open ? sk.desc : `${sk.elo} ELO kerak`);
+      if (!open) { const pr = document.createElement('div'); pr.className = 'prog'; pr.innerHTML = `<i style="width:${Math.max(4, Math.min(100, (peakNow - 1000) / (sk.elo - 1000) * 100))}%"></i>`; it.appendChild(pr); }
+      it.onclick = () => open ? (on !== sk.id && equip({ kind: k, skin: sk.id })) : toast(`{lock} ${sk.name}: ${GAME_NAMES[k]}da ${sk.elo} ELO'ga chiqing (hozir eng yuqori: ${peakNow})`);
+      grid.appendChild(it);
+    });
+    box.appendChild(grid);
+  }
+  function drawSkinPreviews(now) {
+    if (!skinPreviews.length || $('profile').classList.contains('hide')) return;
+    for (const [c, k, id] of skinPreviews) previewSkin(c, k, id, now);
+  }
+
   function drawProfileHero(now) {
     if (!profHero) return;
     profHero.clearRect(0, 0, 120, 110);
     Hero.draw(profHero, 60, 100, 88, { color: COLORS[0], kind: 'human', dir: 'down', pose: 'idle', t: now,
-      blink: now % 3400 < 120, glow: 0.8, ring: true });
+      blink: now % 3400 < 120, glow: 0.8, ring: true, skin: (myInfo.equip.skin || {}).tosiq || null });
   }
 
   function hideHub() { $('hub').classList.add('hide'); hideTabs(); setBackButton(true); }
@@ -1482,6 +2111,8 @@
 
   // Telegram's Back button and the "Chiqish" button: game -> rooms -> games
   function goBack() {
+    if (replay) return closeReplay();
+    if (['player', 'pick', 'tour', 'tcreate', 'challenge'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
     if (!$('rating').classList.contains('hide') || !$('profile').classList.contains('hide')) return showHub();
     if (!$('hub').classList.contains('hide')) return;
     if (!$('lobby').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
@@ -1490,7 +2121,7 @@
     if ($('overlay').dataset.kind === 'search') return showLobby(); // cancels the search
     if ($('overlay').dataset.kind === 'vs') return;
     // still waiting for an opponent, or the game is over: just leave (an unstarted room closes)
-    const running = game && game.winner === null && game.turnStart !== null && mode;
+    const running = game && game.winner === null && game.turnStart !== null && mode && !watching;
     if (!running) return showLobby();
     const p = openPanel('confirm');
     addText(p, 'h1', '{exit} Chiqish');
@@ -1514,7 +2145,7 @@
   // ---------- rooms lobby ----------
   // roomId: the room's public id (shown in the list); roomCode: secret code of a private room;
   // joinCode: a code typed in "Kod bilan kirish" before we know which room it opens
-  let pendingCreate = null, roomPub = false, roomCode = null, joinCode = null, lastTarget = null;
+  let pendingCreate = null, roomPub = false, roomCode = null, joinCode = null, lastTarget = null, watchRoom = null, challengeTo = null;
   let lobbyWs = null, lobbyRetry = null, knownRooms = new Set();
   const wsUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 
@@ -1540,11 +2171,23 @@
     if (searching && ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'unqueue' }));
     searching = false;
     leaveOnline();
-    mode = null; resultHero = null; confetti = []; pendingCreate = null;
+    mode = null; resultHero = null; confetti = []; pendingCreate = null; watchRoom = null; challengeTo = null; watching = false;
+    closeReplay(true);
     hideOverlay(); setTool(null);
     $('hub').classList.add('hide'); hideTabs(); $('lobby').classList.remove('hide');
     setBackButton(true);
+    buildTimeSeg();
     openLobbySocket();
+    if (pendingChallenge) { const c = pendingChallenge; pendingChallenge = null; setTimeout(() => showIncomingChallenge(c.m), 300); }
+  }
+  // the time control used for rated search, new rooms, tournaments and bot games (remembered per game)
+  function buildTimeSeg() {
+    const el = $('lobTime'); el.innerHTML = '';
+    for (const v of [1, 3, 5, 10]) {
+      const b = document.createElement('button'); b.textContent = v + ' daq'; b.classList.toggle('on', v === minutesFor(kind));
+      b.onclick = () => { haptic('light'); store.set('min_' + kind, v); buildTimeSeg(); };
+      el.appendChild(b);
+    }
   }
   function hideLobby() { $('lobby').classList.add('hide'); closeLobbySocket(); }
 
@@ -1578,6 +2221,7 @@
       return list.appendChild(e);
     }
     $('lobOnline').innerHTML = `<span class="dot"></span>${d.online} o'yinchi onlayn`;
+    renderTours(d.tours);
     d = Object.assign({}, d, { rooms: d.rooms.filter(r => (r.kind || 'tosiq') === kind) }); // this game's rooms only
     $('lobCount').textContent = d.rooms.length ? `(${d.rooms.length})` : '';
     if (!d.rooms.length) {
@@ -1597,14 +2241,17 @@
       const av = document.createElement('div'); av.className = 'av'; av.innerHTML = ICON_USER;
       const meta = document.createElement('div'); meta.className = 'meta';
       const title = document.createElement('b'); meta.appendChild(title);
-      addText(title, 'span', r.name + ' xonasi').className = 'nmx';
-      const tag = addText(title, 'span', r.pub ? '{globe} Ochiq' : '{lock} Maxfiy'); tag.className = 'tag ' + (r.pub ? 'pub' : 'priv');
+      const both = !waiting && r.names && r.names[0] && r.names[1];
+      addText(title, 'span', both ? `${r.names[0]} vs ${r.names[1]}` : r.name + ' xonasi').className = 'nmx';
+      const tag = addText(title, 'span', r.tour ? '{rating} Turnir' : r.ranked ? '{star} Reytingli' : r.pub ? '{globe} Ochiq' : '{lock} Maxfiy');
+      tag.className = 'tag ' + (r.tour ? 'tr' : r.ranked ? 'rk' : r.pub ? 'pub' : 'priv');
       const sm = document.createElement('small');
-      if (waiting) { sm.innerHTML = '<span class="dot"></span>'; sm.append(`1/2 · Raqib kutmoqda · ${ago(r.age)}`); }
-      else sm.innerHTML = lbl("{games} 2/2 · O'yin ketmoqda");
+      if (waiting) { sm.innerHTML = '<span class="dot"></span>'; sm.append(`1/2 · ${r.minutes} daq · Raqib kutmoqda · ${ago(r.age)}`); }
+      else sm.innerHTML = lbl(`{games} ${r.minutes} daq · O'yin ketmoqda` + (r.watchers ? ` · ${r.watchers} tomoshabin` : ''));
       meta.appendChild(sm);
       const b = document.createElement('button');
-      if (!waiting) { b.textContent = "O'yinda"; b.disabled = true; }
+      if (!waiting && r.watch) { b.innerHTML = lbl('{search} Tomosha'); b.className = 'watch'; b.onclick = () => watchGame(r.id); }
+      else if (!waiting) { b.textContent = "O'yinda"; b.disabled = true; }
       else if (r.pub) {
         b.textContent = "Qo'shilish";
         b.onclick = () => { haptic('light'); roomId = r.id; roomCode = null; joinCode = null; pendingCreate = null; connect(); };
@@ -1621,13 +2268,13 @@
   function showCreate() {
     const p = openPanel('create');
     addText(p, 'h1', 'Xona yaratish');
-    addText(p, 'p', 'Qanday xona ochmoqchisiz?');
+    addText(p, 'p', `Qanday xona ochmoqchisiz? (${minutesFor(kind)} daqiqa — vaqtni xonalar sahifasida o'zgartirasiz)`);
     const opts = document.createElement('div'); opts.className = 'opts';
     const opt = (cls, e, title, desc, pub) => {
       const b = document.createElement('button'); b.className = 'opt' + cls;
       b.innerHTML = `<span class="e">${e}</span><span></span>`;
       addText(b.lastChild, 'b', title); addText(b.lastChild, 'small', desc);
-      b.onclick = () => { haptic('medium'); roomId = null; roomCode = null; joinCode = null; roomPub = pub; pendingCreate = { pub, kind }; connect(); };
+      b.onclick = () => { haptic('medium'); roomId = null; roomCode = null; joinCode = null; roomPub = pub; pendingCreate = { pub, kind, minutes: minutesFor(kind) }; watchRoom = null; challengeTo = null; connect(); };
       opts.appendChild(b);
     };
     opt('', ic('globe'), 'Ochiq xona', "Botdagi istalgan onlayn o'yinchi ro'yxatdan ko'rib qo'shila oladi.", true);
@@ -1664,7 +2311,7 @@
   $('lobBack').onclick = showHub;
   $('lobCreate').onclick = showCreate;
   $('lobCode').onclick = () => showJoinCode();
-  $('lobBot').onclick = () => startBot();
+  $('lobBot').onclick = () => { haptic('light'); pickBotLevel(); };
   $('lobRanked').onclick = () => { haptic('medium'); startSearch(); };
 
   // ---------- rated matchmaking ----------
@@ -1689,7 +2336,7 @@
     info.innerHTML = '<div><b class="sElo">…</b><small>' + ic('star') + ' Sizning ELO</small></div><div><b class="sRange">…</b><small>' + ic('target') + ' Qidiruv oralig\'i</small></div>'
       + '<div><b class="sSize">…</b><small>' + ic('users') + ' Navbatda</small></div>';
     p.appendChild(info);
-    addText(p, 'p', "Sizga kuchi teng raqib qidiryapmiz. Kutish uzaysa, oraliq asta-sekin kengayadi.");
+    addText(p, 'p', `${GAME_NAMES[kind]} · ${minutesFor(kind)} daqiqa. Sizga kuchi teng raqib qidiryapmiz. Kutish uzaysa, oraliq asta-sekin kengayadi.`);
     p.append(bigBtn('{close} Bekor qilish', showLobby));
     searchStart = Date.now();
     clearInterval(searchTimer);
@@ -1748,12 +2395,32 @@
   $('hubInvite').onclick = () => showInvite(null);
   $('inviteBtn').onclick = () => invite();
 
-  function startBot() {
+  const LEVELS = ['Oson', "O'rta", 'Qiyin'];
+  function pickBotLevel() {
+    const p = openPanel('pick');
+    addText(p, 'h1', '{bot} Botga qarshi');
+    addText(p, 'p', `${GAME_NAMES[kind]} · ${minutesFor(kind)} daqiqa. Bot qanchalik kuchli bo'lsin?`);
+    const row = document.createElement('div'); row.className = 'opt-row';
+    const saved = store.get('lvl_' + kind) == null ? 1 : Number(store.get('lvl_' + kind));
+    [['{smile}', "Yangi boshlovchilar uchun"], ['{zap}', "Yaxshi raqib, ba'zan adashadi"], ['{swords}', 'Adashmaydi']].forEach(([e, d], i) => {
+      const b = document.createElement('button'); b.className = 'opt lv' + i + (i === (Number.isNaN(saved) ? 1 : saved) ? ' sel' : '');
+      b.innerHTML = `<span class="e">${lbl(e)}</span><b>${LEVELS[i]}</b><small>${d}</small>`;
+      b.onclick = () => { haptic('medium'); store.set('lvl_' + kind, i); startBot(i); };
+      row.appendChild(b);
+    });
+    p.append(row);
+    if (kind !== 'tosiq' && kind !== 'xo') addText(p, 'div', "Botga qarshi o'yinda yurishni qaytarish (↺) va durrang taklif qilish mumkin.").className = 'note';
+    else addText(p, 'div', "Botga qarshi o'yinda yurishni qaytarish (↺) mumkin.").className = 'note';
+    p.append(bigBtn('Bekor qilish', hideOverlay));
+  }
+  function startBot(level) {
     leaveOnline();
-    mode = 'bot'; you = 0; names = [myName, 'Bot']; online = [true, true]; clockOffset = 0;
+    if (level !== undefined) botLevel = level;
+    mode = 'bot'; you = 0; names = [myName, 'Bot · ' + LEVELS[botLevel]]; online = [true, true]; clockOffset = 0;
+    watching = false; watchRoom = null; challengeTo = null; roomTour = null; looks = [{}, {}]; botHist = []; closeReplay(true);
     hideOverlay(); hideHub(); hideLobby(); setTool(null);
     sel8 = null; targets8 = []; anim8 = null; rematchState = [false, false];
-    const g = R().newGame(0); R().start(g, Date.now());
+    const g = R().newGame(0, minutesFor(kind)); R().start(g, Date.now());
     game = null; setState(g);
   }
 
@@ -1813,7 +2480,7 @@
         ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, cs - gp, cs - gp, cs * 0.14) : ctx.rect(x, y, cs - gp, cs - gp); ctx.stroke();
         ctx.restore();
         ctx.globalAlpha = 0.5 + 0.2 * Math.sin(now / 120);
-        xoMark(ctx, x + (cs - gp) / 2, y + (cs - gp) / 2, cs - gp, XO.symbol(game, you), COLORS[you], 1);
+        xoMark(ctx, x + (cs - gp) / 2, y + (cs - gp) / 2, cs - gp, XO.symbol(game, you), COLORS[you], 1, skinOf(you));
         ctx.globalAlpha = 1;
       }
       drawConfetti(); drawResultHero(now); drawClocks();
@@ -1878,7 +2545,7 @@
       Hero.draw(ctx, offX + v.c * cell + cell / 2, offY + v.r * cell + cell * 0.82, cell * 0.95, {
         color: COLORS[i], kind: mode === 'bot' && i !== you ? 'bot' : 'human', dir: a.dir, walk: a.walk, moving: a.moving,
         hop: ch.hop, squash: ch.squash, pose: ch.pose, t: now + i * 900, blink: (now + i * 1700) % 3400 < 120,
-        glow: active ? 0.6 + 0.4 * pulse : 0.2, ring: active,
+        glow: active ? 0.6 + 0.4 * pulse : 0.2, ring: active, skin: skinOf(i),
       });
     }
     if (ghost) {
@@ -1939,10 +2606,19 @@
 
   // ---------- X va O drawing ----------
   // one mark, drawn in as prog goes 0 -> 1
-  function xoMark(c, cx, cy, s, sym, color, prog) {
+  function xoMark(c, cx, cy, s, sym, color, prog, skin) {
     const r = s * 0.28;
     c.save(); c.strokeStyle = color; c.lineWidth = Math.max(4, s * 0.11); c.lineCap = 'round';
     c.shadowColor = color; c.shadowBlur = 14;
+    if (skin === 'oltin') { const gr = c.createLinearGradient(cx - r, cy - r, cx + r, cy + r); gr.addColorStop(0, '#fff3b0'); gr.addColorStop(0.5, '#ffc531'); gr.addColorStop(1, '#e09a00'); c.strokeStyle = gr; }
+    else if (skin === 'kamalak') { const gr = c.createLinearGradient(cx - r, cy, cx + r, cy); ['#ff2d46', '#ffc531', '#2ee66b', '#2f7bff', '#c084fc'].forEach((k, i) => gr.addColorStop(i / 4, k)); c.strokeStyle = gr; c.shadowColor = '#fff'; }
+    else if (skin === 'olov') { const gr = c.createLinearGradient(cx, cy + r, cx, cy - r); gr.addColorStop(0, '#ff3d00'); gr.addColorStop(0.6, '#ff9a1a'); gr.addColorStop(1, '#fff1a8'); c.strokeStyle = gr; c.shadowColor = '#ff6a00'; c.shadowBlur = 20; }
+    else if (skin === 'kosmik') { // a few twinkling stars around the mark
+      c.save(); const t = performance.now();
+      for (let k = 0; k < 4; k++) { const a = t / 900 + k * 1.57, rr2 = r * 1.25; c.fillStyle = ['#ffd34d', '#9cf', '#f9f', '#fff'][k]; c.globalAlpha = 0.5 + 0.5 * Math.sin(t / 300 + k);
+        c.beginPath(); c.arc(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2, Math.max(1.5, s * 0.025), 0, 7); c.fill(); }
+      c.restore(); c.shadowBlur = 22;
+    }
     if (sym === 'X') {
       const a = Math.min(1, prog * 2), b = Math.max(0, prog * 2 - 1);
       c.beginPath(); c.moveTo(cx - r, cy - r); c.lineTo(cx - r + 2 * r * a, cy - r + 2 * r * a); c.stroke();
@@ -1962,7 +2638,7 @@
       if (g.last && g.last.i === i && g.winner === null) { c.strokeStyle = COLORS[v] + '88'; c.lineWidth = 2; c.stroke(); }
       if (v !== null) {
         const t0 = placed[i] || 0, prog = t0 ? Math.min(1, (now - t0) / 280) : 1;
-        xoMark(c, x + s / 2, y + s / 2, s, XO.symbol(g, v), COLORS[v], prog);
+        xoMark(c, x + s / 2, y + s / 2, s, XO.symbol(g, v), COLORS[v], prog, g === game ? skinOf(v) : null);
       }
     }
     if (g.line) { // glowing strike through the winning three
@@ -2017,28 +2693,46 @@
     return piecePaths[t];
   };
   // glow: the owner's colour (player 0 red, player 1 blue)
-  function drawChessPiece(c, x, y, s, piece, glow) {
+  // skins: [fill top, fill bottom, outline, glow] for the white and the black side
+  const CHESS_SKINS = {
+    oltin: { w: ['#fff6c8', '#ffc531', '#7a5200', '#ffc531'], b: ['#8a6400', '#3d2a00', '#ffd34d', '#ffc531'] },
+    neon: { w: ['rgba(255,255,255,.22)', 'rgba(255,255,255,.08)', '#f2fdff', '#7fe9ff'], b: ['rgba(10,10,30,.75)', 'rgba(10,10,30,.75)', null, null] },
+    kristall: { w: ['rgba(235,250,255,.85)', 'rgba(150,220,255,.55)', '#ffffff', '#9ff3ff'], b: ['rgba(90,130,220,.75)', 'rgba(30,50,120,.7)', '#bfe9ff', '#7fe9ff'] },
+    olov: { w: ['#fff1a8', '#ff7a1a', '#7a1f00', '#ff8a1a'], b: ['#c43a00', '#3a0800', '#ffb347', '#ff5a1a'] },
+  };
+  function drawChessPiece(c, x, y, s, piece, glow, skin) {
     const P = pathsFor(piece.toLowerCase()), white = piece === piece.toUpperCase();
+    const sk = CHESS_SKINS[skin] && CHESS_SKINS[skin][white ? 'w' : 'b'];
     c.save(); c.translate(x - s / 2, y - s / 2); c.scale(s / 100, s / 100);
-    c.lineJoin = 'round'; c.lineWidth = 4;
-    c.shadowColor = glow; c.shadowBlur = 14;
-    c.fillStyle = white ? '#f3f5ff' : '#1d2350';
+    c.lineJoin = 'round'; c.lineWidth = skin === 'neon' ? 5 : 4;
+    c.shadowColor = (sk && sk[3]) || glow; c.shadowBlur = skin === 'neon' ? 22 : 14;
+    if (sk) { const gr = c.createLinearGradient(0, 8, 0, 92); gr.addColorStop(0, sk[0]); gr.addColorStop(1, sk[1]); c.fillStyle = gr; }
+    else c.fillStyle = white ? '#f3f5ff' : '#1d2350';
     for (const p of P.body) c.fill(p);
-    c.shadowBlur = 0; c.strokeStyle = white ? '#2a3160' : '#d7ddff';
+    c.shadowBlur = skin === 'neon' ? 10 : 0; c.strokeStyle = sk ? sk[2] || glow : white ? '#2a3160' : '#d7ddff';
     for (const p of P.body) c.stroke(p);
     if (P.detail) { c.lineWidth = 3.5; c.stroke(P.detail); if (piece.toLowerCase() === 'n') { c.fillStyle = c.strokeStyle; c.fill(P.detail); } }
     c.restore();
   }
-  function drawDisc(c, x, y, s, color, king, alpha) {
+  // shashka skins: the disc's fill; the owner's colour stays as a thick outer ring so both sides are clear
+  const DISC_SKINS = { oltin: ['#fff3b0', '#ffc531', '#8a5a00'], olov: ['#fff1a8', '#ff8a1a', '#a01800'], olmos: ['#ffffff', '#b8f3ff', '#4b7dff'] };
+  function drawDisc(c, x, y, s, color, king, alpha, skin) {
     const r = s * 0.38;
     c.save(); c.globalAlpha = alpha == null ? 1 : alpha;
     c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x, y + r * 0.22, r, r * 0.95, 0, 0, 7); c.fill();
-    c.shadowColor = color; c.shadowBlur = 12;
-    const gr = c.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r);
-    gr.addColorStop(0, shade(color, 0.45)); gr.addColorStop(1, shade(color, -0.25));
+    c.shadowColor = color; c.shadowBlur = skin === 'neon' ? 20 : 12;
+    const gr = c.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r), ds = DISC_SKINS[skin];
+    if (ds) { gr.addColorStop(0, ds[0]); gr.addColorStop(0.55, ds[1]); gr.addColorStop(1, ds[2]); }
+    else if (skin === 'neon') { gr.addColorStop(0, '#141a3a'); gr.addColorStop(1, '#070b1f'); }
+    else { gr.addColorStop(0, shade(color, 0.45)); gr.addColorStop(1, shade(color, -0.25)); }
     c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
-    c.shadowBlur = 0; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1.5, s * 0.035);
-    c.beginPath(); c.arc(x, y, r * 0.68, 0, 7); c.stroke();
+    if (skin) { c.strokeStyle = color; c.lineWidth = Math.max(2.5, s * (skin === 'neon' ? 0.09 : 0.07)); c.beginPath(); c.arc(x, y, r - c.lineWidth / 2, 0, 7); c.stroke(); }
+    c.shadowBlur = 0; c.strokeStyle = skin === 'neon' ? color : 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1.5, s * 0.035);
+    c.beginPath(); c.arc(x, y, r * 0.6, 0, 7); c.stroke();
+    if (skin === 'olmos') { // facets
+      c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1;
+      for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; c.beginPath(); c.moveTo(x + Math.cos(a) * r * 0.6, y + Math.sin(a) * r * 0.6); c.lineTo(x + Math.cos(a + 0.5) * r * 0.85, y + Math.sin(a + 0.5) * r * 0.85); c.stroke(); }
+    }
     if (king) { // a little crown
       const k = r * 0.55;
       c.fillStyle = '#ffd34d'; c.shadowColor = '#ffc531'; c.shadowBlur = 8;
@@ -2047,10 +2741,11 @@
     }
     c.restore();
   }
-  function drawPiece8(c, g, x, y, s, piece, alpha) {
-    const color = COLORS[ownerOf8(g, piece)];
-    if (g.kind === 'shaxmat') { c.save(); c.globalAlpha = alpha == null ? 1 : alpha; drawChessPiece(c, x, y, s * 0.86, piece, color); c.restore(); }
-    else drawDisc(c, x, y, s, color, piece === 'W' || piece === 'B', alpha);
+  function drawPiece8(c, g, x, y, s, piece, alpha, skin) {
+    const owner = ownerOf8(g, piece), color = COLORS[owner];
+    if (skin === undefined) skin = g === game || (replay && g.kind === game.kind) ? skinOf(owner) : null;
+    if (g.kind === 'shaxmat') { c.save(); c.globalAlpha = alpha == null ? 1 : alpha; drawChessPiece(c, x, y, s * 0.86, piece, color, skin); c.restore(); }
+    else drawDisc(c, x, y, s, color, piece === 'W' || piece === 'B', alpha, skin);
   }
 
   function select8(i) {
@@ -2182,7 +2877,7 @@
       const b = document.createElement('button'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
       c.width = 54 * dpr; c.height = 54 * dpr;
       const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawChessPiece(x, 27, 27, 48, white ? t.toUpperCase() : t, COLORS[you]);
+      drawChessPiece(x, 27, 27, 48, white ? t.toUpperCase() : t, COLORS[you], skinOf(you));
       b.append(c, name);
       b.onclick = () => { hideOverlay(); act({ t: 'move', from, to, promo: t }); };
       row.appendChild(b);
@@ -2207,13 +2902,13 @@
       const fx = t < 0.5 ? lerp(1.5, 2.5, e) : 2.5 - (t - 0.5) * 2, fy = t < 0.5 ? lerp(3.5, 1.5, e) : 1.5 + (t - 0.5) * 4;
       drawChessPiece(c, cs * Math.min(2.5, fx), cs * Math.min(3.5, fy) - (t < 0.5 ? hop : 0) - cs * 0.05, cs * 0.9, 'N', COLORS[0]);
     } else {
-      drawPiece8(c, g, cs * 0.5, cs * 3.5, cs, 'w');
-      drawPiece8(c, g, cs * 0.5, cs * 0.5, cs, 'B');
+      drawPiece8(c, g, cs * 0.5, cs * 3.5, cs, 'w', 1, null);
+      drawPiece8(c, g, cs * 0.5, cs * 0.5, cs, 'B', 1, null);
       // a man jumps over a black piece: b2 x c3 -> d4
       const cap = t < 0.5 || t > 0.95;
-      if (cap) drawPiece8(c, g, cs * 2.5, cs * 1.5, cs, 'b');
+      if (cap) drawPiece8(c, g, cs * 2.5, cs * 1.5, cs, 'b', 1, null);
       const px = lerp(1.5, 3.5, e), py = lerp(2.5, 0.5, e);
-      if (t < 0.95) drawPiece8(c, g, cs * px, cs * py - hop, cs, 'w');
+      if (t < 0.95) drawPiece8(c, g, cs * px, cs * py - hop, cs, 'w', 1, null);
     }
   }
 
@@ -2256,11 +2951,13 @@
   });
 
   // keep the loop alive even if one frame fails to draw
-  function loop(now) { try { draw(now); drawHubThumbs(now); drawProfileHero(now); drawVsHeroes(now); } catch (e) { console.error(e); } requestAnimationFrame(loop); }
+  function loop(now) { try { draw(now); drawHubThumbs(now); drawProfileHero(now); drawVsHeroes(now); drawSkinPreviews(now); } catch (e) { console.error(e); } requestAnimationFrame(loop); }
   resize(); requestAnimationFrame(loop);
 
   // join a room straight from an invite (Telegram startapp param or ?room=)
   const startRoom = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || new URLSearchParams(location.search).get('room');
+  openPresence();
+  loadMyInfo().then(() => setFrame($('hubAv'), myInfo.equip.frame));
   if (startRoom) { roomId = null; roomCode = null; joinCode = startRoom.toUpperCase().replace(/[^A-Z0-9]/g, ''); connect(); } else showHub();
 })();
 </script>
