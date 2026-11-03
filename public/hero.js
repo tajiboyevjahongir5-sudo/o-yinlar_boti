@@ -140,6 +140,21 @@
       drawFace(ctx, fx, faceY, S, o, bw, bh);
     }
 
+    if (skin === 'pirat') { // red bandana with a knot and an eye patch
+      ctx.fillStyle = '#d7263d';
+      ctx.beginPath(); ctx.moveTo(bx - 1, bTop + bh * 0.26);
+      ctx.bezierCurveTo(bx, bTop - bh * 0.08, bx + bw, bTop - bh * 0.08, bx + bw + 1, bTop + bh * 0.26); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff'; for (const [dx, dy] of [[0.3, 0.1], [0.55, 0.05], [0.75, 0.15]]) { ctx.beginPath(); ctx.arc(bx + bw * dx, bTop + bh * dy, S * 0.012, 0, 7); ctx.fill(); }
+      const kx = back ? 0 : bw * 0.5 * (side ? -side : 1), fl = Math.sin(t / 160) * S * 0.02;
+      ctx.fillStyle = '#d7263d';
+      ctx.beginPath(); ctx.moveTo(kx, bTop + bh * 0.2); ctx.lineTo(kx + S * 0.12, bTop + bh * 0.35 + fl); ctx.lineTo(kx + S * 0.05, bTop + bh * 0.4); ctx.fill();
+      if (!back && o.pose !== 'win') { // patch over one eye with its string
+        const ex = fx + bw * (side ? 0.13 : 0.17) * (side < 0 ? -1 : 1);
+        ctx.strokeStyle = '#141a33'; ctx.lineWidth = Math.max(1, S * 0.015);
+        ctx.beginPath(); ctx.moveTo(bx + 2, faceY - bh * 0.14); ctx.lineTo(bx + bw - 2, faceY + bh * 0.02); ctx.stroke();
+        ctx.fillStyle = '#141a33'; ctx.beginPath(); ctx.ellipse(ex, faceY, S * 0.075, S * 0.07, 0, 0, 7); ctx.fill();
+      }
+    }
     if (skin === 'ritsar') { // silver helmet with a visor slit and a red plume
       const hg = ctx.createLinearGradient(bx, bTop, bx + bw, bTop);
       hg.addColorStop(0, '#9aa3b8'); hg.addColorStop(0.45, '#f1f4fb'); hg.addColorStop(1, '#7c859c');

@@ -9,24 +9,29 @@
       { id: 'ritsar', name: 'Ritsar', elo: 1200, desc: "Kumush dubulg'a" },
       { id: 'qirol', name: 'Qirol', elo: 1300, desc: 'Oltin toj va plash' },
       { id: 'kosmik', name: 'Kosmik', elo: 1500, desc: 'Skafandr va yulduzlar' },
+      { id: 'pirat', name: 'Pirat', price: 600, desc: "Bandana va ko'z bog'ichi" },
     ],
     shaxmat: [
       { id: 'oltin', name: 'Oltin', elo: 1100, desc: 'Oltin donalar' },
       { id: 'neon', name: 'Neon', elo: 1200, desc: 'Yonib turgan konturlar' },
       { id: 'kristall', name: 'Kristall', elo: 1300, desc: 'Muzdek shaffof donalar' },
       { id: 'olov', name: 'Olov', elo: 1500, desc: 'Alangali donalar' },
+      { id: 'yogoch', name: "Yog'och", price: 600, desc: "Klassik yog'och donalar" },
+      { id: 'qirollik', name: 'Qirollik', stars: 100, desc: 'Marvarid va oltin' },
     ],
     shashka: [
       { id: 'oltin', name: 'Oltin', elo: 1100, desc: 'Oltin tangalar' },
       { id: 'neon', name: 'Neon', elo: 1200, desc: 'Yonib turgan halqalar' },
       { id: 'olov', name: 'Olov', elo: 1300, desc: 'Alangali donalar' },
       { id: 'olmos', name: 'Olmos', elo: 1500, desc: 'Yaltiroq olmos donalar' },
+      { id: 'yogoch', name: "Yog'och", price: 500, desc: "Klassik yog'och donalar" },
     ],
     xo: [
       { id: 'oltin', name: 'Oltin', elo: 1100, desc: 'Oltin belgilar' },
       { id: 'kamalak', name: 'Kamalak', elo: 1200, desc: "Kamalak rangli belgilar" },
       { id: 'olov', name: 'Olov', elo: 1300, desc: 'Alangali belgilar' },
       { id: 'kosmik', name: 'Kosmik', elo: 1500, desc: 'Yulduzli belgilar' },
+      { id: 'muz', name: 'Muz', price: 400, desc: 'Muzdek belgilar' },
     ],
   };
   const FRAMES = [
@@ -36,7 +41,19 @@
     { id: 'olmos', name: 'Olmos', elo: 1500, desc: "Istalgan o'yinda 1500 ELO" },
     { id: 'hafta', name: 'Hafta qiroli', special: 'weekly', desc: "Haftalik reytingda 1-o'rin" },
     { id: 'chempion', name: 'Chempion', special: 'tour', desc: "Turnirda g'alaba" },
+    { id: 'neon', name: 'Neon', price: 500, desc: "Rang o'zgartiruvchi neon" },
+    { id: 'olovli', name: 'Olovli', price: 800, desc: 'Alangali halqa' },
+    { id: 'afsona', name: 'Afsona', stars: 150, desc: 'Aylanuvchi kamalak halqa' },
   ];
+  // Telegram Stars packs: coins and VIP
+  const STARS_ITEMS = [
+    { id: 'coins500', type: 'coins', amount: 500, stars: 25, name: '500 tanga' },
+    { id: 'coins1500', type: 'coins', amount: 1500, stars: 65, name: '1500 tanga', tag: '+15%' },
+    { id: 'coins4000', type: 'coins', amount: 4000, stars: 150, name: '4000 tanga', tag: '+33%' },
+    { id: 'vip30', type: 'vip', days: 30, stars: 120, name: 'VIP · 30 kun' },
+  ];
+  // daily bonus by streak day (day 7 and on: the top prize)
+  const DAILY = [20, 30, 40, 50, 60, 80, 150];
   const ACHIEVEMENTS = [
     { id: 'first_win', icon: '🎉', name: "Birinchi g'alaba", desc: "Onlayn o'yinda birinchi marta yuting" },
     { id: 'wins10', icon: '🔟', name: "O'nta g'alaba", desc: "Onlayn o'yinlarda 10 marta yuting" },
@@ -56,29 +73,36 @@
     { id: 'bothard', icon: '🤖', name: 'Bot yengildi', desc: "Botni \"Qiyin\" darajada yuting" },
     { id: 'tour', icon: '🏆', name: 'Turnir g\'olibi', desc: "Turnirda birinchi o'rinni oling" },
     { id: 'weekly', icon: '👑', name: 'Hafta qiroli', desc: "Haftalik reytingda birinchi bo'ling" },
+    { id: 'streak7', icon: '📅', name: 'Haftalik seriya', desc: "7 kun ketma-ket kunlik bonusni oling" },
+    { id: 'shopper', icon: '🛍', name: 'Xaridor', desc: "Do'kondan birinchi buyumni oling" },
+    { id: 'referral', icon: '🎁', name: 'Taklifchi', desc: "Taklif qilgan do'stingiz 5 ta o'yin o'ynasin" },
   ];
 
   const peakOf = (stats, kind) => (stats && stats[kind] ? stats[kind].peak || 1000 : 1000);
   const bestPeak = (stats) => Math.max(1000, ...Object.keys(stats || {}).map(k => peakOf(stats, k)));
   // p = a player record: { stats, ach }
+  const owns = (p, type, kind, id) => !!(p.owned && (type === 'frame' ? (p.owned.frames || []).includes(id) : ((p.owned.skins || {})[kind] || []).includes(id)));
   function frameUnlocked(p, id) {
     const f = FRAMES.find(x => x.id === id);
     if (!f) return false;
+    if (f.price || f.stars) return owns(p, 'frame', null, id);
     if (f.special === 'weekly') return !!(p.ach && p.ach.weekly);
     if (f.special === 'tour') return !!(p.ach && p.ach.tour);
     return bestPeak(p.stats) >= f.elo;
   }
   function skinUnlocked(p, kind, id) {
     const s = (SKINS[kind] || []).find(x => x.id === id);
-    return !!s && peakOf(p.stats, kind) >= s.elo;
+    if (!s) return false;
+    if (s.price || s.stars) return owns(p, 'skin', kind, id);
+    return peakOf(p.stats, kind) >= s.elo;
   }
   // the next reward for this game: { item, need } or null
   function nextSkin(p, kind) {
-    const peak = peakOf(p.stats, kind), s = (SKINS[kind] || []).find(x => x.elo > peak);
+    const peak = peakOf(p.stats, kind), s = (SKINS[kind] || []).find(x => x.elo && x.elo > peak);
     return s ? { item: s, need: s.elo - peak } : null;
   }
 
-  const api = { SKINS, FRAMES, ACHIEVEMENTS, frameUnlocked, skinUnlocked, nextSkin, bestPeak };
+  const api = { SKINS, FRAMES, ACHIEVEMENTS, STARS_ITEMS, DAILY, frameUnlocked, skinUnlocked, nextSkin, bestPeak };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else window.Rewards = api;
 })();

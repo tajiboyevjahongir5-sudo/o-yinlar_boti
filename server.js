@@ -203,6 +203,16 @@ function recordOnline(room) {
     } else if (g.winner !== -1) c.streak = 0;
   });
   room.prevWinner = g.winner >= 0 ? uids[g.winner] : null;
+  // coins and daily quests
+  const friends = players[uids[0]] && (players[uids[0]].friends || []).includes(uids[1]);
+  room.players.forEach((pl, i) => {
+    const won = g.winner === i, draw = g.winner === -1;
+    addCoins(pl.uid, won ? (room.ranked ? 15 : 10) : draw ? 5 : 2, 'game');
+    progress(pl.uid, 'online'); progress(pl.uid, 'play:' + kind);
+    if (won) progress(pl.uid, 'onlineWin');
+    if (room.ranked) progress(pl.uid, 'rated');
+    if (friends) progress(pl.uid, 'friendGame');
+  });
   savePlayers();
 }
 
@@ -216,6 +226,145 @@ function makeFriends(me, uid) {
   savePlayers();
   return { ok: true, friend: true, name: o.name };
 }
+
+// ---------- economy: coins, daily bonus, daily quests, shop, VIP, referrals ----------
+const QUEST_POOL = [
+  { id: 'play3', name: "3 ta onlayn o'yin o'ynang", goal: 3, reward: 40, ev: 'online' },
+  { id: 'win1', name: "Onlayn o'yinda 1 marta yuting", goal: 1, reward: 40, ev: 'onlineWin' },
+  { id: 'rated2', name: "2 ta reytingli o'yin o'ynang", goal: 2, reward: 50, ev: 'rated' },
+  { id: 'chess1', name: "Shaxmat o'ynang", goal: 1, reward: 25, ev: 'play:shaxmat' },
+  { id: 'shashka1', name: "Shashka o'ynang", goal: 1, reward: 25, ev: 'play:shashka' },
+  { id: 'tosiq1', name: "To'siq Jangi o'ynang", goal: 1, reward: 25, ev: 'play:tosiq' },
+  { id: 'xo3', name: "X va O'ni 3 marta o'ynang", goal: 3, reward: 25, ev: 'play:xo' },
+  { id: 'bot2', name: "Botni 2 marta yuting", goal: 2, reward: 30, ev: 'botWin' },
+  { id: 'bothard', name: "\"Qiyin\" botni yuting", goal: 1, reward: 60, ev: 'botWinHard' },
+  { id: 'friend1', name: "Do'stingiz bilan o'ynang", goal: 1, reward: 40, ev: 'friendGame' },
+  { id: 'watch1', name: "Bir o'yinni tomosha qiling", goal: 1, reward: 15, ev: 'watch' },
+];
+const isVip = (p) => !!(p && p.vip && p.vip > Date.now());
+function addCoins(uid, n, why) {
+  const p = playerRec(uid);
+  if (n > 0 && isVip(p) && why === 'game') n = Math.round(n * 1.5); // VIP: +50% from games
+  p.coins = Math.max(0, (p.coins || 0) + n);
+  notify(uid, { t: 'coins', coins: p.coins, delta: n, why });
+  savePlayers();
+  return p.coins;
+}
+// three quests a day, the same three for this player all day
+function questsOf(p, uid) {
+  const day = dayKey();
+  if (!p.quests || p.quests.day !== day) {
+    let h = parseInt(crypto.createHash('sha256').update(uid + day).digest('hex').slice(0, 8), 16);
+    const pool = QUEST_POOL.slice(), list = [];
+    while (list.length < 3) { const q = pool.splice(h % pool.length, 1)[0]; h = Math.floor(h / 7) + 13; list.push({ id: q.id, prog: 0, done: false, claimed: false }); }
+    p.quests = { day, list };
+  }
+  return p.quests;
+}
+const questInfo = (q) => Object.assign({}, QUEST_POOL.find(x => x.id === q.id), q);
+function progress(uid, ev, n = 1) {
+  const p = players[uid];
+  if (!p) return;
+  const qs = questsOf(p, uid);
+  for (const q of qs.list) {
+    const def = QUEST_POOL.find(x => x.id === q.id);
+    if (!def || def.ev !== ev || q.done) continue;
+    q.prog = Math.min(def.goal, q.prog + n);
+    if (q.prog >= def.goal) { q.done = true; notify(uid, { t: 'quest', quest: questInfo(q) }); }
+  }
+  // referrals: after 5 games the invited player and the inviter both get a gift
+  if ((ev === 'online' || ev === 'bot') && p.ref && !p.ref.done) {
+    p.ref.games = (p.ref.games || 0) + 1;
+    if (p.ref.games >= 5) {
+      p.ref.done = true;
+      addCoins(uid, 200, 'referral');
+      if (players[p.ref.by]) {
+        const o = players[p.ref.by]; o.refCount = (o.refCount || 0) + 1;
+        addCoins(p.ref.by, 200, 'referral'); award(p.ref.by, 'referral');
+        notify(p.ref.by, { t: 'toast', msg: `🎁 ${p.name} 5 ta o'yin o'ynadi — sizga 200 tanga!` });
+      }
+    }
+  }
+  savePlayers();
+}
+// what the app shows about my wallet, bonus and quests
+function walletOf(uid) {
+  const p = playerRec(uid), day = dayKey(), yday = dayKey(Date.now() - 86400000), d = p.daily || {};
+  const streakNow = d.claimed === day || d.claimed === yday ? d.streak || 0 : 0;
+  const next = d.claimed === day ? null : Rewards.DAILY[Math.min(streakNow + 1, 7) - 1] * (isVip(p) ? 2 : 1);
+  return { coins: p.coins || 0, vip: isVip(p) ? p.vip : null, streak: streakNow, bonus: next, claimedToday: d.claimed === day,
+    quests: questsOf(p, uid).list.map(questInfo), owned: p.owned || { skins: {}, frames: [] },
+    ref: { code: inviteOf(uid), count: p.refCount || 0 } };
+}
+function shopItem(id) { // "skin:shaxmat:yogoch" / "frame:neon"
+  const [type, a, b] = String(id || '').split(':');
+  if (type === 'frame') { const f = Rewards.FRAMES.find(x => x.id === a && (x.price || x.stars)); return f && { type, id: a, item: f }; }
+  if (type === 'skin') { const sk = (Rewards.SKINS[a] || []).find(x => x.id === b && (x.price || x.stars)); return sk && { type, kind: a, id: b, item: sk }; }
+  const st = Rewards.STARS_ITEMS.find(x => x.id === type);
+  return st && { type: st.type, id: st.id, item: st };
+}
+function grant(uid, it) { // give a bought thing
+  const p = playerRec(uid);
+  p.owned = p.owned || { skins: {}, frames: [] }; p.owned.skins = p.owned.skins || {}; p.owned.frames = p.owned.frames || [];
+  if (it.type === 'frame' && !p.owned.frames.includes(it.id)) p.owned.frames.push(it.id);
+  else if (it.type === 'skin') { const l = p.owned.skins[it.kind] = p.owned.skins[it.kind] || []; if (!l.includes(it.id)) l.push(it.id); }
+  else if (it.type === 'coins') addCoins(uid, it.item.amount, 'stars');
+  else if (it.type === 'vip') p.vip = Math.max(Date.now(), p.vip || 0) + it.item.days * 86400000;
+  if (it.type === 'frame' || it.type === 'skin') award(uid, 'shopper');
+  savePlayers();
+}
+const ECON_ACTIONS = {
+  wallet(me) { return Object.assign({ ok: true }, walletOf(me.uid)); },
+  daily(me) {
+    const p = playerRec(me.uid, me.name, me.photo), day = dayKey(), yday = dayKey(Date.now() - 86400000), d = p.daily || {};
+    if (d.claimed === day) return { ok: false, msg: 'Bugungi bonus olingan — ertaga qayting!' };
+    const streak = d.claimed === yday ? (d.streak || 0) + 1 : 1;
+    const reward = Rewards.DAILY[Math.min(streak, 7) - 1] * (isVip(p) ? 2 : 1);
+    p.daily = { claimed: day, streak };
+    if (streak >= 7) award(me.uid, 'streak7');
+    addCoins(me.uid, reward, 'daily');
+    return Object.assign({ ok: true, reward }, walletOf(me.uid));
+  },
+  claimQuest(me, m) {
+    const p = playerRec(me.uid), q = questsOf(p, me.uid).list.find(x => x.id === m.id);
+    if (!q || !q.done) return { ok: false, msg: 'Vazifa hali bajarilmagan' };
+    if (q.claimed) return { ok: false, msg: 'Mukofot olingan' };
+    q.claimed = true;
+    addCoins(me.uid, QUEST_POOL.find(x => x.id === q.id).reward, 'quest');
+    return Object.assign({ ok: true }, walletOf(me.uid));
+  },
+  buy(me, m) { // spend coins on a shop item
+    const it = shopItem(m.id);
+    if (!it || !it.item.price) return { ok: false, msg: 'Buyum topilmadi' };
+    const p = playerRec(me.uid);
+    if ((it.type === 'frame' && Rewards.frameUnlocked(p, it.id)) || (it.type === 'skin' && Rewards.skinUnlocked(p, it.kind, it.id))) return { ok: false, msg: 'Bu sizda bor' };
+    if ((p.coins || 0) < it.item.price) return { ok: false, msg: `Tanga yetmaydi: kerak ${it.item.price}, sizda ${p.coins || 0}` };
+    addCoins(me.uid, -it.item.price, 'buy');
+    grant(me.uid, it);
+    return Object.assign({ ok: true }, walletOf(me.uid));
+  },
+  // Telegram Stars: an invoice link the app opens with openInvoice; the bot credits it on successful_payment
+  async stars(me, m) {
+    const it = shopItem(m.id);
+    if (!it || !it.item.stars) return { ok: false, msg: 'Buyum topilmadi' };
+    if (!BOT_TOKEN) return { ok: false, msg: "To'lov hozircha ishlamaydi" };
+    const payload = JSON.stringify({ u: me.uid, i: m.id, n: crypto.randomBytes(4).toString('hex') });
+    const r = await tgApi('createInvoiceLink', { title: it.item.name, description: it.item.desc || `RAQIB: ${it.item.name}`,
+      payload, provider_token: '', currency: 'XTR', prices: [{ label: it.item.name, amount: it.item.stars }] });
+    return r.ok ? { ok: true, link: r.result } : { ok: false, msg: r.description || 'Telegram xatosi' };
+  },
+  // a finished game against the bot (reported by the app): coins (up to 15 wins a day), quests, badge
+  botresult(me, m) {
+    const p = playerRec(me.uid, me.name, me.photo), kind = kindOf(m.kind), level = Number(m.level) || 0;
+    progress(me.uid, 'play:' + kind); progress(me.uid, 'bot');
+    if (m.result === 'win') {
+      progress(me.uid, 'botWin'); if (level === 2) { progress(me.uid, 'botWinHard'); award(me.uid, 'bothard'); }
+      const day = dayKey(); p.botDay = p.botDay && p.botDay.day === day ? p.botDay : { day, n: 0 };
+      if (p.botDay.n < 15) { p.botDay.n++; addCoins(me.uid, [3, 5, 8][level] || 3, 'game'); }
+    }
+    return { ok: true };
+  },
+};
 
 // ---------- presence: every open app keeps one socket, so friends can see each other and be challenged ----------
 const presence = new Map(); // uid -> Set of sockets
@@ -238,7 +387,7 @@ function cardOf(uid, me) {
   for (const k of Object.keys(GAMES)) if (p.stats && p.stats[k]) elo[k] = { elo: p.stats[k].elo, games: p.stats[k].games, wins: p.stats[k].wins };
   return { pid: pidOf(uid), name: p.name || "O'yinchi", photo: p.photo || null, frame: l.frame, elo, status: statusOf(uid),
     ach: Object.keys(p.ach || {}), champ: champOf(uid), friend: !!(me && players[me] && (players[me].friends || []).includes(uid)), me: uid === me,
-    pending: !!(me && (p.requests || []).includes(me)), incoming: !!(me && players[me] && (players[me].requests || []).includes(uid)) };
+    pending: !!(me && (p.requests || []).includes(me)), incoming: !!(me && players[me] && (players[me].requests || []).includes(uid)), vip: isVip(p) };
 }
 
 const MINUTES = [1, 3, 5, 10];
@@ -260,6 +409,8 @@ const ACTIONS = {
       if (!uid) return { ok: false, msg: 'Havola eskirgan' };
       if (uid === me.uid) return { ok: false, msg: "Bu o'zingizning havolangiz" };
       const p = playerRec(me.uid, me.name, me.photo), o = playerRec(uid);
+      // a player who joined within the last hour counts as invited by this friend
+      if (!p.ref && Date.now() - (p.created || 0) < 3600 * 1000) p.ref = { by: uid, games: 0, done: false };
       if (!p.friends.includes(uid)) p.friends.unshift(uid);
       if (!o.friends.includes(me.uid)) o.friends.unshift(me.uid);
       award(me.uid, 'friend'); award(uid, 'friend');
@@ -346,6 +497,8 @@ const ACTIONS = {
   botwin(me, m) { if (Number(m.level) === 2) award(me.uid, 'bothard'); return { ok: true }; },
 };
 
+Object.assign(ACTIONS, ECON_ACTIONS);
+
 // ---------- admin panel (only for ADMIN_ID; with BOT_TOKEN the Telegram signature must check out) ----------
 const isAdmin = (uid) => typeof uid === 'string' && uid.startsWith('tg') && String(process.env.ADMIN_ID || '').split(/[\s,]+/).includes(uid.slice(2));
 function bannedMsg(uid) {
@@ -396,7 +549,12 @@ const ADMIN = {
       online: on.counts, onlineTotal: on.total, liveGames: live, waitingRooms: waiting, queue: queue.length,
       tours: [...tours.values()].filter(t => t.status !== 'done').length, banned: all.filter(u => players[u].ban).length,
       botUsers: botAudience().length, days, broadcasting, active: activeStats(),
-      ad: meta.ad ? { on: !!meta.ad.on, views: meta.ad.views || 0, clicks: meta.ad.clicks || 0, since: meta.ad.at } : null };
+      ad: meta.ad ? { on: !!meta.ad.on, views: meta.ad.views || 0, clicks: meta.ad.clicks || 0, since: meta.ad.at } : null,
+      money: (() => { const pays = meta.payments || [], month = dayKey().slice(0, 7);
+        return { stars: pays.reduce((n, x) => n + (x.stars || 0), 0), count: pays.length,
+          month: pays.filter(x => dayKey(x.at).startsWith(month)).reduce((n, x) => n + (x.stars || 0), 0),
+          vip: Object.values(players).filter(isVip).length,
+          coins: Object.values(players).reduce((n, x) => n + (x.coins || 0), 0) }; })() };
   },
   players(m) {
     const q = String(m.q || '').trim().replace(/^@/, '').toLowerCase();
@@ -413,7 +571,7 @@ const ADMIN = {
     const p = players[uid];
     const stats = {};
     for (const k of Object.keys(GAMES)) { const st = p.stats[k]; stats[k] = st ? { elo: st.elo, peak: st.peak, games: st.games, wins: st.wins, losses: st.losses, draws: st.draws || 0 } : null; }
-    return { ok: true, row: adminRow(uid), stats, ach: Object.keys(p.ach || {}), friends: (p.friends || []).length, counters: p.counters || null,
+    return { ok: true, row: adminRow(uid), stats, coins: p.coins || 0, vip: isVip(p) ? p.vip : null, ach: Object.keys(p.ach || {}), friends: (p.friends || []).length, counters: p.counters || null,
       status: statusOf(uid) };
   },
   setElo(m) {
@@ -566,9 +724,9 @@ function publicAd() {
   return { v: a.v, title: a.title || '', text: a.text || '', button: a.button || '', link: a.link || '',
     img: media && media.type === 'image' ? media.src : null, media };
 }
-function pushAd() {
-  const msg = JSON.stringify({ t: 'ad', ad: publicAd() });
-  for (const set of presence.values()) for (const w of set) if (w.readyState === 1) w.send(msg);
+function pushAd() { // VIP players never see the banner
+  const msg = JSON.stringify({ t: 'ad', ad: publicAd() }), none = JSON.stringify({ t: 'ad', ad: null });
+  for (const [uid, set] of presence) for (const w of set) if (w.readyState === 1) w.send(isVip(players[uid]) ? none : msg);
 }
 ADMIN.ad = function (m) {
   const a = meta.ad = meta.ad || { on: false, views: 0, clicks: 0 };
@@ -596,6 +754,13 @@ ADMIN.ad = function (m) {
   if (m.resetStats || (changed && m.newCampaign)) { a.views = 0; a.clicks = 0; a.at = Date.now(); }
   saveMeta(); pushAd();
   return { ok: true, ad: Object.assign({}, a) };
+};
+ADMIN.giveCoins = function (m) { // add (or take, with a minus) coins
+  const uid = uidOfPid(String(m.pid || '')), n = Math.round(Number(m.amount));
+  if (!uid || !Number.isFinite(n) || !n || Math.abs(n) > 1000000) return { ok: false, msg: "Miqdor noto'g'ri" };
+  addCoins(uid, n, 'admin');
+  if (n > 0) notify(uid, { t: 'toast', msg: `🎁 Sizga ${n} tanga sovg'a qilindi!` });
+  return { ok: true, coins: players[uid].coins };
 };
 ADMIN.adGet = () => ({ ok: true, ad: meta.ad ? Object.assign({}, meta.ad, { mediaType: meta.ad.img ? AD_TYPES[meta.ad.imgType] || 'image' : null }) : null });
 
@@ -853,7 +1018,7 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin)$/);
+  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult)$/);
   if (act && req.method === 'POST') {
     readJson(req).then(async (body) => {
       const me = whoIs(body);
@@ -1186,7 +1351,7 @@ wss.on('connection', (ws) => {
       const rec = playerRec(me.uid, me.name, me.photo);
       rec.seen = Date.now();
       if (meta.announce) send({ t: 'announce', text: meta.announce.text, at: meta.announce.at });
-      send({ t: 'ad', ad: publicAd() });
+      send({ t: 'ad', ad: isVip(players[me.uid]) ? null : publicAd() });
       markActive(me.uid);
       if (bannedMsg(me.uid)) send({ t: 'banned', msg: bannedMsg(me.uid) });
       if (isAdmin(me.uid)) send({ t: 'admin' });
@@ -1214,7 +1379,7 @@ wss.on('connection', (ws) => {
       if (!(r.pub || r.ranked || r.tour || friendOf)) return fail('notfound', "Bu o'yinni tomosha qilib bo'lmaydi");
       if (watching) watching.watchers.delete(ws);
       watching = r; r.watchers = r.watchers || new Set(); r.watchers.add(ws);
-      if (me && !r.players.some(x => x && x.uid === me.uid)) award(me.uid, 'watcher');
+      if (me && !r.players.some(x => x && x.uid === me.uid)) { award(me.uid, 'watcher'); progress(me.uid, 'watch'); }
       return broadcast(r);
     }
 
@@ -1504,6 +1669,30 @@ const BOT_DESCRIPTION = [
   "Kim kuchliroq? Boshlash uchun START ni bosing 👇",
 ].join('\n');
 
+// group play via inline mode — filled in below
+let onInlineQuery = async () => {};
+
+// ---------- Telegram Stars payments ----------
+async function onPreCheckout(q) {
+  let ok = false;
+  try { const d = JSON.parse(q.invoice_payload); ok = !!(shopItem(d.i) && players[d.u] && q.currency === 'XTR'); } catch (e) {}
+  await tgApi('answerPreCheckoutQuery', ok ? { pre_checkout_query_id: q.id, ok: true }
+    : { pre_checkout_query_id: q.id, ok: false, error_message: "Buyum topilmadi, keyinroq urinib ko'ring" });
+}
+async function onPaid(msg) {
+  const pay = msg.successful_payment;
+  let d = null; try { d = JSON.parse(pay.invoice_payload); } catch (e) {}
+  const it = d && shopItem(d.i);
+  meta.payments = meta.payments || [];
+  if (meta.payments.some(x => x.charge === pay.telegram_payment_charge_id)) return; // already credited
+  meta.payments.push({ charge: pay.telegram_payment_charge_id, uid: d && d.u, item: d && d.i, stars: pay.total_amount, at: Date.now() });
+  saveMeta();
+  if (!it || !d) return console.log('Noma\'lum to\'lov:', pay.invoice_payload);
+  grant(d.u, it);
+  notify(d.u, { t: 'paid', item: d.i, name: it.item.name });
+  await tgApi('sendMessage', { chat_id: msg.chat.id, text: `✅ To'lov qabul qilindi: <b>${esc(it.item.name)}</b>. Rahmat! 🎉`, parse_mode: 'HTML' });
+}
+
 async function runBot() {
   if (!BOT_TOKEN) return console.log('BOT_TOKEN yo\'q — bot xabarlariga javob berilmaydi');
   try {
@@ -1517,9 +1706,15 @@ async function runBot() {
   let offset = 0;
   for (;;) {
     try {
-      const r = await tgApi('getUpdates', { offset, timeout: 25, allowed_updates: ['message'] });
+      const r = await tgApi('getUpdates', { offset, timeout: 25, allowed_updates: ['message', 'pre_checkout_query', 'inline_query'] });
       if (!r.ok) { console.log('getUpdates:', r.description); await sleep(5000); continue; }
-      for (const u of r.result) { offset = u.update_id + 1; onMessage(u.message).catch(e => console.log('sendMessage xato:', e.message)); }
+      for (const u of r.result) {
+        offset = u.update_id + 1;
+        if (u.pre_checkout_query) { onPreCheckout(u.pre_checkout_query).catch(e => console.log('checkout xato:', e.message)); continue; }
+        if (u.inline_query) { onInlineQuery(u.inline_query).catch(e => console.log('inline xato:', e.message)); continue; }
+        if (u.message && u.message.successful_payment) { onPaid(u.message).catch(e => console.log('payment xato:', e.message)); continue; }
+        if (u.message) onMessage(u.message).catch(e => console.log('sendMessage xato:', e.message));
+      }
     } catch (e) { await sleep(3000); }
   }
 }

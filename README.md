@@ -79,6 +79,20 @@ ketayotgan o'yinni bosib tomosha qilish mumkin. Turnir o'yinlari ELO bermaydi; g
 - **Yurishni qaytarish** (↺, faqat botga qarshi, hamma o'yinda).
 - **Yurishlarni ko'rish**: o'yin tugagach ⏮ ◀ ▶ ⏭ bilan butun o'yinni qadamma-qadam ko'rish.
 
+## Tangalar, kunlik bonus, vazifalar, do'kon, VIP, referal
+
+- **Tangalar 🪙**: onlayn g'alaba +10 (reytingli +15), durrang +5, mag'lubiyat +2; botni yutish +3/+5/+8
+  (Oson/O'rta/Qiyin, kuniga 15 tagacha); VIP'da o'yinlardan +50%.
+- **Kunlik bonus**: 20, 30, 40, 50, 60, 80, 150 (7-kundan keyin har kuni 150) — kun o'tkazib yuborilsa seriya
+  1-kundan boshlanadi. VIP'da ×2.
+- **Kunlik vazifalar**: har kuni 3 ta (o'yinchiga xos), bajarilganda "Olish" bilan tanga.
+- **Do'kon** (pastki menyu): tanga yoki **Telegram Stars** bilan ramkalar (Neon, Olovli, Afsona⭐) va skinlar
+  (Pirat, Yog'och, Qirollik⭐, Muz); Stars bilan tanga paketlari va **VIP 30 kun** (reklamasiz, bonus ×2, +50% tanga).
+  Stars to'lovi: bot `createInvoiceLink` (XTR) → ilova `openInvoice` → bot `successful_payment`da beradi
+  (`data/meta.json` → `payments`, takror hisoblanmaydi). Provider token kerak emas.
+- **Referal**: do'stlik havolasi orqali kirgan **yangi** o'yinchi 5 ta o'yin o'ynasa, ikkalasi 200 tanga oladi.
+- Admin: o'yinchiga tanga berish/olish; statistikada Stars daromadi, VIP soni, jami tangalar.
+
 ## Admin panel
 
 Serverga `ADMIN_ID` (Telegram ID; botga `/id` yozsangiz ko'rsatadi; bir nechta bo'lsa vergul bilan) qo'shing.

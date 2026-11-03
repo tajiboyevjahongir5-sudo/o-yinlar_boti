@@ -665,6 +665,50 @@
   .adslot-empty small { color:var(--mute); font-weight:600; font-size:11.5px; }
   .ad-prev { width:100%; }
 
+  /* ---------- economy: coins, daily bonus, quests, shop ---------- */
+  .coin-chip { flex:none; display:flex; align-items:center; gap:5px; padding:8px 11px; border-radius:14px; font-weight:900; font-size:14px;
+    border:1.5px solid var(--yellow); background:rgba(255,197,49,.12); color:#ffe9a8; box-shadow:0 0 8px rgba(255,197,49,.4); }
+  .coin-chip.bump { animation:bump .6s ease-out; }
+  @media (max-width:440px) { .hello .lbl3 { display:none; } .hello .inv-btn { padding:9px 11px; } .hello .inv-btn .i { margin:0 !important; } .hello .who3 small { display:none; } }
+  .eco-row { display:flex; gap:10px; }
+  .eco { flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:16px; color:#fff; text-align:left;
+    border:1.5px solid var(--c); background:linear-gradient(120deg, color-mix(in srgb, var(--c) 20%, transparent), rgba(5,10,30,.85) 70%);
+    box-shadow:0 0 10px color-mix(in srgb, var(--c) 50%, transparent); }
+  .eco .e { font-size:26px; flex:none; } .eco b { display:block; font-size:14px; } .eco small { display:block; font-size:11.5px; color:#d8ddff; }
+  .eco.daily { --c:var(--yellow); } .eco.daily.ready { animation:rkGlow 1.6s ease-in-out infinite; } .eco.quests { --c:#c084fc; }
+  .eco.done { opacity:.6; }
+  .qrow { display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:14px; text-align:left;
+    border:1px solid rgba(120,140,255,.3); background:rgba(255,255,255,.04); }
+  .qrow .q { flex:1; min-width:0; } .qrow b { display:block; font-size:13.5px; } .qrow small { color:var(--mute); font-size:11.5px; }
+  .qrow button { flex:none; border:2px solid var(--green); background:rgba(46,230,107,.14); color:#fff; font-weight:800; font-size:12.5px;
+    border-radius:11px; padding:7px 10px; box-shadow:0 0 8px var(--green); }
+  .qrow button:disabled { border-color:#3a4270; background:transparent; box-shadow:none; color:var(--mute); }
+  .days { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; width:100%; }
+  .days div { border-radius:10px; padding:6px 2px; text-align:center; font-size:11px; font-weight:800; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); }
+  .days div b { display:block; font-size:12.5px; color:#ffe9a8; } .days div.got { background:rgba(255,197,49,.18); border-color:var(--yellow); }
+  .days div.today { box-shadow:0 0 10px var(--yellow); border-color:var(--yellow); }
+  .shop-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:8px; }
+  .shop-grid .item .price { margin-top:2px; font-weight:900; font-size:12.5px; color:#ffe9a8; }
+  .shop-grid .item .price.st { color:#ffd76a; } .shop-grid .item.own .price { color:var(--green); }
+  .pack { display:flex; align-items:center; gap:12px; padding:12px; border-radius:16px; border:1.5px solid #ffd76a; color:#fff; text-align:left; width:100%;
+    background:linear-gradient(120deg, rgba(255,215,106,.18), rgba(5,10,30,.85) 70%); box-shadow:0 0 10px rgba(255,215,106,.35); }
+  .pack .e { font-size:28px; } .pack div { flex:1; } .pack b { display:block; font-size:15px; } .pack small { color:#f3dfa6; font-size:12px; }
+  .pack .pr { flex:none; padding:8px 12px; border-radius:12px; background:#ffd76a; color:#2a1d00; font-weight:900; font-size:13.5px; }
+  .pack.vip { border-color:#c084fc; background:linear-gradient(120deg, rgba(192,132,252,.25), rgba(5,10,30,.85) 70%); box-shadow:0 0 14px rgba(192,132,252,.5); }
+  .vip-tag { font-size:10.5px; font-weight:900; padding:1px 7px; border-radius:8px; background:linear-gradient(90deg, #c084fc, #ffc531); color:#1a0b2e; margin-left:6px; vertical-align:middle; }
+  .coin-fly { position:fixed; z-index:30; pointer-events:none; font-weight:900; font-size:18px; color:#ffe9a8; text-shadow:0 0 10px #ffc531;
+    animation:coinUp 1.4s ease-out forwards; }
+  @keyframes coinUp { 0% { transform:translate(-50%, 0) scale(.6); opacity:0; } 20% { transform:translate(-50%, -10px) scale(1.15); opacity:1; } 100% { transform:translate(-50%, -70px) scale(1); opacity:0; } }
+  /* shop frames */
+  .fr-neon { border-color:#0ff !important; box-shadow:0 0 0 2px #f0f, 0 0 16px #0ff, 0 0 26px #f0f !important; animation:frNeon 2.4s linear infinite; }
+  @keyframes frNeon { 50% { border-color:#f0f !important; box-shadow:0 0 0 2px #0ff, 0 0 18px #f0f, 0 0 26px #0ff !important; } }
+  .fr-olovli { border-color:#ff8a1a !important; box-shadow:0 0 0 2px #c4122f, 0 0 14px #ff6a00, 0 -4px 20px #ffc531 !important; animation:frFire 1.1s ease-in-out infinite; }
+  @keyframes frFire { 50% { box-shadow:0 0 0 2px #ff3d00, 0 0 20px #ff8a1a, 0 -8px 26px #ffd34d !important; } }
+  .fr-afsona { border-color:transparent !important; box-shadow:0 0 18px rgba(255,255,255,.4) !important; }
+  .fr-afsona::before { content:""; position:absolute; inset:-5px; border-radius:50%; pointer-events:none; z-index:2;
+    background:conic-gradient(#ff2d46, #ffc531, #2ee66b, #2fd0ff, #2f7bff, #c084fc, #ff2d46); animation:spin 2.5s linear infinite;
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)); mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)); }
+
   /* long notices wrap instead of running off the screen */
   #toast { white-space:normal; text-align:center; width:max-content; max-width:calc(100vw - 32px); line-height:1.35; }
   .search-in { width:100%; padding:12px 14px; border-radius:14px; border:2px solid var(--blue); background:#070b1f; color:#fff; font-size:15px;
@@ -759,9 +803,10 @@
   </div>
 </div>
 <div id="hub" class="hide"><div class="hub-in">
-  <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button id="hubSnd" class="tiny-btn snd" aria-label="Ovoz"></button><button class="inv-btn" id="hubInvite"><i data-ic="invite"></i> Taklif qilish</button></div>
+  <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button class="coin-chip" id="coinChip">🪙 <span id="coinN">…</span></button><button id="hubSnd" class="tiny-btn snd" aria-label="Ovoz"></button><button class="inv-btn" id="hubInvite" aria-label="Taklif qilish"><i data-ic="invite"></i><span class="lbl3"> Taklif qilish</span></button></div>
   <div class="hub-title"><i data-ic="games"></i> O'yinlar</div>
   <div class="hub-online"><span class="dot"></span><span id="hubOnline">Onlayn o'yinchilar yuklanmoqda...</span></div>
+  <div class="eco-row" id="ecoRow"></div>
   <div id="adSlot"></div>
   <div id="announce" class="hide"><span class="ic3">📢</span><span id="announceTx" style="flex:1"></span><button id="announceX" aria-label="Yopish">✕</button></div>
   <div id="games"></div>
@@ -795,6 +840,7 @@
 </div></div>
 <div id="friends" class="tab hide"><div class="hub-in" id="friendsIn"></div></div>
 <div id="profile" class="tab hide"><div class="hub-in" id="profIn"></div></div>
+<div id="shop" class="tab hide"><div class="hub-in" id="shopIn"></div></div>
 <div id="admin" class="tab hide"><div class="hub-in">
   <div class="lob-top"><button class="icon-btn" id="admBack" aria-label="Orqaga"><i data-ic="back"></i></button>
     <div class="lob-title"><b>🛡 Admin panel</b><small id="admSub">Faqat siz ko'rasiz</small></div></div>
@@ -806,6 +852,7 @@
   <button data-tab="hub" class="on"><span><i data-ic="games"></i></span>O'yinlar</button>
   <button data-tab="rating"><span><i data-ic="rating"></i></span>Reyting</button>
   <button data-tab="friends"><span><i data-ic="users"></i></span>Do'stlar<b class="nbadge" id="frBadge"></b></button>
+  <button data-tab="shop"><span><i data-ic="bag"></i></span>Do'kon</button>
   <button data-tab="profile"><span><i data-ic="profile"></i></span>Profil</button>
 </div></nav>
 <div id="overlay"></div>
@@ -1471,7 +1518,7 @@
     again.classList.add('rm-btn');
     panel.appendChild(again);
     panel.appendChild(bigBtn("{history} Yurishlarni ko'rish", openReplay));
-    if (mode === 'bot' && won && botLevel === 2) postApi('botwin', { kind, level: 2 });
+    if (mode === 'bot') postApi('botresult', { kind, level: botLevel, result: won ? 'win' : draw ? 'draw' : 'loss' });
     if (mode === 'online' && roomRanked) {
       const row = document.createElement('div'); row.className = 'btn-row';
       row.append(bigBtn('{search} Yangi raqib', startSearch), bigBtn('{back} Xonalar', showLobby));
@@ -1626,6 +1673,9 @@
       if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; setFriendBadge(m.requests || 0); }
       else if (m.t === 'admin') { isAdminUser = true; renderAd(); if (!$('profile').classList.contains('hide')) loadProfile(); }
       else if (m.t === 'apulse') onAdminPulse(m);
+      else if (m.t === 'coins') onCoins(m);
+      else if (m.t === 'quest') { Snd.play('crown'); haptic('success'); toast(`📋 Vazifa bajarildi: ${m.quest.name} — mukofotni oling!`); refreshWallet(); }
+      else if (m.t === 'paid') { Snd.play('win'); burst(); toast(`✅ ${m.name} — xaridingiz uchun rahmat!`); refreshWallet().then(() => { loadMyInfo(); if (!$('shop').classList.contains('hide')) loadShop(); }); }
       else if (m.t === 'ad') { adData = m.ad; renderAd(); }
       else if (m.t === 'announce') { setAnnounce(m.text, m.at); if (m.text && !$('hub').classList.contains('hide')) Snd.play('notify'); }
       else if (m.t === 'banned') { $('banTx').textContent = m.msg; $('banScreen').classList.remove('hide'); leaveOnline(); }
@@ -2039,7 +2089,7 @@
   const agoTxt = (t) => { if (!t) return '—'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'hozir' : m < 60 ? m + ' daq' : m < 1440 ? Math.round(m / 60) + ' soat' : Math.round(m / 1440) + ' kun'; };
   function showAdmin() {
     if (!isAdminUser) return;
-    for (const t of ['hub', 'rating', 'friends', 'profile']) $(t).classList.add('hide');
+    for (const t of ['hub', 'rating', 'friends', 'shop', 'profile']) $(t).classList.add('hide');
     $('admin').classList.remove('hide'); $('nav').classList.add('hide');
     setBackButton(true);
     $('admSeg').querySelectorAll('button').forEach(b => b.onclick = () => { haptic('light'); admTab = b.dataset.s; renderAdmin(); });
@@ -2095,6 +2145,8 @@
     cell(d.players, "👥 Jami o'yinchilar"); cell(d.newToday, '🆕 Bugun yangi');
     cell(d.waitingRooms, '⏳ Kutayotgan xonalar'); cell(d.queue, '⭐ Reytingli navbatda');
     cell(d.tours, '🏆 Faol turnirlar'); cell(d.banned, '⛔ Bloklanganlar');
+    cell(d.money.stars, '⭐ Stars jami'); cell(d.money.month, '⭐ Stars shu oy');
+    cell(d.money.vip, '👑 VIP a\'zolar'); cell(d.money.coins, '🪙 Jami tangalar');
     cell(d.botUsers, '🤖 Bot auditoriyasi'); cell(Object.values(d.rated).reduce((a, b) => a + b, 0), '🏅 Reytingda (jami)');
     box.appendChild(grid);
     addText(box, 'div', "{games} Hozir har bir o'yinda").className = 'sec';
@@ -2190,6 +2242,14 @@
     save.textContent = 'Saqlash';
     save.onclick = async () => { const x = await adminApi('setElo', { pid, kind: sel.value, elo: Number(num.value) }); toast(x && x.ok ? '{check} ELO saqlandi' : '{alert} ' + ((x && x.msg) || 'Xato')); if (x && x.ok) admPlayer(pid); };
     line.append(sel, num, save); p.appendChild(line);
+    // coins: give or take
+    addText(p, 'div', `Tangalar: ${d.coins} 🪙` + (d.vip ? ` · 👑 VIP ${new Date(d.vip).toLocaleDateString()} gacha` : '')).className = 'lbl2';
+    const cl = document.createElement('div'); cl.className = 'adm-line';
+    const amt = document.createElement('input'); amt.className = 'adm-in'; amt.type = 'number'; amt.placeholder = "Masalan 500 yoki -100";
+    const give = document.createElement('button'); give.className = 'mini-danger'; give.textContent = 'Berish';
+    give.style.cssText = 'border-color:var(--yellow);background:rgba(255,197,49,.12);box-shadow:0 0 8px rgba(255,197,49,.5);flex:none';
+    give.onclick = async () => { const x = await adminApi('giveCoins', { pid, amount: Number(amt.value) }); toast(x && x.ok ? `🪙 Endi: ${x.coins}` : '{alert} ' + ((x && x.msg) || 'Xato')); if (x && x.ok) admPlayer(pid); };
+    cl.append(amt, give); p.appendChild(cl);
     if (!r.admin) {
       if (r.ban) p.appendChild(bigBtn('{unlock} Blokdan chiqarish', async () => { const x = await adminApi('unban', { pid }); toast(x && x.ok ? '{check} Blokdan chiqarildi' : '{alert} Xato'); admPlayer(pid); }, 'pri'));
       else {
@@ -2431,6 +2491,176 @@
     $('announceX').onclick = () => { store.set('ann_x', String(at)); $('announce').classList.add('hide'); };
   }
 
+
+  // ---------- coins, daily bonus, quests, shop ----------
+  let wallet = null;
+  async function refreshWallet() {
+    const r = await postApi('wallet', {});
+    if (r && r.ok) { wallet = r; paintWallet(); }
+    return wallet;
+  }
+  function paintWallet() {
+    $('coinN').textContent = wallet ? wallet.coins : '…';
+    const row = $('ecoRow'); row.innerHTML = '';
+    if (!wallet) return;
+    const d = document.createElement('button'); d.className = 'eco daily' + (wallet.claimedToday ? ' done' : ' ready');
+    d.innerHTML = `<span class="e">🎁</span><span><b></b><small></small></span>`;
+    d.querySelector('b').textContent = wallet.claimedToday ? 'Bonus olindi' : `Kunlik bonus: ${wallet.bonus} 🪙`;
+    d.querySelector('small').textContent = wallet.streak ? `🔥 ${wallet.streak} kunlik seriya` : 'Har kuni kiring!';
+    d.onclick = () => { haptic('light'); showDaily(); };
+    const done = wallet.quests.filter(q => q.done).length, ready = wallet.quests.filter(q => q.done && !q.claimed).length;
+    const q = document.createElement('button'); q.className = 'eco quests' + (ready ? ' ready' : '');
+    q.innerHTML = `<span class="e">📋</span><span><b></b><small></small></span>`;
+    q.querySelector('b').textContent = `Vazifalar ${done}/${wallet.quests.length}`;
+    q.querySelector('small').textContent = ready ? `${ready} ta mukofot kutmoqda!` : 'Bugungi topshiriqlar';
+    q.onclick = () => { haptic('light'); showQuests(); };
+    row.append(d, q);
+  }
+  $('coinChip').onclick = () => { haptic('light'); showTabs('shop'); };
+  function onCoins(m) {
+    if (wallet) wallet.coins = m.coins;
+    $('coinN').textContent = m.coins;
+    const chip = $('coinChip'); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump');
+    if (m.delta > 0) {
+      const r = chip.getBoundingClientRect(), el = document.createElement('div'); el.className = 'coin-fly';
+      el.textContent = `+${m.delta} 🪙`;
+      const visible = r.width > 0;
+      el.style.left = (visible ? r.left + r.width / 2 : innerWidth / 2) + 'px'; el.style.top = (visible ? r.bottom + 4 : innerHeight * 0.3) + 'px';
+      document.body.appendChild(el); setTimeout(() => el.remove(), 1500);
+      if (m.why === 'game' || m.why === 'referral') setTimeout(() => Snd.play('tick'), 300);
+    }
+    if (!$('shop').classList.contains('hide')) { const b = document.querySelector('#shopIn .shop-bal'); if (b) b.textContent = `🪙 ${m.coins}`; }
+  }
+  async function showDaily() {
+    await refreshWallet();
+    const w = wallet, p = openPanel('daily');
+    addText(p, 'h1', '🎁 Kunlik bonus');
+    addText(p, 'p', "Har kuni kiring — seriya oshgani sari bonus kattalashadi. Bir kun o'tkazib yuborsangiz, seriya 1-kundan boshlanadi.");
+    const days = document.createElement('div'); days.className = 'days';
+    const cur = w.claimedToday ? w.streak : w.streak + 1; // the day that is (or would be) today
+    Rewards.DAILY.forEach((v, i) => {
+      const n = i + 1, c = document.createElement('div');
+      const pos = Math.min(cur, 7);
+      if (n < pos || (n === pos && w.claimedToday)) c.className = 'got'; else if (n === pos) c.className = 'today';
+      c.innerHTML = `${n}-kun<b>${v * (w.vip ? 2 : 1)}</b>`;
+      days.appendChild(c);
+    });
+    p.appendChild(days);
+    if (w.vip) addText(p, 'div', '👑 VIP: kunlik bonus ikki baravar').className = 'note';
+    if (w.claimedToday) { addText(p, 'p', `✅ Bugungi bonus olindi. 🔥 Seriya: ${w.streak} kun. Ertaga qayting!`); p.append(bigBtn('Yopish', hideOverlay)); return; }
+    p.append(bigBtn(`🎁 ${w.bonus} tangani olish`, async (e) => {
+      e.target.disabled = true;
+      const r = await postApi('daily', {});
+      if (!r || !r.ok) { toast('{alert} ' + ((r && r.msg) || 'Xato')); return hideOverlay(); }
+      wallet = r; paintWallet(); Snd.play('win'); burst(); hideOverlay();
+      toast(`🎁 +${r.reward} tanga! 🔥 ${r.streak} kunlik seriya`);
+    }, 'pri'), bigBtn('Keyinroq', hideOverlay));
+  }
+  async function showQuests() {
+    await refreshWallet();
+    const p = openPanel('quests');
+    addText(p, 'h1', '📋 Bugungi vazifalar');
+    addText(p, 'p', "Har kuni 3 ta yangi vazifa. Bajarib, tanga oling!");
+    for (const q of wallet.quests) {
+      const row = document.createElement('div'); row.className = 'qrow';
+      const t = document.createElement('div'); t.className = 'q';
+      addText(t, 'b', q.name); addText(t, 'small', `${q.prog}/${q.goal} · mukofot ${q.reward} 🪙`);
+      const pr = document.createElement('div'); pr.className = 'prog'; pr.innerHTML = `<i style="width:${Math.round(q.prog / q.goal * 100)}%"></i>`; t.appendChild(pr);
+      const b = document.createElement('button');
+      b.textContent = q.claimed ? '✓ Olindi' : q.done ? 'Olish' : `${q.reward} 🪙`;
+      b.disabled = q.claimed || !q.done;
+      b.onclick = async () => {
+        b.disabled = true;
+        const r = await postApi('claimQuest', { id: q.id });
+        if (r && r.ok) { wallet = r; paintWallet(); Snd.play('crown'); b.textContent = '✓ Olindi'; } else { b.disabled = false; toast('{alert} ' + ((r && r.msg) || 'Xato')); }
+      };
+      row.append(t, b); p.appendChild(row);
+    }
+    addText(p, 'div', "Vazifalar Toshkent vaqti bilan yarim tunda yangilanadi.").className = 'note';
+    p.append(bigBtn('Yopish', hideOverlay));
+  }
+  // buy with coins, or with Telegram Stars (opens Telegram's own payment sheet)
+  async function buyItem(id, item) {
+    if (item.stars) {
+      if (!(tg && tg.openInvoice)) return toast("{alert} Stars bilan to'lov faqat Telegram ichida ishlaydi");
+      const r = await postApi('stars', { id });
+      if (!r || !r.ok) return toast('{alert} ' + ((r && r.msg) || 'Xato'));
+      return tg.openInvoice(r.link, (status) => { if (status === 'paid') toast('⏳ To\'lov tekshirilmoqda...'); else if (status === 'failed') toast("{alert} To'lov amalga oshmadi"); });
+    }
+    if (!await ask(`"${item.name}" — ${item.price} tanga. Sotib olasizmi?`)) return;
+    const r = await postApi('buy', { id });
+    if (!r || !r.ok) return toast('{alert} ' + ((r && r.msg) || 'Xato'));
+    wallet = r; paintWallet(); Snd.play('crown'); burst();
+    toast(`🛍 "${item.name}" sizniki! Profil → Kolleksiyada kiying`);
+    await loadMyInfo();
+    if (!$('shop').classList.contains('hide')) loadShop();
+    if (!$('profile').classList.contains('hide')) loadProfile();
+  }
+  let shopPreviews = [];
+  async function loadShop() {
+    const box = $('shopIn');
+    if (!box.children.length) box.innerHTML = '<div class="note">Yuklanmoqda...</div>';
+    await Promise.all([refreshWallet(), loadMyInfo()]);
+    if ($('shop').classList.contains('hide')) return;
+    box.innerHTML = ''; shopPreviews = [];
+    const head = document.createElement('div'); head.className = 'lob-top';
+    head.innerHTML = `<div class="lob-title"><b>${ic('bag')} Do'kon</b><small>Tanga o'yinlarda, vazifalarda va kunlik bonusda yig'iladi</small></div><span class="coin-chip shop-bal">🪙 ${wallet ? wallet.coins : 0}</span>`;
+    box.appendChild(head);
+    // VIP
+    const vip = Rewards.STARS_ITEMS.find(x => x.type === 'vip');
+    const vb = document.createElement('button'); vb.className = 'pack vip';
+    vb.innerHTML = `<span class="e">👑</span><div><b>VIP · 30 kun</b><small>${wallet && wallet.vip ? 'Faol: ' + new Date(wallet.vip).toLocaleDateString() + ' gacha · uzaytirish' : "Reklamasiz · kunlik bonus ×2 · o'yinlardan +50% tanga · VIP belgisi"}</small></div><span class="pr">⭐ ${vip.stars}</span>`;
+    vb.onclick = () => buyItem(vip.id, vip);
+    box.appendChild(vb);
+    // frames & skins
+    addText(box, 'div', '🖼 Ramkalar').className = 'sec';
+    const fg = document.createElement('div'); fg.className = 'shop-grid';
+    for (const f of Rewards.FRAMES.filter(x => x.price || x.stars)) {
+      const own = myInfo.frames.includes(f.id);
+      const it = document.createElement('div'); it.className = 'item' + (own ? ' own' : '');
+      const ring = document.createElement('div'); ring.className = 'ring ' + frameCls(f.id);
+      if (myPhoto) setAvatar(ring, myPhoto, initial(myName)); else ring.textContent = initial(myName);
+      it.appendChild(ring); addText(it, 'b', f.name); addText(it, 'small', f.desc);
+      addText(it, 'div', own ? '✓ Sizda bor' : f.price ? `🪙 ${f.price}` : `⭐ ${f.stars}`).className = 'price' + (f.stars ? ' st' : '');
+      it.onclick = () => own ? (equip({ frame: f.id }), toast('{check} Kiyildi')) : buyItem('frame:' + f.id, f);
+      fg.appendChild(it);
+    }
+    box.appendChild(fg);
+    addText(box, 'div', '🎨 Skinlar').className = 'sec';
+    const sg = document.createElement('div'); sg.className = 'shop-grid';
+    for (const k of Object.keys(Rewards.SKINS)) for (const sk of Rewards.SKINS[k].filter(x => x.price || x.stars)) {
+      const own = (myInfo.skins[k] || []).includes(sk.id);
+      const it = document.createElement('div'); it.className = 'item' + (own ? ' own' : '');
+      const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+      c.width = 64 * dpr; c.height = 64 * dpr; c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+      it.appendChild(c); shopPreviews.push([c, k, sk.id]);
+      addText(it, 'b', sk.name); addText(it, 'small', GAME_NAMES[k]);
+      addText(it, 'div', own ? '✓ Sizda bor' : sk.price ? `🪙 ${sk.price}` : `⭐ ${sk.stars}`).className = 'price' + (sk.stars ? ' st' : '');
+      it.onclick = () => own ? (equip({ kind: k, skin: sk.id }), toast('{check} Kiyildi')) : buyItem(`skin:${k}:${sk.id}`, sk);
+      sg.appendChild(it);
+    }
+    box.appendChild(sg);
+    // coin packs
+    addText(box, 'div', '⭐ Tanga sotib olish (Telegram Stars)').className = 'sec';
+    for (const pk of Rewards.STARS_ITEMS.filter(x => x.type === 'coins')) {
+      const b = document.createElement('button'); b.className = 'pack';
+      b.innerHTML = `<span class="e">🪙</span><div><b>${pk.name}</b><small>${pk.tag ? 'Foydali: ' + pk.tag : 'Darhol hisobingizga'}</small></div><span class="pr">⭐ ${pk.stars}</span>`;
+      b.onclick = () => buyItem(pk.id, pk);
+      box.appendChild(b);
+    }
+    // referral
+    addText(box, 'div', "🎁 Do'st taklif qiling").className = 'sec';
+    const rb = document.createElement('button'); rb.className = 'pack'; rb.style.borderColor = 'var(--green)';
+    rb.innerHTML = `<span class="e">🤝</span><div><b>Har bir do'st uchun 200 🪙</b><small>Do'stlik havolangiz orqali kirgan yangi o'yinchi 5 ta o'yin o'ynasa, ikkalangiz 200 tangadan olasiz. Taklif qilganlar: ${wallet ? wallet.ref.count : 0}</small></div><span class="pr" style="background:var(--green)">Yuborish</span>`;
+    rb.onclick = () => showFriendInvite();
+    box.appendChild(rb);
+    addText(box, 'div', "🪙 Tanga qanday yig'iladi: onlayn g'alaba +10 (reytingli +15), durrang +5, mag'lubiyat +2, botni yutish +3/+5/+8 (kuniga 15 tagacha), kunlik bonus va vazifalar.").className = 'note';
+  }
+  function drawShopPreviews(now) {
+    if (!shopPreviews.length || $('shop').classList.contains('hide')) return;
+    for (const [c, k, id] of shopPreviews) previewSkin(c, k, id, now);
+  }
+
   // ---------- emoji reactions (online games) ----------
   const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
   function sendReaction(e) {
@@ -2533,6 +2763,7 @@
     paintOnline();
     setWhere(null);
     setTimeout(renderAd, 0);
+    paintWallet();
     $('hub').classList.remove('hide');
     showTabs('hub');
     setBackButton(false);
@@ -2556,8 +2787,9 @@
   const initial = (n) => (n || '?').replace(/^anon-/, '').charAt(0).toUpperCase();
 
   function showTabs(tab) {
-    for (const t of ['hub', 'rating', 'friends', 'profile']) $(t).classList.toggle('hide', t !== tab);
+    for (const t of ['hub', 'rating', 'friends', 'shop', 'profile']) $(t).classList.toggle('hide', t !== tab);
     hideAdmin();
+    if (tab === 'shop') loadShop();
     $('nav').classList.remove('hide');
     document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     setBackButton(tab !== 'hub');
@@ -2567,7 +2799,7 @@
     if (tab === 'friends') loadFriends();
   }
   function hideTabs() {
-    for (const t of ['rating', 'friends', 'profile', 'nav']) $(t).classList.add('hide');
+    for (const t of ['rating', 'friends', 'shop', 'profile', 'nav']) $(t).classList.add('hide');
     hideAdmin();
     profHero = null;
   }
@@ -2752,7 +2984,8 @@
       const ring = document.createElement('div'); ring.className = 'ring ' + frameCls(f.id);
       if (myPhoto) setAvatar(ring, myPhoto, initial(myName)); else ring.textContent = initial(myName);
       it.appendChild(ring); addText(it, 'b', f.name); addText(it, 'small', f.desc);
-      it.onclick = () => open ? (cur !== f.id && equip({ frame: f.id })) : toast(`{lock} ${f.name}: ${f.desc}`);
+      if (!open && (f.price || f.stars)) it.lastChild.textContent = f.price ? `🪙 ${f.price}` : `⭐ ${f.stars}`;
+      it.onclick = () => open ? (cur !== f.id && equip({ frame: f.id })) : (f.price || f.stars) ? buyItem('frame:' + f.id, f) : toast(`{lock} ${f.name}: ${f.desc}`);
       fr.appendChild(it);
     });
     box.appendChild(fr);
@@ -2769,9 +3002,10 @@
       c.width = 64 * dpr; c.height = 64 * dpr; c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
       it.appendChild(c); skinPreviews.push([c, k, sk.id]);
       addText(it, 'b', sk.name);
-      addText(it, 'small', open ? sk.desc : `${sk.elo} ELO kerak`);
-      if (!open) { const pr = document.createElement('div'); pr.className = 'prog'; pr.innerHTML = `<i style="width:${Math.max(4, Math.min(100, (peakNow - 1000) / (sk.elo - 1000) * 100))}%"></i>`; it.appendChild(pr); }
-      it.onclick = () => open ? (on !== sk.id && equip({ kind: k, skin: sk.id })) : toast(`{lock} ${sk.name}: ${GAME_NAMES[k]}da ${sk.elo} ELO'ga chiqing (hozir eng yuqori: ${peakNow})`);
+      addText(it, 'small', open ? sk.desc : sk.price ? `🪙 ${sk.price} — do'konda` : sk.stars ? `⭐ ${sk.stars} — do'konda` : `${sk.elo} ELO kerak`);
+      if (!open && sk.elo) { const pr = document.createElement('div'); pr.className = 'prog'; pr.innerHTML = `<i style="width:${Math.max(4, Math.min(100, (peakNow - 1000) / (sk.elo - 1000) * 100))}%"></i>`; it.appendChild(pr); }
+      it.onclick = () => open ? (on !== sk.id && equip({ kind: k, skin: sk.id })) : (sk.price || sk.stars) ? buyItem(`skin:${k}:${sk.id}`, sk)
+        : toast(`{lock} ${sk.name}: ${GAME_NAMES[k]}da ${sk.elo} ELO'ga chiqing (hozir eng yuqori: ${peakNow})`);
       grid.appendChild(it);
     });
     box.appendChild(grid);
@@ -2818,7 +3052,7 @@
     if (replay) return closeReplay();
     if (!$('admin').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); hideAdmin(); return showTabs('profile'); }
     if (['player', 'pick', 'tour', 'tcreate', 'challenge', 'addfriend'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
-    if (!$('rating').classList.contains('hide') || !$('profile').classList.contains('hide')) return showHub();
+    if (!$('rating').classList.contains('hide') || !$('profile').classList.contains('hide') || !$('shop').classList.contains('hide') || !$('friends').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
     if (!$('hub').classList.contains('hide')) return;
     if (!$('lobby').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
     if ($('overlay').dataset.kind === 'confirm') return hideOverlay();
@@ -3319,6 +3553,7 @@
     c.shadowColor = color; c.shadowBlur = 14;
     if (skin === 'oltin') { const gr = c.createLinearGradient(cx - r, cy - r, cx + r, cy + r); gr.addColorStop(0, '#fff3b0'); gr.addColorStop(0.5, '#ffc531'); gr.addColorStop(1, '#e09a00'); c.strokeStyle = gr; }
     else if (skin === 'kamalak') { const gr = c.createLinearGradient(cx - r, cy, cx + r, cy); ['#ff2d46', '#ffc531', '#2ee66b', '#2f7bff', '#c084fc'].forEach((k, i) => gr.addColorStop(i / 4, k)); c.strokeStyle = gr; c.shadowColor = '#fff'; }
+    else if (skin === 'muz') { const gr = c.createLinearGradient(cx - r, cy - r, cx + r, cy + r); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.5, '#9fe8ff'); gr.addColorStop(1, '#4b9dff'); c.strokeStyle = gr; c.shadowColor = '#9fe8ff'; c.shadowBlur = 18; }
     else if (skin === 'olov') { const gr = c.createLinearGradient(cx, cy + r, cx, cy - r); gr.addColorStop(0, '#ff3d00'); gr.addColorStop(0.6, '#ff9a1a'); gr.addColorStop(1, '#fff1a8'); c.strokeStyle = gr; c.shadowColor = '#ff6a00'; c.shadowBlur = 20; }
     else if (skin === 'kosmik') { // a few twinkling stars around the mark
       c.save(); const t = performance.now();
@@ -3406,6 +3641,8 @@
     neon: { w: ['rgba(255,255,255,.22)', 'rgba(255,255,255,.08)', '#f2fdff', '#7fe9ff'], b: ['rgba(10,10,30,.75)', 'rgba(10,10,30,.75)', null, null] },
     kristall: { w: ['rgba(235,250,255,.85)', 'rgba(150,220,255,.55)', '#ffffff', '#9ff3ff'], b: ['rgba(90,130,220,.75)', 'rgba(30,50,120,.7)', '#bfe9ff', '#7fe9ff'] },
     olov: { w: ['#fff1a8', '#ff7a1a', '#7a1f00', '#ff8a1a'], b: ['#c43a00', '#3a0800', '#ffb347', '#ff5a1a'] },
+    yogoch: { w: ['#f6dfb2', '#c8955a', '#5a3a1a', 'rgba(0,0,0,.4)'], b: ['#7a4524', '#3a1f0e', '#f0d3a0', 'rgba(0,0,0,.4)'] },
+    qirollik: { w: ['#ffffff', '#e6e2f0', '#c9a227', '#ffd76a'], b: ['#4b1f7a', '#1e0a38', '#ffd76a', '#ffd76a'] },
   };
   function drawChessPiece(c, x, y, s, piece, glow, skin) {
     const P = pathsFor(piece.toLowerCase()), white = piece === piece.toUpperCase();
@@ -3422,7 +3659,8 @@
     c.restore();
   }
   // shashka skins: the disc's fill; the owner's colour stays as a thick outer ring so both sides are clear
-  const DISC_SKINS = { oltin: ['#fff3b0', '#ffc531', '#8a5a00'], olov: ['#fff1a8', '#ff8a1a', '#a01800'], olmos: ['#ffffff', '#b8f3ff', '#4b7dff'] };
+  const DISC_SKINS = { oltin: ['#fff3b0', '#ffc531', '#8a5a00'], olov: ['#fff1a8', '#ff8a1a', '#a01800'], olmos: ['#ffffff', '#b8f3ff', '#4b7dff'],
+    yogoch: ['#f0d3a0', '#b77a43', '#5a3a1a'] };
   function drawDisc(c, x, y, s, color, king, alpha, skin) {
     const r = s * 0.38;
     c.save(); c.globalAlpha = alpha == null ? 1 : alpha;
@@ -3658,7 +3896,7 @@
   });
 
   // keep the loop alive even if one frame fails to draw
-  function loop(now) { try { draw(now); drawHubThumbs(now); drawProfileHero(now); drawVsHeroes(now); drawSkinPreviews(now); } catch (e) { console.error(e); } requestAnimationFrame(loop); }
+  function loop(now) { try { draw(now); drawHubThumbs(now); drawProfileHero(now); drawVsHeroes(now); drawSkinPreviews(now); drawShopPreviews(now); } catch (e) { console.error(e); } requestAnimationFrame(loop); }
   resize(); requestAnimationFrame(loop);
 
   // join a room straight from an invite (Telegram startapp param or ?room=)
@@ -3668,6 +3906,7 @@
   if (friendCode) startRoom = null;
   openPresence();
   loadMyInfo().then(() => setFrame($('hubAv'), myInfo.equip.frame));
+  refreshWallet();
   if (friendCode && /^fr[0-9a-f]{12}$/.test(friendCode)) setTimeout(() => acceptFriendInvite(friendCode), 400);
   if (startRoom) { roomId = null; roomCode = null; joinCode = startRoom.toUpperCase().replace(/[^A-Z0-9]/g, ''); connect(); } else showHub();
 })();
