@@ -7,7 +7,8 @@ const { WebSocketServer } = require('ws');
 const GAMES = { tosiq: require('./public/game.js'), xo: require('./public/xo.js'),
   shashka: require('./public/checkers.js'), shaxmat: require('./public/chess.js'),
   nardi: require('./public/nardi.js'), domino: require('./public/domino.js'), c4: require('./public/connect4.js'),
-  dengiz: require('./public/battleship.js'), dots: require('./public/dots.js') };
+  dengiz: require('./public/battleship.js'), dots: require('./public/dots.js'),
+  durak: require('./public/durak.js'), qumaloq: require('./public/qumaloq.js') };
 const kindOf = (k) => (GAMES[k] ? k : 'tosiq');
 const rulesOf = (room) => GAMES[room.kind];
 
@@ -280,6 +281,8 @@ const QUEST_POOL = [
   { id: 'c42', name: "\"4 ta qatorga\"ni 2 marta o'ynang", goal: 2, reward: 25, ev: 'play:c4' },
   { id: 'dengiz1', name: "Dengiz jangi o'ynang", goal: 1, reward: 30, ev: 'play:dengiz' },
   { id: 'dots1', name: "Nuqtalar o'ynang", goal: 1, reward: 25, ev: 'play:dots' },
+  { id: 'durak1', name: "Durak o'ynang", goal: 1, reward: 30, ev: 'play:durak' },
+  { id: 'qumaloq1', name: "To'qqiz qumaloq o'ynang", goal: 1, reward: 30, ev: 'play:qumaloq' },
   { id: 'bot2', name: "Botni 2 marta yuting", goal: 2, reward: 30, ev: 'botWin' },
   { id: 'bothard', name: "\"Qiyin\" botni yuting", goal: 1, reward: 60, ev: 'botWinHard' },
   { id: 'friend1', name: "Do'stingiz bilan o'ynang", goal: 1, reward: 40, ev: 'friendGame' },
@@ -476,7 +479,7 @@ function cardOf(uid, me) {
 }
 
 const MINUTES = [1, 3, 5, 10];
-const DEFAULT_MIN = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3 };
+const DEFAULT_MIN = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3, durak: 5, qumaloq: 5 };
 const minutesOf = (kind, m) => (MINUTES.includes(Number(m)) ? Number(m) : DEFAULT_MIN[kind]);
 
 const readJson = (req, limit = 20000) => new Promise((res) => {
@@ -1180,6 +1183,8 @@ const GAME_INFO = {
   c4: { title: '4 ta qatorga', emoji: '🔴', line: "4 ta toshni bir qatorga birinchi tering!" },
   dengiz: { title: 'Dengiz jangi', emoji: '🚢', line: "Raqib flotini birinchi cho'ktiring!" },
   dots: { title: 'Nuqtalar', emoji: '▪️', line: "Ko'proq katakni yopib oling!" },
+  durak: { title: 'Durak', emoji: '🃏', line: "Kartalaringizdan birinchi bo'lib qutuling — durak qolmang!" },
+  qumaloq: { title: "To'qqiz qumaloq", emoji: '🪨', line: "81 dan ko'p qumaloq yig'ing va tuzdik oling!" },
 };
 // the emoji players can send each other during a game
 const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
@@ -1864,7 +1869,7 @@ wss.on('connection', (ws) => {
     if (!room) return;
     const G = rulesOf(room);
 
-    if (['move', 'fence', 'shot', 'place', 'draw', 'pass'].includes(m.t)) {
+    if (['move', 'fence', 'shot', 'place', 'draw', 'pass', 'attack', 'defend', 'take', 'bito'].includes(m.t)) {
       if (!room.players[1 - slot]) return send({ t: 'err', msg: 'Raqib hali qo\'shilmadi' });
       const err = G.apply(room.game, slot, m, Date.now());
       if (err) { send({ t: 'err', msg: err }); if (room.game.winner !== null) broadcast(room); return; }

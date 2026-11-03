@@ -33,7 +33,7 @@
       { id: 'kosmik', name: 'Kosmik', elo: 1500, desc: 'Yulduzli belgilar' },
       { id: 'muz', name: 'Muz', price: 1500, desc: 'Muzdek belgilar' },
     ],
-    nardi: [], domino: [], c4: [], dengiz: [], dots: [],
+    nardi: [], domino: [], c4: [], dengiz: [], dots: [], durak: [], qumaloq: [],
   };
   const FRAMES = [
     { id: 'bronza', name: 'Bronza', elo: 1100, desc: "Istalgan o'yinda 1100 ELO" },
@@ -74,7 +74,7 @@
     { id: 'okean', name: 'Okean', pal: ['#a0fff4', '#0a6f7a'], stars: 150 },
     { id: 'marvarid', name: 'Marvarid', pal: ['#ffffff', '#b8b0dc'], stars: 250 },
   ];
-  const WHAT = { shaxmat: 'donalar', shashka: 'donalar', xo: 'belgilar', nardi: 'toshlar', domino: 'toshlar', c4: 'toshlar', dengiz: 'kemalar' };
+  const WHAT = { shaxmat: 'donalar', shashka: 'donalar', xo: 'belgilar', nardi: 'toshlar', domino: 'toshlar', c4: 'toshlar', dengiz: 'kemalar', durak: 'kartalar', qumaloq: 'qumaloqlar' };
   for (const k of Object.keys(WHAT)) for (const gm of GEMS) SKINS[k].push(Object.assign({ desc: `${gm.name} ${WHAT[k]}` }, gm));
   // Nuqtalar: the mark drawn in your boxes
   [['yulduz', 'Yulduz', '★', '#ffd34d', 1500], ['yurak', 'Yurak', '♥', '#ff4d6d', 1500], ['olmos', 'Olmos', '♦', '#7fe9ff', 2000], ['quyosh', 'Quyosh', '☀', '#ffb020', 2500],

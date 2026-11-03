@@ -1,4 +1,4 @@
-// Drawing and input for the newer games (4 ta qatorga, Nuqtalar, Dengiz jangi, Domino, Nardi).
+// Drawing and input for the newer games (4 ta qatorga, Nuqtalar, Dengiz jangi, Domino, Nardi, Durak, To'qqiz qumaloq).
 // index.html calls Boards(env) once; env gives access to the app state (game, you, act, ...).
 // Every plugin: badge(g, p) html for the player card, draw(c, g, now, B) where B = {x0, y0, S} is the board square,
 // down(x, y, g) for a tap at board coordinates, thumb(c, now) for a 92x92 preview, msg(g) status line (optional),
@@ -475,6 +475,244 @@ window.Boards = function (env) {
       preview(c, skin) { const d = env.skin('nardi', skin); for (let i = 0; i < 3; i++) glowDisc(c, 20, 52 - i * 15, 8, C0, 1, d && d.pal); for (let i = 0; i < 2; i++) glowDisc(c, 44, 12 + i * 15, 8, C1, 1, d && d.pal); },
       why: (g, won, opp) => g.reason === 'off' ? (won ? 'Siz barcha 15 toshni birinchi chiqardingiz!' + (g.mars ? ' Mars! 🔥' : '') : opp + ' barcha toshlarini birinchi chiqardi.' + (g.mars ? ' (Mars)' : '')) : '',
       stats: (g, you) => [[g.hist ? g.hist.length : 0, '{pen} Yurish'], [g.off[you], '🎲 Chiqdi'], [null, '{timer} Vaqt']],
+    };
+  }
+  // ---------------- Durak ----------------
+  {
+    const M = window.Durak;
+    let sel = null; // the card picked to cover with, when it can cover more than one
+    const SUIT = { s: '♠', c: '♣', h: '♥', d: '♦' }, RED = { h: 1, d: 1 }, RN = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+    // a playing card at x, y (w x h); back = face down; pal = the owner's skin (the back and the face rim)
+    function card(c, x, y, w, h, cd, back, pal, glow) {
+      c.save();
+      if (glow) { c.shadowColor = glow; c.shadowBlur = 14; } else { c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 5; c.shadowOffsetY = 2; }
+      if (back || !cd) {
+        const gr = c.createLinearGradient(x, y, x + w, y + h);
+        gr.addColorStop(0, pal ? pal[0] : '#3d55d8'); gr.addColorStop(1, pal ? pal[1] : '#1a2470');
+        c.fillStyle = gr; rr(c, x, y, w, h, w * 0.12); c.fill(); c.shadowBlur = 0; c.shadowOffsetY = 0;
+        c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1, w * 0.04); rr(c, x + w * 0.1, y + w * 0.1, w * 0.8, h - w * 0.2, w * 0.08); c.stroke();
+        c.fillStyle = 'rgba(255,255,255,.35)'; c.font = `900 ${w * 0.42}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('R', x + w / 2, y + h / 2);
+        c.restore(); return;
+      }
+      const r = M.rank(cd), s = M.suit(cd), ink = RED[s] ? '#d8203a' : '#1b1f33';
+      c.fillStyle = '#fbfaf5'; rr(c, x, y, w, h, w * 0.12); c.fill(); c.shadowBlur = 0; c.shadowOffsetY = 0;
+      c.strokeStyle = pal ? pal[1] : '#c9c3b0'; c.lineWidth = pal ? Math.max(2, w * 0.07) : 1; rr(c, x, y, w, h, w * 0.12); c.stroke();
+      c.fillStyle = ink; c.textAlign = 'left'; c.textBaseline = 'top';
+      c.font = `900 ${w * 0.34}px system-ui`; c.fillText(RN[r] || r, x + w * 0.1, y + w * 0.08);
+      c.font = `${w * 0.3}px system-ui`; c.fillText(SUIT[s], x + w * 0.1, y + w * 0.44);
+      c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `${w * (r > 10 ? 0.55 : 0.62)}px system-ui`;
+      c.fillText(r > 10 ? (RN[r] + SUIT[s]) : SUIT[s], x + w * 0.56, y + h * 0.62);
+      c.restore();
+    }
+    const handOf = (g) => (g.hands[env.you] || []).filter(Boolean);
+    const sortHand = (g, h) => h.slice().sort((a, b) => ((M.suit(a) === g.trumpSuit) - (M.suit(b) === g.trumpSuit)) || ('scdh'.indexOf(M.suit(a)) - 'scdh'.indexOf(M.suit(b))) || (M.rank(a) - M.rank(b)));
+    const deckN = (g) => (g.deckCount != null ? g.deckCount : g.deck.length);
+    const oppN = (g) => (g.handCount ? g.handCount[1 - env.you] : g.hands[1 - env.you].length);
+    const slotsFor = (g, cd) => g.table.map((x, i) => (!x.d && M.beats(g, x.a, cd) ? i : -1)).filter(i => i >= 0);
+    // where the table pairs go: 3 x 2 in the middle of the board
+    const slotXY = (B, i) => { const w = B.S * 0.155, h = w * 1.42; return { x: B.x0 + B.S * 0.34 + (i % 3) * w * 1.32, y: B.y0 + B.S * 0.27 + Math.floor(i / 3) * h * 1.12, w, h }; };
+    const canPlay = (g, cd) => {
+      if (g.turn !== env.you || g.winner !== null) return false;
+      if (env.you === g.att) return !M.uncovered(g) || !g.table.length ? M.canAdd(g, cd) : false;
+      return slotsFor(g, cd).length > 0;
+    };
+    function playCard(g, cd) {
+      if (!env.myTurn()) return env.flash('Hozir sizning navbatingiz emas', 900);
+      if (env.you === g.att) { sel = null; return env.act({ t: 'attack', card: cd }); }
+      const sl = slotsFor(g, cd);
+      if (!sl.length) return env.flash("Bu karta bilan yopib bo'lmaydi", 900);
+      if (sl.length === 1) { sel = null; return env.act({ t: 'defend', card: cd, i: sl[0] }); }
+      sel = cd; env.haptic('light'); env.flash('Qaysi kartani yopasiz? Stoldagisini bosing', 0); P.durak.ui(g, document.getElementById('plugTray'));
+    }
+    P.durak = {
+      noReplay: true,
+      badge: (g, p) => `🃏 ${g.handCount ? g.handCount[p] : g.hands[p].length} <small>${p === g.att ? 'hujum' : 'himoya'}</small>`,
+      msg: (g) => {
+        if (g.winner !== null) return null;
+        if (g.turn !== env.you) return env.you === g.att ? 'Raqib yopmoqda...' : 'Raqib yurmoqda...';
+        if (env.you === g.att) return !g.table.length ? 'Hujum qiling: karta tashlang' : "Karta qo'shing yoki «Bito» bosing";
+        return "Kartani yoping yoki «Olaman» bosing";
+      },
+      draw(c, g, now, B) {
+        const S = B.S, cw = S * 0.13, ch = cw * 1.42;
+        // felt
+        const fg = c.createRadialGradient(B.x0 + S / 2, B.y0 + S / 2, S * 0.1, B.x0 + S / 2, B.y0 + S / 2, S * 0.75);
+        fg.addColorStop(0, '#16704a'); fg.addColorStop(1, '#0a3424'); c.fillStyle = fg; rr(c, B.x0, B.y0, S, S, 16); c.fill();
+        c.strokeStyle = 'rgba(255,215,120,.35)'; c.lineWidth = 2; rr(c, B.x0 + 5, B.y0 + 5, S - 10, S - 10, 13); c.stroke();
+        // the opponent's hand (backs, or faces at the end)
+        const n = oppN(g), opp = g.hands[1 - env.you] || [], step = Math.min(cw * 0.55, (S * 0.8 - cw) / Math.max(1, n - 1));
+        const ox = B.x0 + S / 2 - ((n - 1) * step + cw) / 2;
+        const open = g.winner !== null; // in bot games the whole state is here: keep the bot's cards face down
+        for (let i = 0; i < n; i++) card(c, ox + i * step, B.y0 + S * 0.03, cw, ch, open ? opp[i] : null, !open || !opp[i], palOf('durak', 1 - env.you));
+        // deck with the trump under it
+        const dn = deckN(g), dx = B.x0 + S * 0.05, dy = B.y0 + S * 0.36;
+        if (dn > 0) {
+          c.save(); c.translate(dx + cw + ch * 0.12, dy + ch * 0.5); c.rotate(Math.PI / 2); card(c, -cw / 2, -ch / 2, cw, ch, g.trump, false); c.restore();
+          if (dn > 1) for (let i = 0; i < Math.min(4, dn - 1); i++) card(c, dx - i * 1.2, dy - i * 1.2, cw, ch, null, true);
+          c.fillStyle = '#fff'; c.font = `900 ${cw * 0.36}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(dn, dx + cw / 2, dy + ch + cw * 0.38);
+        } else {
+          c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, dx, dy, cw, ch, cw * 0.12); c.fill();
+          c.fillStyle = RED[g.trumpSuit] ? '#ff5a72' : '#fff'; c.font = `${cw * 0.7}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(SUIT[g.trumpSuit], dx + cw / 2, dy + ch / 2);
+        }
+        c.fillStyle = 'rgba(255,255,255,.7)'; c.font = `700 ${cw * 0.26}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+        c.fillText(T('Kozir') + ' ' + SUIT[g.trumpSuit], B.x0 + S * 0.04, B.y0 + S * 0.34);
+        // discarded ("bito") pile
+        if (g.out) {
+          for (let i = 0; i < Math.min(3, g.out / 4); i++) { c.save(); c.translate(B.x0 + S * 0.86, B.y0 + S * 0.8); c.rotate(-0.3 + i * 0.25); card(c, -cw / 2, -ch / 2, cw * 0.9, ch * 0.9, null, true); c.restore(); }
+          c.fillStyle = 'rgba(255,255,255,.7)'; c.font = `700 ${cw * 0.26}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText(T('Bito') + ' ' + g.out, B.x0 + S * 0.86, B.y0 + S * 0.9);
+        }
+        // the table
+        const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+        g.table.forEach((x, i) => {
+          const P2 = slotXY(B, i), canHit = sel && !x.d && M.beats(g, x.a, sel);
+          card(c, P2.x, P2.y, P2.w, P2.h, x.a, false, palOf('durak', g.att), canHit ? env.hexA('#ffd34d', 0.6 + 0.4 * pulse) : null);
+          if (x.d) { c.save(); c.translate(P2.x + P2.w * 0.55, P2.y + P2.h * 0.5); c.rotate(0.22); card(c, -P2.w / 2 + P2.w * 0.05, -P2.h / 2 + P2.w * 0.1, P2.w, P2.h, x.d, false, palOf('durak', 1 - g.att)); c.restore(); }
+        });
+        if (!g.table.length && g.winner === null) {
+          c.fillStyle = 'rgba(255,255,255,.45)'; c.font = `700 ${S * 0.04}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText(T(g.att === env.you ? 'Siz hujum qilasiz' : 'Raqib hujum qiladi'), B.x0 + S * 0.58, B.y0 + S * 0.47);
+        }
+        // whose move, at the bottom
+        c.fillStyle = col(g.turn); c.font = `800 ${S * 0.035}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+        if (g.winner === null) c.fillText(T(g.turn === env.you ? 'Sizning navbatingiz' : 'Raqib navbati'), B.x0 + S / 2, B.y0 + S - 8);
+      },
+      down(x, y, g, B) {
+        if (!sel) return;
+        for (let i = 0; i < g.table.length; i++) {
+          const P2 = slotXY(B, i);
+          if (x >= P2.x && x <= P2.x + P2.w * 1.2 && y >= P2.y && y <= P2.y + P2.h * 1.1 && !g.table[i].d) {
+            if (!M.beats(g, g.table[i].a, sel)) return env.flash("Bu karta bilan yopib bo'lmaydi", 900);
+            const cd = sel; sel = null; return env.act({ t: 'defend', card: cd, i });
+          }
+        }
+      },
+      reset() { sel = null; },
+      ui(g, tray) {
+        tray.innerHTML = '';
+        if (sel && !handOf(g).includes(sel)) sel = null;
+        const wrap = document.createElement('div'); wrap.className = 'dhand chand';
+        const d = window.devicePixelRatio || 1, w = 40, h = 57, pal = palOf('durak', env.you);
+        sortHand(g, handOf(g)).forEach(cd => {
+          const cv = document.createElement('canvas'); cv.width = (w + 4) * d; cv.height = (h + 6) * d; cv.style.width = (w + 4) + 'px'; cv.style.height = (h + 6) + 'px';
+          const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); card(x, 2, 2, w, h, cd, false, pal);
+          const b = document.createElement('button'); b.className = 'dtile ccard' + (canPlay(g, cd) ? ' can' : '') + (sel === cd ? ' sel' : '');
+          b.appendChild(cv); b.onclick = () => playCard(g, cd);
+          wrap.appendChild(b);
+        });
+        tray.appendChild(wrap);
+        if (g.winner !== null || g.turn !== env.you) return;
+        if (env.you !== g.att && M.uncovered(g)) tray.appendChild(env.button('🫴 Olaman', () => { sel = null; env.act({ t: 'take' }); }, 'pri'));
+        else if (env.you === g.att && g.table.length && !M.uncovered(g)) tray.appendChild(env.button('✅ Bito', () => env.act({ t: 'bito' }), 'pri'));
+      },
+      thumb(c, now) {
+        const t = Math.floor((now % 3200) / 800);
+        c.fillStyle = '#0f5a3a'; rr(c, 4, 4, 84, 84, 12); c.fill();
+        card(c, 10, 30, 22, 31, null, true);
+        card(c, 40, 22, 24, 34, '9h', false);
+        if (t >= 1) { c.save(); c.translate(56, 42); c.rotate(0.25); card(c, -10, -14, 24, 34, t >= 2 ? '13h' : '12h', false); c.restore(); }
+        for (let i = 0; i < 4; i++) card(c, 22 + i * 12, 64, 16, 22, null, true, i % 2 ? null : ['#ff7aa8', '#8a1240']);
+      },
+      preview(c, skin) { const d = env.skin('durak', skin); card(c, 6, 10, 28, 40, null, true, d && d.pal); card(c, 30, 14, 28, 40, '14s', false, d && d.pal); },
+      why: (g, won, opp) => g.reason === 'cards' ? (won ? "Kartalaringiz birinchi tugadi — raqib durak qoldi! 🃏" : opp + " kartalaridan birinchi qutuldi — siz durak qoldingiz.")
+        : g.reason === 'draw' ? 'Ikkalangiz ham bir vaqtda tugatdingiz — durrang!' : '',
+      stats: (g, you) => [[g.log.filter(x => x === 'olaman').length, '🫴 Olindi'], [(g.hands[you] || []).length, '🃏 Qoldi'], [null, '{timer} Vaqt']],
+    };
+  }
+
+  // ---------------- To'qqiz qumaloq ----------------
+  {
+    const M = window.Qumaloq;
+    let lastN = -1, flashAt = 0;
+    // my row at the bottom (left to right = my holes 1..9), the opponent's row on top running right to left,
+    // so the stones travel round the board anticlockwise for both players
+    const geo = (B) => { const m = B.S * 0.03, w = (B.S - 2 * m) / 9, h = B.S * 0.3; return { m, w, h, x: B.x0 + m, top: B.y0 + B.S * 0.08, bot: B.y0 + B.S * 0.62 }; };
+    const holeAt = (G, i) => {
+      const mine = M.sideOf(i) === env.you, k = i % 9;
+      return mine ? { x: G.x + k * G.w, y: G.bot, k } : { x: G.x + (8 - k) * G.w, y: G.top, k };
+    };
+    // a cluster of pebbles in a hole, seeded by the index so it stays still
+    function pebbles(c, cx, cy, rw, rh, n, pal, seed) {
+      const show = Math.min(n, 24), pr = Math.min(rw, rh) * (n > 14 ? 0.16 : 0.2);
+      for (let s = 0; s < show; s++) {
+        const a = (s * 2.39996) + seed, rad = Math.sqrt((s + 0.5) / show) * 0.78;
+        const x = cx + Math.cos(a) * rw * rad, y = cy + Math.sin(a) * rh * rad;
+        const gr = c.createRadialGradient(x - pr * 0.4, y - pr * 0.4, pr * 0.1, x, y, pr);
+        gr.addColorStop(0, pal ? env.shade(pal[0], 0.4) : '#fff2d6'); gr.addColorStop(1, pal ? pal[1] : '#8c6a3c');
+        c.fillStyle = gr; c.beginPath(); c.arc(x, y, pr, 0, 7); c.fill();
+      }
+    }
+    P.qumaloq = {
+      noReplay: true,
+      badge: (g, p) => `🪨 ${g.store[p]}<small>/81</small>${g.tuz[p] >= 0 ? ' ★' : ''}`,
+      draw(c, g, now, B) {
+        const G = geo(B), S = B.S;
+        if (g.n !== lastN) { lastN = g.n; flashAt = now; }
+        const fresh = Math.max(0, 1 - (now - flashAt) / 900);
+        // wooden board
+        const wg = c.createLinearGradient(B.x0, B.y0, B.x0, B.y0 + S);
+        wg.addColorStop(0, '#6b4223'); wg.addColorStop(0.5, '#8a5a30'); wg.addColorStop(1, '#5a361b');
+        c.fillStyle = wg; rr(c, B.x0, B.y0 + S * 0.04, S, S * 0.92, 18); c.fill();
+        c.strokeStyle = 'rgba(255,220,160,.25)'; c.lineWidth = 2; rr(c, B.x0 + 4, B.y0 + S * 0.04 + 4, S - 8, S * 0.92 - 8, 15); c.stroke();
+        // the stores (qozon) in the middle strip
+        const my = env.you, op = 1 - my, mid = B.y0 + S * 0.5;
+        [[op, B.x0 + S * 0.27], [my, B.x0 + S * 0.73]].forEach(([p, cx]) => {
+          c.fillStyle = 'rgba(20,10,4,.55)'; rr(c, cx - S * 0.21, mid - S * 0.055, S * 0.42, S * 0.11, S * 0.05); c.fill();
+          c.strokeStyle = col(p); c.lineWidth = 2; c.stroke();
+          pebbles(c, cx - S * 0.12, mid, S * 0.07, S * 0.035, Math.min(12, Math.ceil(g.store[p] / 7)), palOf('qumaloq', p), p * 3);
+          c.fillStyle = '#fff'; c.font = `900 ${S * 0.05}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText(g.store[p], cx + S * 0.08, mid + 1);
+          c.fillStyle = col(p); c.font = `800 ${S * 0.028}px system-ui`; c.textBaseline = 'bottom'; c.fillText(T(p === my ? 'Siz' : 'Raqib'), cx, mid - S * 0.06);
+        });
+        const mine = env.myTurn(), pulse = 0.5 + 0.5 * Math.sin(now / 260);
+        for (let i = 0; i < 18; i++) {
+          const H = holeAt(G, i), cx = H.x + G.w / 2, cy = H.y + G.h / 2, rw = G.w * 0.42, rh = G.h * 0.44;
+          const own = M.sideOf(i) === env.you, n = g.holes[i];
+          const tuzOf = g.tuz[0] === i ? 0 : g.tuz[1] === i ? 1 : -1;
+          // the hole
+          const hg = c.createRadialGradient(cx, cy - rh * 0.3, rw * 0.1, cx, cy, rh * 1.1);
+          hg.addColorStop(0, '#2a1608'); hg.addColorStop(1, '#4a2c14');
+          c.save(); c.fillStyle = hg; c.beginPath(); c.ellipse(cx, cy, rw, rh, 0, 0, 7); c.fill();
+          if (tuzOf >= 0) { c.strokeStyle = col(tuzOf); c.lineWidth = 3; c.shadowColor = col(tuzOf); c.shadowBlur = 10; c.stroke(); }
+          else if (own && mine && n > 0) { c.strokeStyle = env.hexA(col(env.you), 0.4 + 0.4 * pulse); c.lineWidth = 2; c.stroke(); }
+          if (g.last && g.last.end === i && fresh > 0) { c.strokeStyle = `rgba(255,230,120,${fresh})`; c.lineWidth = 4; c.stroke(); }
+          if (g.last && g.last.i === i) { c.strokeStyle = env.hexA(col(g.last.p), 0.7); c.lineWidth = 2; c.setLineDash([4, 4]); c.stroke(); c.setLineDash([]); }
+          c.restore();
+          if (tuzOf >= 0) { c.fillStyle = col(tuzOf); c.font = `900 ${G.w * 0.5}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('★', cx, cy); }
+          else pebbles(c, cx, cy, rw * 0.85, rh * 0.85, n, palOf('qumaloq', M.sideOf(i)), i);
+          // the count and the hole number
+          c.fillStyle = '#fff'; c.font = `900 ${G.w * 0.32}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          if (tuzOf < 0) { c.save(); c.shadowColor = '#000'; c.shadowBlur = 4; c.fillText(n, cx, own ? H.y + G.h + G.w * 0.22 : H.y - G.w * 0.2); c.restore(); }
+          c.fillStyle = 'rgba(255,230,190,.45)'; c.font = `700 ${G.w * 0.2}px system-ui`;
+          c.fillText(H.k + 1, cx, own ? H.y - G.w * 0.12 : H.y + G.h + G.w * 0.14);
+        }
+        if (g.last && g.last.got && fresh > 0) {
+          const H = holeAt(G, g.last.end);
+          c.fillStyle = `rgba(255,230,120,${fresh})`; c.font = `900 ${G.w * 0.45}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText(g.last.tuz ? '★ ' + T('Tuzdik!') : '+' + g.last.got, H.x + G.w / 2, H.y + G.h / 2 - (1 - fresh) * G.w * 0.6);
+        }
+      },
+      down(x, y, g, B) {
+        if (!env.myTurn()) return env.flash('Hozir sizning navbatingiz emas', 900);
+        const G = geo(B);
+        if (y < G.bot - G.w * 0.3 || y > G.bot + G.h + G.w * 0.4) return env.flash("O'z uyalaringizdan birini bosing (pastki qator)", 1100);
+        const k = Math.floor((x - G.x) / G.w); if (k < 0 || k > 8) return;
+        const i = env.you * 9 + k;
+        if (!g.holes[i]) return env.flash("Bu uya bo'sh", 900);
+        env.act({ t: 'move', i });
+      },
+      thumb(c, now) {
+        c.fillStyle = '#7a4c27'; rr(c, 4, 14, 84, 64, 12); c.fill();
+        const t = Math.floor((now % 2800) / 700);
+        for (let r = 0; r < 2; r++) for (let k = 0; k < 4; k++) {
+          const cx = 16 + k * 20, cy = r ? 60 : 32; c.fillStyle = '#2a1608'; c.beginPath(); c.ellipse(cx, cy, 8, 10, 0, 0, 7); c.fill();
+          const n = r === 1 && k === 1 ? (t ? 1 : 5) : r === 1 && k > 1 && k - 1 <= t ? 4 : 3;
+          pebbles(c, cx, cy, 6, 7, n, null, k + r * 4);
+        }
+        c.fillStyle = C0; c.font = '900 12px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; if (t === 3) c.fillText('★', 76, 32);
+      },
+      preview(c, skin) { const d = env.skin('qumaloq', skin); c.fillStyle = '#2a1608'; c.beginPath(); c.ellipse(32, 32, 24, 20, 0, 0, 7); c.fill(); pebbles(c, 32, 32, 18, 15, 9, d && d.pal, 1); },
+      why: (g, won, opp) => `Qozon: ${g.store[env.you]} : ${g.store[1 - env.you]}. ` + (g.winner === -1 ? 'Teng — durrang!' : won ? "Siz ko'proq qumaloq yig'dingiz!" : opp + " ko'proq qumaloq yig'di."),
+      stats: (g, you) => [[g.store[you], '🪨 Qozon'], [g.tuz[you] >= 0 ? '★' : '—', '⭐ Tuzdik'], [null, '{timer} Vaqt']],
     };
   }
   return P;

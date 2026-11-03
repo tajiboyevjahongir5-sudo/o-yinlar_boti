@@ -94,7 +94,12 @@ Hammasida xonalar, reytingli o'yin, turnir, tomosha, botga qarshi (3 daraja), va
   Raqib kemalari yashirin.
 - **🔴 4 ta qatorga** (`public/connect4.js`): 7×6, tosh pastga tushadi, 4 tasini qatorga tergan yutadi.
 - **▪️ Nuqtalar** (`public/dots.js`): 5×5 katak; katakni yopgan yana yuradi; ko'p katak yopgan yutadi.
-- Chizish va boshqaruv: `public/boards.js`. Bu o'yinlar uchun hozircha skinlar yo'q; Nardi, Domino va Dengiz jangida
+- **🃏 Durak** (`public/durak.js`): podkidnoy, 2 kishi, 36 karta; kozir — kolodaning oxirgi kartasi; hujumchi qiymati
+  stolda bor kartalarni qo'sha oladi (6 tagacha, himoyachi yopa oladiganidan ko'p emas); "Olaman" / "Bito"; koloda tugagach
+  kartasi birinchi tugagan yutadi. Raqib qo'li va koloda serverda yashirin (`view`).
+- **🪨 To'qqiz qumaloq** (`public/qumaloq.js`): 2×9 uya, har birida 9 tadan; oxirgi tosh raqib uyasida juft son qilsa —
+  hammasi qozonga; 3 ta qilsa — tuzdik (bittadan, 9-uya emas, raqib tuzdigiga qarama-qarshi emas). 81 dan ko'p yig'gan yutadi.
+- Chizish va boshqaruv: `public/boards.js`. Nardi, Domino, Dengiz jangi, Durak va Qumaloqda
   "Yurishlarni ko'rish" o'chirilgan (tasodif va yashirin ma'lumot sababli).
 
 ## Tangalar, kunlik bonus, vazifalar, do'kon, VIP, referal

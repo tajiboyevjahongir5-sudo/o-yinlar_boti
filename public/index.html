@@ -584,7 +584,7 @@
   .gcard .go2 { flex:none; width:46px; height:46px; border-radius:50%; border:2px solid var(--green); background:rgba(46,230,107,.14);
     color:#fff; display:grid; place-items:center; box-shadow:0 0 10px var(--green), inset 0 0 10px rgba(46,230,107,.25); padding:0; }
   .gcard .go2 .i { width:20px; height:20px; margin:0 0 0 3px !important; fill:#fff; }
-  .gcard.g-nardi { --c:#c97a2b; } .gcard.g-domino { --c:#cfd6ff; } .gcard.g-c4 { --c:#ff7a1a; } .gcard.g-dengiz { --c:#2fd0ff; } .gcard.g-dots { --c:#2ee66b; }
+  .gcard.g-nardi { --c:#c97a2b; } .gcard.g-domino { --c:#cfd6ff; } .gcard.g-c4 { --c:#ff7a1a; } .gcard.g-dengiz { --c:#2fd0ff; } .gcard.g-dots { --c:#2ee66b; } .gcard.g-durak { --c:#ff4fa3; } .gcard.g-qumaloq { --c:#d9a35b; }
   .gcard.g-shaxmat { --c:#2f7bff; } .gcard.g-shashka { --c:#ff2d46; } .gcard.g-tosiq { --c:#ffc531; } .gcard.g-xo { --c:#c084fc; }
   .hub-online { display:flex; align-items:center; gap:6px; margin-top:-8px; font-size:12.5px; font-weight:700; color:var(--mute); }
   .hub-online b { color:var(--green); }
@@ -734,6 +734,7 @@
   .dtile { flex:none; padding:3px; border-radius:8px; border:2px solid transparent; background:rgba(255,255,255,.05); opacity:.55; }
   .dtile.can { opacity:1; border-color:var(--green); box-shadow:0 0 8px var(--green); }
   .dtile.sel { border-color:var(--yellow); box-shadow:0 0 12px var(--yellow); transform:translateY(-4px); }
+  .chand { gap:0; padding-left:14px; } .chand .ccard { padding:0; margin-left:-14px; border-radius:6px; opacity:.8; } .chand .ccard.can { opacity:1; } .chand .ccard.sel { transform:translateY(-8px); }
   .drow { display:flex; gap:8px; width:100%; max-width:360px; } .drow .big { flex:1; padding:11px 6px; font-size:14px; }
   @media (min-width:900px) and (min-height:520px), (orientation:landscape) and (max-height:560px) { #plugTray { grid-area:tray; } }
 
@@ -913,6 +914,8 @@
 <script src="battleship.js"></script>
 <script src="domino.js"></script>
 <script src="nardi.js"></script>
+<script src="durak.js"></script>
+<script src="qumaloq.js"></script>
 <script src="boards.js"></script>
 <script>
 (() => {
@@ -923,10 +926,11 @@
   const COLORS = ['#ff2d46', '#2f7bff'];
   // which game is open; every rules module has newGame/start/apply/checkTimeout/resign/botAction/CLOCK_MS
   const RULES = { tosiq: F, xo: window.XO, shashka: window.Shashka, shaxmat: window.Chess,
-    nardi: window.Nardi, domino: window.Domino, c4: window.Connect4, dengiz: window.Battleship, dots: window.Dots };
+    nardi: window.Nardi, domino: window.Domino, c4: window.Connect4, dengiz: window.Battleship, dots: window.Dots,
+    durak: window.Durak, qumaloq: window.Qumaloq };
   const GAME_NAMES = { shaxmat: 'Shaxmat', shashka: 'Shashka', nardi: 'Nardi', domino: 'Domino', c4: '4 ta qatorga', dengiz: 'Dengiz jangi',
-    dots: 'Nuqtalar', tosiq: "To'siq Jangi", xo: 'X va O' };
-  const SHORT_NAMES = { shaxmat: 'Shaxmat', shashka: 'Shashka', nardi: 'Nardi', domino: 'Domino', c4: '4 qator', dengiz: 'Dengiz', dots: 'Nuqtalar', tosiq: "To'siq", xo: 'X va O' };
+    dots: 'Nuqtalar', tosiq: "To'siq Jangi", xo: 'X va O', durak: 'Durak', qumaloq: "To'qqiz qumaloq" };
+  const SHORT_NAMES = { shaxmat: 'Shaxmat', shashka: 'Shashka', nardi: 'Nardi', domino: 'Domino', c4: '4 qator', dengiz: 'Dengiz', dots: 'Nuqtalar', tosiq: "To'siq", xo: 'X va O', durak: 'Durak', qumaloq: 'Qumaloq' };
   let PLUG = {}; // drawing + input for the newer games (boards.js), set up once the helpers exist
   let kind = 'tosiq', viewKind = 'tosiq', xoPlaced = {}, xoEndAt = 0;
   const R = () => RULES[kind];
@@ -1055,7 +1059,7 @@
     yashil: { name: 'Yashil', light: '#d7e8c4', dark: '#5f8f4a', light2: '#bcd6a2', dark2: '#4a7a39', top: '#2f6b3a', bot: '#24572e', edge: 'rgba(255,255,255,.14)', frame: '#1f5a34' },
   };
   const theme = () => THEMES[store.get('theme')] || THEMES.neon;
-  const MIN_DEFAULT = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3 };
+  const MIN_DEFAULT = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3, durak: 5, qumaloq: 5 };
   const minutesFor = (k) => { const v = Number(store.get('min_' + k)); return [1, 3, 5, 10].includes(v) ? v : MIN_DEFAULT[k]; };
   const frameCls = (f) => (f ? 'fr fr-' + f : '');
   function setFrame(el, f) { el.classList.remove(...[...el.classList].filter(c => c === 'fr' || c.startsWith('fr-'))); if (f) el.classList.add('fr', 'fr-' + f); }
@@ -1415,6 +1419,7 @@
     xo: ['❌⭕', "Uchta belgini bir qatorga birinchi bo'lib tering!"],
     nardi: ['🎲', "Barcha 15 toshni birinchi bo'lib chiqaring!"], domino: ['🁫', "Toshlaringizni birinchi bo'lib qo'yib tugating!"],
     c4: ['🔴', "4 ta toshni bir qatorga birinchi tering!"], dengiz: ['🚢', "Raqib flotini birinchi cho'ktiring!"], dots: ['▪️', "Ko'proq katakni yopib oling!"],
+    durak: ['🃏', "Kartalaringizdan birinchi bo'lib qutuling — durak qolmang!"], qumaloq: ['🪨', "81 dan ko'p qumaloq yig'ing va tuzdik oling!"],
     shashka: ['⚫⚪', "Raqibning barcha donalarini urib oling yoki uni yurolmaydigan qiling!"],
     shaxmat: ['♟️', "Raqib shohiga mot qo'ying!"] };
   const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2173,7 +2178,7 @@
     res(window.confirm(text));
   });
   const adminApi = (op, o) => postApi('admin', Object.assign({ op }, o || {}));
-  const GAME_COL = { shaxmat: '#2f7bff', shashka: '#ff2d46', tosiq: '#ffc531', xo: '#c084fc', nardi: '#c97a2b', domino: '#e8ecff', c4: '#ff7a1a', dengiz: '#2fd0ff', dots: '#2ee66b' };
+  const GAME_COL = { shaxmat: '#2f7bff', shashka: '#ff2d46', tosiq: '#ffc531', xo: '#c084fc', nardi: '#c97a2b', domino: '#e8ecff', c4: '#ff7a1a', dengiz: '#2fd0ff', dots: '#2ee66b', durak: '#ff4fa3', qumaloq: '#d9a35b' };
   const agoTxt = (t) => { if (!t) return '—'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'hozir' : m < 60 ? m + ' daq' : m < 1440 ? Math.round(m / 60) + ' soat' : Math.round(m / 1440) + ' kun'; };
   function showAdmin() {
     if (!isAdminUser) return;
@@ -3153,6 +3158,8 @@
     { id: 'domino', short: "Toshlarni uchlariga moslab qo'ying", title: 'Domino', isNew: true, desc: '', tags: [], open: () => openGame('domino') },
     { id: 'dengiz', short: "Raqib kemalarini toping va cho'ktiring", title: 'Dengiz jangi', isNew: true, desc: '', tags: [], open: () => openGame('dengiz') },
     { id: 'c4', short: "Toshni tushiring, 4 tasini qatorga tering", title: '4 ta qatorga', isNew: true, desc: '', tags: [], open: () => openGame('c4') },
+    { id: 'durak', short: "Kartalarni yoping, oxirida durak qolmang", title: 'Durak', isNew: true, desc: '', tags: [], open: () => openGame('durak') },
+    { id: 'qumaloq', short: "Qumaloqlarni tering, tuzdik oling", title: "To'qqiz qumaloq", isNew: true, desc: '', tags: [], open: () => openGame('qumaloq') },
     { id: 'dots', short: "Chiziq chizing, katakni yoping", title: 'Nuqtalar', isNew: true, desc: '', tags: [], open: () => openGame('dots') },
     { id: 'tosiq', short: "Yo'lni to'sing va marraga birinchi yeting", title: "To'siq Jangi", desc: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing.",
       tags: ["{users} 2 o'yinchi", '{timer} 5 daq', "{fence} 10 to'siq"], open: () => openGame('tosiq') },
