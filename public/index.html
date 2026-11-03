@@ -844,7 +844,7 @@
 <div id="admin" class="tab hide"><div class="hub-in">
   <div class="lob-top"><button class="icon-btn" id="admBack" aria-label="Orqaga"><i data-ic="back"></i></button>
     <div class="lob-title"><b>🛡 Admin panel</b><small id="admSub">Faqat siz ko'rasiz</small></div></div>
-  <div class="seg" id="admSeg"><button data-s="stats" class="on">Statistika</button><button data-s="players">O'yinchilar</button><button data-s="rooms">Xonalar</button><button data-s="msg">Xabarlar</button><button data-s="ad">Reklama</button></div>
+  <div class="seg" id="admSeg"><button data-s="stats" class="on">Statistika</button><button data-s="players">O'yinchilar</button><button data-s="rooms">Xonalar</button><button data-s="msg">Xabarlar</button><button data-s="ad">Reklama</button><button data-s="reports">Shikoyatlar <b id="repN" class="nbadge" style="position:static;display:inline-grid"></b></button></div>
   <div id="admBody" style="display:flex;flex-direction:column;gap:10px"></div>
 </div></div>
 <div id="banScreen" class="hide"><span class="e">⛔</span><h2 style="margin:0">Kirish cheklangan</h2><p id="banTx"></p></div>
@@ -996,7 +996,7 @@
   let sel8 = null, targets8 = [], anim8 = null, drag8 = null, dropped8 = false, rematchState = [false, false];
   let round = 0; // bumped whenever a new game starts
   // looks[p] = { frame, skin } of each seat; pids[p] = public ids (for "add friend"); watching = spectator mode
-  let looks = [{}, {}], pids = [null, null], watching = false, watchers = 0, drawOffer = null, roomTour = null, roomMinutes = null;
+  let roomInline = false, looks = [{}, {}], pids = [null, null], watching = false, watchers = 0, drawOffer = null, roomTour = null, roomMinutes = null;
   let botLevel = 1, botHist = [], replay = null;
   // my own profile bits (equipped frame/skins, what is unlocked), refreshed from the server
   let myInfo = { pid: null, equip: { frame: null, skin: {} }, skins: {}, frames: [] };
@@ -1307,7 +1307,7 @@
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const sock = ws = new WebSocket(`${proto}://${location.host}/ws`);
     const join = Object.assign({ initData: tg ? tg.initData : '', photo: myPhoto },
-      pendingCreate ? { create: pendingCreate } : roomId ? { room: roomId, code: roomCode } : { code: joinCode });
+      pendingInline ? { inline: pendingInline, kind } : pendingCreate ? { create: pendingCreate } : roomId ? { room: roomId, code: roomCode } : { code: joinCode });
     const queueMsg = () => JSON.stringify({ t: 'queue', kind, uid, name: myName, photo: myPhoto, initData: tg ? tg.initData : '', minutes: minutesFor(kind) });
     sock.onopen = () => sock.send(searching ? queueMsg()
       : watchRoom ? JSON.stringify({ t: 'watch', room: watchRoom, uid, name: myName, initData: tg ? tg.initData : '' })
@@ -1317,11 +1317,11 @@
       if (m.t === 'state') {
         watching = m.you === -1; you = watching ? 0 : m.you; // a spectator sees the board from the first seat
         names = m.names; online = m.online; clockOffset = m.now - Date.now(); photos = m.photos || [null, null];
-        looks = m.looks || [{}, {}]; pids = m.pids || [null, null]; watchers = m.watchers || 0; roomTour = m.tour || null; roomMinutes = m.minutes;
+        looks = m.looks || [{}, {}]; pids = m.pids || [null, null]; watchers = m.watchers || 0; roomTour = m.tour || null; roomMinutes = m.minutes; roomInline = !!m.inline;
         const offerBefore = drawOffer; drawOffer = m.drawOffer;
         if (!watching && drawOffer === 1 - you && offerBefore !== drawOffer && m.game.winner === null) setTimeout(showDrawOffer, 50);
         if (drawOffer == null && $('overlay').dataset.kind === 'drawoffer') hideOverlay();
-        pendingCreate = null; joinCode = null; roomId = m.room; roomPub = m.pub; roomCode = m.code || roomCode; eloInfo = m.elo;
+        pendingCreate = null; pendingInline = null; joinCode = null; roomId = m.room; roomPub = m.pub; roomCode = m.code || roomCode; eloInfo = m.elo;
         roomRanked = m.ranked; searching = false; if (m.kind) kind = m.kind;
         const rm = m.rematch || [false, false];
         if (rm[1 - you] && !rematchState[1 - you] && m.game.winner !== null) { Snd.play('notify'); haptic('medium'); toast("{again} Raqib revansh so'rayapti!"); }
@@ -1415,8 +1415,15 @@
   function showWaiting() {
     // open rooms wait right on the board (the banner says "waiting"); only private rooms need the code card
     if (roomPub || $('overlay').dataset.kind === 'wait') return;
-    if (challengeTo || roomTour) { // a friend's challenge or a tournament match: just wait for the other one
+    if (challengeTo || roomTour || roomInline) { // a friend's challenge, a tournament match or a group message: just wait
       const p = openPanel('wait');
+      if (roomInline) {
+        addText(p, 'h1', '{hourglass} Raqib kutilmoqda');
+        p.insertAdjacentHTML('beforeend', '<div class="waiting"><i></i><i></i><i></i></div>');
+        addText(p, 'p', "Guruhdagi xabardagi tugmani birinchi bosgan odam raqibingiz bo'ladi.");
+        p.append(bigBtn('{close} Bekor qilish', showLobby));
+        return;
+      }
       addText(p, 'h1', roomTour ? '{rating} Turnir o\'yini' : "{swords} Chaqiruv yuborildi");
       p.insertAdjacentHTML('beforeend', '<div class="waiting"><i></i><i></i><i></i></div>');
       addText(p, 'p', roomTour ? "Raqibingiz kutilmoqda. 1 daqiqada kelmasa, siz g'olib bo'lasiz." : `${challengeTo} javobini kutyapmiz. Unga ilovada va bot orqali xabar bordi.`);
@@ -1504,6 +1511,8 @@
       wireFriendBtn(fb, { pid: oppPid, name: names[1 - you] || 'Raqib' }, true);
       api('player', null, '&pid=' + encodeURIComponent(oppPid)).then(d => { if (d && d.ok) wireFriendBtn(fb, d, true); });
       panel.appendChild(fb);
+      const rb = document.createElement('button'); rb.className = 'mini-danger'; rb.textContent = '🚩 Shikoyat'; rb.style.alignSelf = 'center';
+      const oppName = names[1 - you] || 'Raqib'; rb.onclick = () => showReport(oppPid, oppName); panel.appendChild(rb);
     }
     if (roomTour) { // tournament match: no rematch, the bracket decides what comes next
       addText(panel, 'div', draw ? "{again} Durrang — o'yin ranglar almashib qayta boshlanadi" : won ? "{rating} Keyingi bosqichga chiqdingiz!" : "Turnir siz uchun tugadi.").className = 'note';
@@ -1674,6 +1683,8 @@
       else if (m.t === 'admin') { isAdminUser = true; renderAd(); if (!$('profile').classList.contains('hide')) loadProfile(); }
       else if (m.t === 'apulse') onAdminPulse(m);
       else if (m.t === 'coins') onCoins(m);
+      else if (m.t === 'settings') notifyOn = m.notify;
+      else if (m.t === 'fonline') { if (!(mode === 'online' && game && game.winner === null)) toast(`🟢 Do'stingiz ${m.name} onlayn`); }
       else if (m.t === 'quest') { Snd.play('crown'); haptic('success'); toast(`📋 Vazifa bajarildi: ${m.quest.name} — mukofotni oling!`); refreshWallet(); }
       else if (m.t === 'paid') { Snd.play('win'); burst(); toast(`✅ ${m.name} — xaridingiz uchun rahmat!`); refreshWallet().then(() => { loadMyInfo(); if (!$('shop').classList.contains('hide')) loadShop(); }); }
       else if (m.t === 'ad') { adData = m.ad; renderAd(); }
@@ -1804,6 +1815,8 @@
       else p.appendChild(wireFriendBtn(bigBtn('', null, 'pri'), d, true, reload));
       p.appendChild(bigBtn('{swords} Chaqirish', () => challengeFriend(pid, d.name), d.friend ? 'pri' : ''));
       if (st === 'playing') p.appendChild(bigBtn("{search} O'yinini tomosha qilish", () => watchGame(d.status.room, d.status.kind)));
+      const rb = document.createElement('button'); rb.className = 'mini-danger'; rb.textContent = '🚩 Shikoyat qilish'; rb.style.alignSelf = 'center';
+      rb.onclick = () => showReport(pid, d.name); p.appendChild(rb);
     }
     p.appendChild(bigBtn('Yopish', hideOverlay));
   }
@@ -2078,7 +2091,7 @@
 
 
   // ---------- admin panel ----------
-  let isAdminUser = false, admTab = 'stats', admTimer = null;
+  let isAdminUser = false, admTab = 'stats', admTimer = null, notifyOn = true;
   // Telegram's own confirm dialog (window.confirm is not reliable inside the app)
   const ask = (text) => new Promise((res) => {
     try { if (tg && tg.showConfirm && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) return tg.showConfirm(text, (ok) => res(!!ok)); } catch (e) {}
@@ -2108,6 +2121,7 @@
     if (tab === 'players') return admPlayers(box);
     if (tab === 'rooms') return admRooms(box);
     if (tab === 'ad') return admAd(box);
+    if (tab === 'reports') return admReports(box);
     return admMessages(box);
   }
 
@@ -2661,6 +2675,60 @@
     for (const [c, k, id] of shopPreviews) previewSkin(c, k, id, now);
   }
 
+
+  // ---------- reports (🚩) ----------
+  function showReport(pid, name) {
+    const p = openPanel('report');
+    addText(p, 'h1', '🚩 Shikoyat');
+    addText(p, 'p', `${name} haqida nima bo'ldi? Shikoyat adminga boradi.`);
+    const opts = document.createElement('div'); opts.className = 'opts';
+    let reason = null;
+    const R = [['insult', '🤬 Haqorat (reaksiyalar orqali)'], ['cheat', '🤖 Firibgarlik / yordamchi dastur'], ['stall', "⏳ O'yinni ataylab cho'zish"],
+      ['name', '🖼 Nomaqbul ism yoki rasm'], ['other', '❓ Boshqa']];
+    for (const [k, t] of R) {
+      const b = document.createElement('button'); b.className = 'qrow'; b.textContent = t; b.style.cssText = 'justify-content:flex-start;font-weight:700;color:#fff';
+      b.onclick = () => { reason = k; opts.querySelectorAll('button').forEach(x => x.style.borderColor = ''); b.style.borderColor = 'var(--red)'; haptic('light'); };
+      opts.appendChild(b);
+    }
+    const ta = document.createElement('textarea'); ta.className = 'adm-ta'; ta.placeholder = 'Izoh (ixtiyoriy)'; ta.maxLength = 300; ta.style.minHeight = '64px';
+    p.append(opts, ta, bigBtn('🚩 Yuborish', async () => {
+      if (!reason) return toast('{alert} Sababni tanlang');
+      const r = await postApi('report', { pid, reason, text: ta.value, kind });
+      if (r && r.ok) { hideOverlay(); toast("{check} Shikoyat yuborildi. Rahmat — admin ko'rib chiqadi"); } else toast('{alert} ' + ((r && r.msg) || 'Xato'));
+    }, 'danger'), bigBtn('Bekor qilish', hideOverlay));
+  }
+  async function admReports(box) {
+    const d = await adminApi('reports', { all: admRepAll });
+    if (!admAlive() || admTab !== 'reports') return;
+    box.innerHTML = '';
+    $('repN').textContent = d && d.open ? d.open : '';
+    const seg = document.createElement('div'); seg.className = 'seg';
+    [[false, `Ochiq (${d ? d.open : 0})`], [true, 'Hammasi']].forEach(([v, t]) => { const b = document.createElement('button'); b.textContent = t; b.classList.toggle('on', admRepAll === v); b.onclick = () => { admRepAll = v; admReports(box); }; seg.appendChild(b); });
+    box.appendChild(seg);
+    if (!d || !d.list.length) return addText(box, 'div', "Shikoyat yo'q 🎉").className = 'empty2';
+    for (const r of d.list) {
+      const row = document.createElement('div'); row.className = 'adm-room'; row.style.alignItems = 'flex-start';
+      const who = document.createElement('div'); who.className = 'who2';
+      const b = addText(who, 'b', `🚩 ${r.toName || '?'} — ${r.reasonText}`); b.style.whiteSpace = 'normal';
+      if (r.banned) b.insertAdjacentHTML('beforeend', ' <span class="tag ban">bloklangan</span>');
+      addText(who, 'small', `${r.fromName || '?'} dan · ${agoTxt(r.at) === 'hozir' ? 'hozirgina' : agoTxt(r.at) + ' oldin'}` + (r.kind ? ` · ${GAME_NAMES[r.kind]}` : '') + ` · unga jami ${r.against} ta shikoyat` + (r.status !== 'open' ? ` · ${r.status === 'done' ? "ko'rildi" : 'rad etildi'}` : ''));
+      if (r.text) { const t = addText(who, 'div', '“' + r.text + '”'); t.style.cssText = 'font-size:12.5px;color:#d8ddff;margin-top:4px;white-space:normal'; }
+      const acts = document.createElement('div'); acts.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex:none';
+      const pb = document.createElement('button'); pb.textContent = "Ko'rish"; pb.style.cssText = 'border-color:var(--blue);background:rgba(47,123,255,.14);box-shadow:0 0 8px var(--blue)';
+      pb.onclick = () => admPlayer(r.toPid);
+      acts.appendChild(pb);
+      if (r.status === 'open') {
+        const ok = document.createElement('button'); ok.textContent = '✓ Hal'; ok.style.cssText = 'border-color:var(--green);background:rgba(46,230,107,.12);box-shadow:0 0 8px var(--green)';
+        ok.onclick = async () => { await adminApi('resolveReport', { id: r.id }); admReports(box); };
+        const no = document.createElement('button'); no.textContent = 'Rad';
+        no.onclick = async () => { await adminApi('resolveReport', { id: r.id, reject: true }); admReports(box); };
+        acts.append(ok, no);
+      }
+      row.append(who, acts); box.appendChild(row);
+    }
+  }
+  let admRepAll = false;
+
   // ---------- emoji reactions (online games) ----------
   const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
   function sendReaction(e) {
@@ -2899,6 +2967,10 @@
       const hx = c.getContext('2d'); hx.setTransform(dpr, 0, 0, dpr, 0, 0);
       profHero = hx;
     }
+    const ns = document.createElement('label'); ns.className = 'chk'; ns.style.cssText = 'padding:10px 12px;border-radius:14px;border:1px solid rgba(120,140,255,.25);background:rgba(8,13,36,.85)';
+    ns.innerHTML = `<input type="checkbox" ${notifyOn ? 'checked' : ''}> 🔔 Bot eslatmalari (seriya, haftalik natija)`;
+    ns.querySelector('input').onchange = async (e) => { const r = await postApi('settings', { notify: e.target.checked }); if (r && r.ok) { notifyOn = r.notify; toast(notifyOn ? "🔔 Eslatmalar yoqildi" : "🔕 Eslatmalar o'chirildi"); } };
+    box.appendChild(ns);
     if (isAdminUser) { const ab = document.createElement('button'); ab.className = 'adm-btn'; ab.innerHTML = '🛡 Admin panel'; ab.onclick = () => { haptic('medium'); showAdmin(); }; box.appendChild(ab); }
     const inv = document.createElement('button'); inv.className = 'inv-btn inv-big'; inv.innerHTML = lbl("{invite} Do'stlarni taklif qilish");
     inv.onclick = () => showInvite(null);
@@ -3084,7 +3156,7 @@
   // ---------- rooms lobby ----------
   // roomId: the room's public id (shown in the list); roomCode: secret code of a private room;
   // joinCode: a code typed in "Kod bilan kirish" before we know which room it opens
-  let pendingCreate = null, roomPub = false, roomCode = null, joinCode = null, lastTarget = null, watchRoom = null, challengeTo = null;
+  let pendingInline = null, pendingCreate = null, roomPub = false, roomCode = null, joinCode = null, lastTarget = null, watchRoom = null, challengeTo = null;
   let lobbyWs = null, lobbyRetry = null, knownRooms = new Set();
   const wsUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 
@@ -3904,11 +3976,14 @@
   // a friend link: startapp=fr<code> (or ?friend=fr<code> outside Telegram)
   const friendCode = startRoom && /^fr[0-9a-f]{12}$/.test(startRoom) ? startRoom : new URLSearchParams(location.search).get('friend');
   if (friendCode) startRoom = null;
+  const inl = startRoom && /^g_(tosiq|xo|shashka|shaxmat|[a-z0-9]+)_([a-f0-9]{6,12})$/.exec(startRoom);
+  if (inl) { startRoom = null; kind = RULES[inl[1]] ? inl[1] : kind; viewKind = kind; pendingInline = inl[2]; }
   openPresence();
   loadMyInfo().then(() => setFrame($('hubAv'), myInfo.equip.frame));
   refreshWallet();
   if (friendCode && /^fr[0-9a-f]{12}$/.test(friendCode)) setTimeout(() => acceptFriendInvite(friendCode), 400);
-  if (startRoom) { roomId = null; roomCode = null; joinCode = startRoom.toUpperCase().replace(/[^A-Z0-9]/g, ''); connect(); } else showHub();
+  if (pendingInline) { setTimeout(connect, 300); }
+  else if (startRoom) { roomId = null; roomCode = null; joinCode = startRoom.toUpperCase().replace(/[^A-Z0-9]/g, ''); connect(); } else showHub();
 })();
 </script>
 </body>

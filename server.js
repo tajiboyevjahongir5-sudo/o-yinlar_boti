@@ -155,7 +155,7 @@ function weekKey(t = Date.now()) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day)).toISOString().slice(0, 10);
 }
 function weekOf(p) {
-  if (!p.week || p.week.key !== weekKey()) p.week = { key: weekKey(), gain: {}, games: {} };
+  if (!p.week || p.week.key !== weekKey()) { if (p.week) p.lastWeek = p.week; p.week = { key: weekKey(), gain: {}, games: {} }; }
   return p.week;
 }
 const META_FILE = path.join(DATA_DIR, 'meta.json');
@@ -176,6 +176,7 @@ function rollWeek() {
     }
     if (best) { champs[kind] = best; award(best.uid, 'weekly'); }
   }
+  for (const p of Object.values(players)) if (p.week && p.week.key !== cur) weekOf(p); // keeps lastWeek for the summary
   meta.champs = champs; meta.week = cur;
   saveMeta();
 }
@@ -497,6 +498,96 @@ const ACTIONS = {
   botwin(me, m) { if (Number(m.level) === 2) award(me.uid, 'bothard'); return { ok: true }; },
 };
 
+// ---------- reports, notifications, group play ----------
+let onInlineQuery = async () => {}; // set below
+const REPORT_REASONS = { insult: 'Haqorat', cheat: 'Firibgarlik / yordamchi dastur', stall: "O'yinni ataylab cho'zish", name: 'Nomaqbul ism yoki rasm', other: 'Boshqa' };
+// a message from the bot to a player (only Telegram users who allow reminders)
+function botSend(uid, text, markup, force) {
+  if (!BOT_TOKEN || !uid || !uid.startsWith('tg')) return;
+  const p = players[uid];
+  if (!force && p && p.notify === false) return;
+  tgApi('sendMessage', { chat_id: Number(uid.slice(2)), text, parse_mode: 'HTML', reply_markup: markup, link_preview_options: { is_disabled: true } }).catch(() => {});
+}
+Object.assign(ECON_ACTIONS, {
+  report(me, m) {
+    const uid = uidOfPid(String(m.pid || ''));
+    if (!uid || uid === me.uid) return { ok: false, msg: "O'yinchi topilmadi" };
+    if (!REPORT_REASONS[m.reason]) return { ok: false, msg: 'Sababni tanlang' };
+    meta.reports = meta.reports || [];
+    const day = dayKey();
+    if (meta.reports.some(r => r.from === me.uid && r.to === uid && dayKey(r.at) === day)) return { ok: false, msg: "Bu o'yinchi haqida bugun shikoyat yuborgansiz" };
+    if (meta.reports.filter(r => r.from === me.uid && dayKey(r.at) === day).length >= 10) return { ok: false, msg: "Bugun juda ko'p shikoyat yubordingiz" };
+    const r = { id: crypto.randomBytes(5).toString('hex'), from: me.uid, to: uid, reason: m.reason, text: String(m.text || '').slice(0, 300),
+      kind: GAMES[m.kind] ? m.kind : null, at: Date.now(), status: 'open' };
+    meta.reports.unshift(r); meta.reports = meta.reports.slice(0, 500);
+    saveMeta();
+    for (const a of presence.keys()) if (isAdmin(a)) notify(a, { t: 'toast', msg: `🚩 Yangi shikoyat: ${players[uid].name} — ${REPORT_REASONS[m.reason]}` });
+    return { ok: true };
+  },
+  settings(me, m) {
+    const p = playerRec(me.uid);
+    if ('notify' in m) p.notify = !!m.notify;
+    savePlayers();
+    return { ok: true, notify: p.notify !== false };
+  },
+});
+// group play: "@bot" in any chat offers the games; the message's button opens one shared room
+const inlineRooms = new Map(); // token -> { kind, room, by, at }
+onInlineQuery = async (q) => {
+  if (!BOT_NAME || !process.env.APP_NAME) return;
+  const name = q.from.username ? '@' + q.from.username : q.from.first_name || "O'yinchi";
+  const results = Object.keys(GAMES).map(kind => {
+    const token = crypto.randomBytes(5).toString('hex'), g = GAME_INFO[kind];
+    inlineRooms.set(token, { kind, room: null, by: 'tg' + q.from.id, at: Date.now() });
+    return { type: 'article', id: token, title: `${g.emoji} ${g.title}`, description: g.line,
+      input_message_content: { message_text: `⚔️ <b>${esc(name)}</b> <b>${g.title}</b> o'ynashga chaqiryapti!\n\n<blockquote>${g.emoji} ${g.line}</blockquote>\n\n👇 Birinchi bosgan — raqib! Kim jur'at qiladi?`, parse_mode: 'HTML' },
+      reply_markup: { inline_keyboard: [[{ text: `▶️ ${g.title} — o'ynash`, url: `https://t.me/${BOT_NAME}/${process.env.APP_NAME}?startapp=g_${kind}_${token}` }]] } };
+  });
+  // forget tokens that were never used after a day
+  for (const [t, v] of inlineRooms) if (Date.now() - v.at > 86400000 && !v.room) inlineRooms.delete(t);
+  await tgApi('answerInlineQuery', { inline_query_id: q.id, results, cache_time: 0, is_personal: true });
+};
+// the room behind an inline message: the first two people to open it play
+function inlineRoom(token, kind) {
+  token = String(token || '').replace(/[^a-f0-9]/g, '').slice(0, 12);
+  if (!token) return null;
+  let e = inlineRooms.get(token);
+  if (!e) { e = { kind: kindOf(kind), room: null, at: Date.now() }; inlineRooms.set(token, e); } // server restarted
+  let r = e.room && rooms.get(e.room);
+  if (r && r.game.winner !== null && r.players.every(p => !p || !p.ws)) r = null;
+  if (!r) {
+    r = { id: freshCode(), code: freshCode(), kind: e.kind, pub: false, inline: true, created: Date.now(), minutes: DEFAULT_MIN[e.kind],
+      game: GAMES[e.kind].newGame(0, DEFAULT_MIN[e.kind]), starter: 0, players: [null, null], watchers: new Set() };
+    rooms.set(r.id, r); e.room = r.id;
+  }
+  return r;
+}
+
+// reminders: the daily streak (19:00 Tashkent), the weekly summary (Monday 10:00)
+setInterval(() => {
+  const now = Date.now(), hour = new Date(now + 5 * 3600000).getUTCHours(), today = dayKey(), yday = dayKey(now - 86400000);
+  if (hour === 19) for (const [uid, p] of Object.entries(players)) {
+    const d = p.daily;
+    if (!d || d.claimed !== yday || (d.streak || 0) < 2 || p.remindDay === today || presence.has(uid)) continue;
+    p.remindDay = today;
+    const bonus = Rewards.DAILY[Math.min(d.streak + 1, 7) - 1] * (isVip(p) ? 2 : 1);
+    botSend(uid, `🔥 <b>${d.streak} kunlik seriyangiz</b> yo'qolmasin!\n\nBugungi bonus: <b>${bonus} 🪙</b> — yarim tungacha oling.`, keyboard([playButton()]));
+  }
+  const monday = new Date(now + 5 * 3600000).getUTCDay() === 1;
+  if (monday && hour >= 10 && meta.weeklySent !== weekKey()) {
+    meta.weeklySent = weekKey(); saveMeta();
+    for (const [uid, p] of Object.entries(players)) {
+      const w = p.lastWeek;
+      if (!w || w.key === weekKey()) continue;
+      const lines = Object.keys(w.games || {}).filter(k => w.games[k]).map(k => `${GAME_INFO[k].emoji} ${GAME_INFO[k].title}: ${(w.gain[k] || 0) >= 0 ? '+' : ''}${w.gain[k] || 0} ELO (${w.games[k]} o'yin)`);
+      if (!lines.length) continue;
+      const champ = champOf(uid);
+      botSend(uid, `📊 <b>O'tgan hafta natijangiz</b>\n\n${lines.join('\n')}` + (champ.length ? `\n\n👑 Siz <b>Hafta qiroli</b> bo'ldingiz: ${champ.map(k => GAME_INFO[k].title).join(', ')}!` : '') + `\n\nYangi hafta boshlandi — reytingda yuqoriga chiqing! 🏆`, keyboard([playButton()]));
+    }
+  }
+  saveMetaSoon(); savePlayers();
+}, 10 * 60 * 1000);
+
 Object.assign(ACTIONS, ECON_ACTIONS);
 
 // ---------- admin panel (only for ADMIN_ID; with BOT_TOKEN the Telegram signature must check out) ----------
@@ -755,6 +846,20 @@ ADMIN.ad = function (m) {
   saveMeta(); pushAd();
   return { ok: true, ad: Object.assign({}, a) };
 };
+ADMIN.reports = function (m) {
+  const list = (meta.reports || []).filter(r => (m.all ? true : r.status === 'open')).slice(0, 100).map(r => Object.assign({}, r, {
+    fromName: (players[r.from] || {}).name, toName: (players[r.to] || {}).name, toPid: pidOf(r.to), fromPid: pidOf(r.from),
+    reasonText: REPORT_REASONS[r.reason], against: (meta.reports || []).filter(x => x.to === r.to).length, banned: !!(players[r.to] && players[r.to].ban) }));
+  return { ok: true, list, open: (meta.reports || []).filter(r => r.status === 'open').length };
+};
+ADMIN.resolveReport = function (m) {
+  const r = (meta.reports || []).find(x => x.id === m.id);
+  if (!r) return { ok: false, msg: 'Topilmadi' };
+  r.status = m.reject ? 'rejected' : 'done'; r.doneAt = Date.now();
+  saveMeta();
+  return { ok: true };
+};
+
 ADMIN.giveCoins = function (m) { // add (or take, with a minus) coins
   const uid = uidOfPid(String(m.pid || '')), n = Math.round(Number(m.amount));
   if (!uid || !Number.isFinite(n) || !n || Math.abs(n) > 1000000) return { ok: false, msg: "Miqdor noto'g'ri" };
@@ -1018,7 +1123,7 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult)$/);
+  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings)$/);
   if (act && req.method === 'POST') {
     readJson(req).then(async (body) => {
       const me = whoIs(body);
@@ -1188,7 +1293,7 @@ function broadcast(room) {
     looks: room.players.map(x => (x ? looksOf(x.uid, room.kind) : { frame: null, skin: null })),
     pids: room.players.map(x => (x ? pidOf(x.uid) : null)),
     minutes: room.minutes || DEFAULT_MIN[room.kind], drawOffer: room.drawOffer == null ? null : room.drawOffer,
-    watchers: room.watchers ? room.watchers.size : 0, tour: room.tour || null,
+    watchers: room.watchers ? room.watchers.size : 0, tour: room.tour || null, inline: !!room.inline,
   };
   room.players.forEach((pl, i) => {
     if (!pl || !pl.ws) return;
@@ -1237,7 +1342,10 @@ function playRound(t) {
       game: GAMES[t.kind].newGame(starter, t.minutes), starter, players: [null, null], reserved: [A.uid, B.uid], watchers: new Set() };
     rooms.set(r.id, r);
     m.room = r.id;
-    for (const [P, O] of [[A, B], [B, A]]) notify(P.uid, { t: 'tmatch', tour: t.id, room: r.id, code: r.code, kind: t.kind, opp: O.name });
+    for (const [P, O] of [[A, B], [B, A]]) {
+      notify(P.uid, { t: 'tmatch', tour: t.id, room: r.id, code: r.code, kind: t.kind, opp: O.name });
+      if (!presence.has(P.uid)) botSend(P.uid, `🏆 <b>Turnir o'yiningiz boshlandi!</b>\n\nRaqib: <b>${esc(O.name)}</b> (${GAME_INFO[t.kind].title})\n⏳ 1 daqiqa ichida kiring, aks holda mag'lub hisoblanasiz.`, keyboard([playButton(r.code)]), true);
+    }
     // whoever doesn't come to the board within a minute loses that match
     r.noShow = setTimeout(() => {
       if (m.w != null || r.game.turnStart !== null) return;
@@ -1333,7 +1441,9 @@ wss.on('connection', (ws) => {
   const fail = (code, msg) => send({ t: 'err', code, msg });
   ws.attach = (r, s) => { room = r; slot = s; }; // used when matchmaking seats this socket
 
-  ws.on('message', (raw) => {
+  // one bad message must never take the whole server down
+  ws.on('message', (raw) => { try { onWsMessage(raw); } catch (e) { console.log('ws xato:', e && e.stack || e); } });
+  const onWsMessage = (raw) => {
     let m;
     try { m = JSON.parse(raw); } catch (e) { return; }
 
@@ -1352,6 +1462,12 @@ wss.on('connection', (ws) => {
       rec.seen = Date.now();
       if (meta.announce) send({ t: 'announce', text: meta.announce.text, at: meta.announce.at });
       send({ t: 'ad', ad: isVip(players[me.uid]) ? null : publicAd() });
+      send({ t: 'settings', notify: rec.notify !== false });
+      // tell online friends (at most every 30 minutes per player)
+      if (!presence.has(me.uid) && Date.now() - (rec.announcedAt || 0) > 30 * 60000) {
+        rec.announcedAt = Date.now();
+        for (const f of Object.keys(players)) if (presence.has(f) && (players[f].friends || []).includes(me.uid)) notify(f, { t: 'fonline', name: me.name });
+      }
       markActive(me.uid);
       if (bannedMsg(me.uid)) send({ t: 'banned', msg: bannedMsg(me.uid) });
       if (isAdmin(me.uid)) send({ t: 'admin' });
@@ -1408,7 +1524,10 @@ wss.on('connection', (ws) => {
       if (bannedMsg(uid)) return fail('auth', bannedMsg(uid));
       markActive(uid);
       let r;
-      if (m.create) {                       // new room
+      if (m.inline) {                        // opened from a group message ("@bot" inline)
+        r = inlineRoom(m.inline, m.kind);
+        if (!r) return fail('notfound', "O'yin topilmadi");
+      } else if (m.create) {                // new room
         const pub = !!m.create.pub;
         const kind = kindOf(m.create.kind), minutes = minutesOf(kind, m.create.minutes);
         r = { id: freshCode(), kind, pub, created: Date.now(), game: GAMES[kind].newGame(0, minutes), starter: 0, minutes,
@@ -1483,7 +1602,7 @@ wss.on('connection', (ws) => {
       const msg = JSON.stringify({ t: 'react', e: m.e, from: slot });
       for (const pl of room.players) if (pl && pl.ws && pl.ws.readyState === 1) pl.ws.send(msg);
     }
-  });
+  };
 
   ws.on('close', () => {
     if (lobby.delete(ws)) lobbyChanged();
@@ -1668,9 +1787,6 @@ const BOT_DESCRIPTION = [
   "",
   "Kim kuchliroq? Boshlash uchun START ni bosing 👇",
 ].join('\n');
-
-// group play via inline mode — filled in below
-let onInlineQuery = async () => {};
 
 // ---------- Telegram Stars payments ----------
 async function onPreCheckout(q) {

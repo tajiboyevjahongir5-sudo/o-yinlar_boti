@@ -93,6 +93,18 @@ ketayotgan o'yinni bosib tomosha qilish mumkin. Turnir o'yinlari ELO bermaydi; g
 - **Referal**: do'stlik havolasi orqali kirgan **yangi** o'yinchi 5 ta o'yin o'ynasa, ikkalasi 200 tanga oladi.
 - Admin: o'yinchiga tanga berish/olish; statistikada Stars daromadi, VIP soni, jami tangalar.
 
+## Shikoyat, guruhda o'ynash, eslatmalar
+
+- **🚩 Shikoyat**: o'yin natijasi oynasida va o'yinchi kartasida (haqorat, firibgarlik, o'yinni cho'zish, nomaqbul
+  ism/rasm, boshqa + izoh). Kuniga bir o'yinchiga bitta, jami 10 ta. Admin panel → **Shikoyatlar**: ko'rish,
+  "Hal" / "Rad", o'yinchi kartasidan bloklash. Yangi shikoyat onlayn adminlarga darhol bildiriladi.
+- **Guruhda o'ynash**: istalgan chatda `@BotNomi` yozing → o'yinni tanlang → guruhga tugmali chaqiruv boradi;
+  tugmani **birinchi bosgan** raqib bo'ladi. Buning uchun @BotFather → `/setinline` → botni tanlang → yozuv
+  (masalan "o'yin tanlang") — **inline rejimni yoqing**.
+- **Bot eslatmalari** (Profilda o'chirsa bo'ladi): 19:00 da "seriyangiz yo'qolmasin" (seriya 2+ kun, bonus olinmagan,
+  ilova yopiq), dushanba 10:00 da o'tgan hafta natijasi (ELO o'zgarishi, Hafta qiroli), turnir o'yini boshlanganda
+  (ilova yopiq bo'lsa). Do'stingiz ilovaga kirganda — ilovada xabar.
+
 ## Admin panel
 
 Serverga `ADMIN_ID` (Telegram ID; botga `/id` yozsangiz ko'rsatadi; bir nechta bo'lsa vergul bilan) qo'shing.
