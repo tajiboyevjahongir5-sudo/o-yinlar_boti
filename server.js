@@ -245,9 +245,9 @@ const MINUTES = [1, 3, 5, 10];
 const DEFAULT_MIN = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10 };
 const minutesOf = (kind, m) => (MINUTES.includes(Number(m)) ? Number(m) : DEFAULT_MIN[kind]);
 
-const readJson = (req) => new Promise((res) => {
+const readJson = (req, limit = 20000) => new Promise((res) => {
   let body = '';
-  req.on('data', (c) => { body += c; if (body.length > 20000) req.destroy(); });
+  req.on('data', (c) => { body += c; if (body.length > limit) req.destroy(); });
   req.on('end', () => { try { res(JSON.parse(body || '{}')); } catch (e) { res({}); } });
 });
 
@@ -395,7 +395,8 @@ const ADMIN = {
       rated: Object.fromEntries(Object.keys(GAMES).map(k => [k, all.filter(u => players[u].stats[k] && players[u].stats[k].games).length])),
       online: on.counts, onlineTotal: on.total, liveGames: live, waitingRooms: waiting, queue: queue.length,
       tours: [...tours.values()].filter(t => t.status !== 'done').length, banned: all.filter(u => players[u].ban).length,
-      botUsers: botAudience().length, days, broadcasting };
+      botUsers: botAudience().length, days, broadcasting, active: activeStats(),
+      ad: meta.ad ? { on: !!meta.ad.on, views: meta.ad.views || 0, clicks: meta.ad.clicks || 0, since: meta.ad.at } : null };
   },
   players(m) {
     const q = String(m.q || '').trim().replace(/^@/, '').toLowerCase();
@@ -503,6 +504,91 @@ const ADMIN = {
     return { ok: true, total: ids.length };
   },
 };
+// ---------- daily / weekly / monthly active users (unique people who opened the app or played) ----------
+meta.active = meta.active || {};
+const activeSets = new Map(Object.entries(meta.active).map(([d, list]) => [d, new Set(list)]));
+let metaSaveTimer = null;
+const saveMetaSoon = () => { clearTimeout(metaSaveTimer); metaSaveTimer = setTimeout(saveMeta, 2000); };
+function markActive(uid) {
+  if (!uid) return;
+  const d = dayKey();
+  let set = activeSets.get(d);
+  if (!set) {
+    set = new Set(); activeSets.set(d, set);
+    for (const k of [...activeSets.keys()].sort().slice(0, -35)) activeSets.delete(k); // keep 35 days
+  }
+  if (set.has(uid)) return;
+  set.add(uid);
+  meta.active = Object.fromEntries([...activeSets].map(([k, v]) => [k, [...v]]));
+  saveMetaSoon();
+  adminPulse();
+}
+// people with the app open stay "active" past midnight
+setInterval(() => { for (const uid of presence.keys()) markActive(uid); }, 5 * 60 * 1000);
+function uniqueOver(days) {
+  const all = new Set(), now = Date.now();
+  for (let i = 0; i < days; i++) { const set = activeSets.get(dayKey(now - i * 86400000)); if (set) for (const u of set) all.add(u); }
+  return all.size;
+}
+function activeStats() {
+  const now = Date.now(), month = dayKey().slice(0, 7), inMonth = new Set();
+  for (const [d, set] of activeSets) if (d.startsWith(month)) for (const u of set) inMonth.add(u);
+  const series = [];
+  for (let i = 29; i >= 0; i--) { const d = dayKey(now - i * 86400000); series.push({ day: d, n: (activeSets.get(d) || new Set()).size }); }
+  const dau = series[29].n, yesterday = series[28].n;
+  return { dau, yesterday, wau: uniqueOver(7), mau: uniqueOver(30), month: inMonth.size, series };
+}
+// admins with the panel open get the live numbers pushed (at most once a second)
+let pulseTimer = null;
+function adminPulse() {
+  if (pulseTimer) return;
+  pulseTimer = setTimeout(() => {
+    pulseTimer = null;
+    const admins = [...presence.keys()].filter(isAdmin);
+    if (!admins.length) return;
+    const a = activeStats(), on = onlineCounts();
+    let live = 0; for (const r of rooms.values()) if (r.game.winner === null && r.game.turnStart !== null) live++;
+    const msg = { t: 'apulse', online: on.total, perGame: on.counts, live, dau: a.dau, wau: a.wau, mau: a.mau, month: a.month };
+    for (const u of admins) notify(u, msg);
+  }, 1000);
+}
+
+// ---------- the advertising banner on the games page ----------
+const AD_FILE = path.join(DATA_DIR, 'ad-image');
+function publicAd() {
+  const a = meta.ad;
+  if (!a || !a.on || (!a.img && !a.title && !a.text)) return null;
+  return { v: a.v, title: a.title || '', text: a.text || '', button: a.button || '', link: a.link || '', img: a.img ? `ad.img?v=${a.v}` : null };
+}
+function pushAd() {
+  const msg = JSON.stringify({ t: 'ad', ad: publicAd() });
+  for (const set of presence.values()) for (const w of set) if (w.readyState === 1) w.send(msg);
+}
+ADMIN.ad = function (m) {
+  const a = meta.ad = meta.ad || { on: false, views: 0, clicks: 0 };
+  const link = String(m.link || '').trim();
+  if (link && !/^(https:\/\/|tg:\/\/)/i.test(link)) return { ok: false, msg: "Havola https:// yoki tg:// bilan boshlanishi kerak" };
+  let changed = false;
+  if (typeof m.image === 'string' && m.image) {
+    const mm = m.image.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
+    if (!mm) return { ok: false, msg: 'Rasm PNG, JPG, WEBP yoki GIF bo\'lishi kerak' };
+    const buf = Buffer.from(mm[2], 'base64');
+    if (buf.length > 2.5 * 1024 * 1024) return { ok: false, msg: 'Rasm 2.5 MB dan katta' };
+    fs.writeFileSync(AD_FILE, buf); a.img = true; a.imgType = mm[1]; changed = true;
+  }
+  if (m.removeImage) { a.img = false; try { fs.unlinkSync(AD_FILE); } catch (e) {} changed = true; }
+  const fields = { title: 80, text: 200, button: 30 };
+  for (const [k, max] of Object.entries(fields)) if (k in m) { const v = String(m[k] || '').trim().slice(0, max); if (v !== a[k]) { a[k] = v; changed = true; } }
+  if ('link' in m && link !== a.link) { a.link = link; changed = true; }
+  if ('on' in m && !!m.on !== a.on) { a.on = !!m.on; changed = true; }
+  // a new banner starts its view / tap counters again
+  if (changed) { a.v = Date.now(); a.at = a.at || Date.now(); }
+  if (m.resetStats || (changed && m.newCampaign)) { a.views = 0; a.clicks = 0; a.at = Date.now(); }
+  saveMeta(); pushAd();
+  return { ok: true, ad: Object.assign({}, a) };
+};
+ADMIN.adGet = () => ({ ok: true, ad: meta.ad || null });
+
 // end a room for everyone in it (players and spectators are sent back to the lobby)
 function closeRoom(r, msg) {
   clearTimeout(r.clockTimer); clearTimeout(r.noShow); clearTimeout(r.cleanup); clearTimeout(r.holdTimer);
@@ -638,6 +724,22 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ bot: BOT_NAME, app: process.env.APP_NAME || '' }));
   }
   if (url.pathname === '/healthz') return sendJson(res, { ok: true }); // Render's health check
+  if (url.pathname === '/ad.img') { // the banner picture uploaded in the admin panel
+    if (!meta.ad || !meta.ad.img) { res.writeHead(404); return res.end(); }
+    return fs.readFile(AD_FILE, (err, data) => {
+      if (err) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { 'Content-Type': meta.ad.imgType || 'image/jpeg', 'Cache-Control': 'public, max-age=86400' });
+      res.end(data);
+    });
+  }
+  if (url.pathname === '/api/adstat' && req.method === 'POST') { // banner seen / tapped
+    readJson(req, 500).then((b) => {
+      const a = meta.ad;
+      if (a && a.on && Number(b.v) === a.v) { if (b.kind === 'click') a.clicks = (a.clicks || 0) + 1; else a.views = (a.views || 0) + 1; saveMetaSoon(); }
+      sendJson(res, { ok: true });
+    });
+    return;
+  }
   if (url.pathname === '/api/rooms') return sendJson(res, lobbyData()); // same data the lobby socket pushes
   if (url.pathname === '/api/invite' && req.method === 'POST') {
     let body = '';
@@ -703,7 +805,7 @@ const server = http.createServer((req, res) => {
     return sendJson(res, { friends: list, requests });
   }
   if (url.pathname === '/api/admin' && req.method === 'POST') {
-    readJson(req).then(async (body) => {
+    readJson(req, 4 * 1024 * 1024).then(async (body) => {
       const me = whoIs(body);
       if (!me || !isAdmin(me.uid)) return sendJson(res, { ok: false, msg: "Ruxsat yo'q" });
       const fn = ADMIN[body.op];
@@ -787,6 +889,7 @@ function onlineCounts() {
 }
 let onlineTimer = null, lastOnline = '';
 function onlineChanged() {
+  adminPulse();
   if (onlineTimer) return;
   onlineTimer = setTimeout(() => {
     onlineTimer = null;
@@ -1044,6 +1147,8 @@ wss.on('connection', (ws) => {
       const rec = playerRec(me.uid, me.name, me.photo);
       rec.seen = Date.now();
       if (meta.announce) send({ t: 'announce', text: meta.announce.text, at: meta.announce.at });
+      send({ t: 'ad', ad: publicAd() });
+      markActive(me.uid);
       if (bannedMsg(me.uid)) send({ t: 'banned', msg: bannedMsg(me.uid) });
       if (isAdmin(me.uid)) send({ t: 'admin' });
       if (!presence.has(me.uid)) presence.set(me.uid, new Set());
@@ -1081,6 +1186,7 @@ wss.on('connection', (ws) => {
       const uid = v ? v.uid : String(m.uid || '').slice(0, 64), name = v ? v.name : String(m.name || "O'yinchi").slice(0, 24);
       if (!uid) return fail('auth', "Foydalanuvchi aniqlanmadi");
       if (bannedMsg(uid)) return fail('auth', bannedMsg(uid));
+      markActive(uid);
       leaveQueue(ws);
       for (const q of queue.filter(x => x.uid === uid)) { leaveQueue(q.ws); q.ws.close(); } // one search per player
       const kind = kindOf(m.kind);
@@ -1096,6 +1202,7 @@ wss.on('connection', (ws) => {
       const uid = v ? v.uid : String(m.uid || '').slice(0, 64), name = v ? v.name : String(m.name || "O'yinchi").slice(0, 24);
       const verified = !!v || !BOT_TOKEN, photo = v ? v.photo : cleanPhoto(m.photo);
       if (bannedMsg(uid)) return fail('auth', bannedMsg(uid));
+      markActive(uid);
       let r;
       if (m.create) {                       // new room
         const pub = !!m.create.pub;

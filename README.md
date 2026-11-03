@@ -85,7 +85,8 @@ Serverga `ADMIN_ID` (Telegram ID; botga `/id` yozsangiz ko'rsatadi; bir nechta b
 Shu foydalanuvchi uchun Profil sahifasida **🛡 Admin panel** tugmasi chiqadi (server Telegram imzosini tekshiradi —
 boshqalar API'ni ham ishlata olmaydi).
 
-- **Statistika**: hozir onlayn (umumiy va har o'yinda), ketayotgan o'yinlar, jami/bugungi/7 kunlik o'yinchilar,
+- **Statistika**: **faol foydalanuvchilar (LIVE)** — bugun (DAU), 7 kun (WAU), 30 kun (MAU), shu oy, kecha bilan
+  solishtirish, DAU/MAU va 30 kunlik grafik; kimdir ilovani ochishi bilan raqamlar darhol yangilanadi. Shuningdek: hozir onlayn (umumiy va har o'yinda), ketayotgan o'yinlar, jami/bugungi/7 kunlik o'yinchilar,
   navbat, turnirlar, bloklanganlar, 7 kunlik onlayn o'yinlar grafigi (o'yinlar bo'yicha). 10 soniyada yangilanadi.
 - **O'yinchilar**: ism, @username, Telegram ID yoki pid bo'yicha qidirish; saralash (oxirgi kirgan, yangi, ko'p
   o'ynagan, bloklangan). O'yinchi kartasida: har o'yindagi ELO / eng yuqori / G-M, **ELO'ni o'zgartirish**,
@@ -95,6 +96,9 @@ boshqalar API'ni ham ishlata olmaydi).
 - **Xabarlar**: ilovada hammaga ko'rinadigan **e'lon** (o'yinlar ro'yxati tepasida, darhol) va **bot orqali hammaga
   xabar** (ilovani ochgan yoki botga /start bosganlarga; HTML; "O'ynash" tugmasi; avval "Menga sinov"; jarayon
   ko'rsatiladi, ~20 xabar/soniya).
+- **Reklama**: o'yinlar sahifasida banner — rasm (telefondan yuklanadi, 1280×400 tavsiya), sarlavha, matn, tugma va
+  havola (https:// yoki tg://). Yoqish/o'chirish, oldindan ko'rish, ko'rishlar / bosishlar / CTR. Saqlash bilan
+  hammada darhol yangilanadi. Banner bo'lmasa, joyini faqat admin ko'radi. Rasm: `data/ad-image`.
 - Ma'lumot: `data/meta.json` (kunlik o'yinlar, e'lon, bot foydalanuvchilari), `data/players.json` (blok, sanalar).
 
 ## Revansh, reaksiyalar va ovoz

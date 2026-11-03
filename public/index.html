@@ -641,6 +641,28 @@
     text-align:center; background:rgba(4,6,18,.96); }
   #banScreen.hide { display:none; } #banScreen .e { font-size:56px; } #banScreen p { color:#ffd0d6; font-size:15px; line-height:1.5; max-width:340px; }
 
+  /* ---------- live active users, ad banner ---------- */
+  .live-tag { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:900; color:var(--green); letter-spacing:.5px; }
+  .adm-grid .big2 b { font-size:28px; color:var(--green); text-shadow:0 0 10px rgba(46,230,107,.45); }
+  .adm-grid b.bump { animation:bump .6s ease-out; display:block; transform-origin:left center; }
+  .bars.b30 { gap:2px; height:110px; } .bars.b30 .stack { max-width:none; background:var(--green); opacity:.85; }
+  .bars.b30 .col:last-child .stack { opacity:1; box-shadow:0 0 8px var(--green); } .bars.b30 small { font-size:8.5px; }
+  #adSlot:empty { display:none; }
+  .adban { position:relative; display:block; width:100%; border-radius:18px; overflow:hidden; cursor:pointer; text-align:left; color:#fff; padding:0;
+    border:1.5px solid rgba(255,255,255,.18); background:linear-gradient(120deg, #1b2a6b, #3a1452); box-shadow:0 0 14px rgba(120,140,255,.35); animation:cardIn .4s ease-out; }
+  .adban:active { transform:scale(.99); }
+  .adban img { display:block; width:100%; max-height:200px; object-fit:cover; }
+  .adban .adtx { display:flex; align-items:center; gap:10px; padding:10px 12px; }
+  .adban .adtx div { flex:1; min-width:0; } .adban .adtx b { display:block; font-size:15px; }
+  .adban .adtx small { display:block; font-size:12.5px; color:#d8ddff; line-height:1.35; }
+  .adban .adbtn { flex:none; padding:8px 12px; border-radius:12px; background:#fff; color:#141a3a; font-weight:900; font-size:13px; }
+  .adban .adtag { position:absolute; top:8px; right:8px; font-size:9.5px; font-weight:800; letter-spacing:.4px; padding:2px 7px; border-radius:7px;
+    background:rgba(0,0,0,.55); color:#e8ecff; }
+  .adslot-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; height:92px; border-radius:18px;
+    border:2px dashed rgba(255,197,49,.5); color:#f3dfa6; font-size:13px; font-weight:800; cursor:pointer; text-align:center; }
+  .adslot-empty small { color:var(--mute); font-weight:600; font-size:11.5px; }
+  .ad-prev { width:100%; }
+
   /* long notices wrap instead of running off the screen */
   #toast { white-space:normal; text-align:center; width:max-content; max-width:calc(100vw - 32px); line-height:1.35; }
   .search-in { width:100%; padding:12px 14px; border-radius:14px; border:2px solid var(--blue); background:#070b1f; color:#fff; font-size:15px;
@@ -738,6 +760,7 @@
   <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button id="hubSnd" class="tiny-btn snd" aria-label="Ovoz"></button><button class="inv-btn" id="hubInvite"><i data-ic="invite"></i> Taklif qilish</button></div>
   <div class="hub-title"><i data-ic="games"></i> O'yinlar</div>
   <div class="hub-online"><span class="dot"></span><span id="hubOnline">Onlayn o'yinchilar yuklanmoqda...</span></div>
+  <div id="adSlot"></div>
   <div id="announce" class="hide"><span class="ic3">📢</span><span id="announceTx" style="flex:1"></span><button id="announceX" aria-label="Yopish">✕</button></div>
   <div id="games"></div>
 </div></div>
@@ -773,7 +796,7 @@
 <div id="admin" class="tab hide"><div class="hub-in">
   <div class="lob-top"><button class="icon-btn" id="admBack" aria-label="Orqaga"><i data-ic="back"></i></button>
     <div class="lob-title"><b>🛡 Admin panel</b><small id="admSub">Faqat siz ko'rasiz</small></div></div>
-  <div class="seg" id="admSeg"><button data-s="stats" class="on">Statistika</button><button data-s="players">O'yinchilar</button><button data-s="rooms">Xonalar</button><button data-s="msg">Xabarlar</button></div>
+  <div class="seg" id="admSeg"><button data-s="stats" class="on">Statistika</button><button data-s="players">O'yinchilar</button><button data-s="rooms">Xonalar</button><button data-s="msg">Xabarlar</button><button data-s="ad">Reklama</button></div>
   <div id="admBody" style="display:flex;flex-direction:column;gap:10px"></div>
 </div></div>
 <div id="banScreen" class="hide"><span class="e">⛔</span><h2 style="margin:0">Kirish cheklangan</h2><p id="banTx"></p></div>
@@ -1599,7 +1622,9 @@
     s.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; setFriendBadge(m.requests || 0); }
-      else if (m.t === 'admin') { isAdminUser = true; if (!$('profile').classList.contains('hide')) loadProfile(); }
+      else if (m.t === 'admin') { isAdminUser = true; renderAd(); if (!$('profile').classList.contains('hide')) loadProfile(); }
+      else if (m.t === 'apulse') onAdminPulse(m);
+      else if (m.t === 'ad') { adData = m.ad; renderAd(); }
       else if (m.t === 'announce') { setAnnounce(m.text, m.at); if (m.text && !$('hub').classList.contains('hide')) Snd.play('notify'); }
       else if (m.t === 'banned') { $('banTx').textContent = m.msg; $('banScreen').classList.remove('hide'); leaveOnline(); }
       else if (m.t === 'unbanned') { $('banScreen').classList.add('hide'); toast("{check} Blok olib tashlandi"); }
@@ -2030,6 +2055,7 @@
     if (tab === 'stats') return admStats(box);
     if (tab === 'players') return admPlayers(box);
     if (tab === 'rooms') return admRooms(box);
+    if (tab === 'ad') return admAd(box);
     return admMessages(box);
   }
 
@@ -2038,11 +2064,33 @@
     if (!admAlive() || admTab !== 'stats') return;
     box.innerHTML = '';
     if (!d || !d.ok) return addText(box, 'div', '{alert} ' + ((d && d.msg) || "Ruxsat yo'q")).className = 'empty2';
+    // daily / weekly / monthly active users — live
+    const a = d.active;
+    const head = addText(box, 'div', "{users} Faol foydalanuvchilar"); head.className = 'sec';
+    head.insertAdjacentHTML('beforeend', '<span class="live-tag"><span class="dot"></span>LIVE</span>');
+    const ag = document.createElement('div'); ag.className = 'adm-grid';
+    const live = (key, v, l, big) => { const c = document.createElement('div'); if (big) c.className = 'big2'; const b = addText(c, 'b', String(v)); b.dataset.live = key; addText(c, 'small', l); ag.appendChild(c); };
+    live('dau', a.dau, '📅 Bugun (DAU)', true); live('online', d.onlineTotal, '🟢 Hozir onlayn', true);
+    live('wau', a.wau, '🗓 7 kun (WAU)'); live('mau', a.mau, '📆 30 kun (MAU)');
+    live('month', a.month, '🗓 Shu oy (kalendar)'); const yc = document.createElement('div');
+    addText(yc, 'b', String(a.yesterday)); addText(yc, 'small', `⏮ Kecha` + (a.yesterday ? ` · bugun ${a.dau >= a.yesterday ? '+' : ''}${Math.round((a.dau - a.yesterday) / a.yesterday * 100)}%` : '')); ag.appendChild(yc);
+    box.appendChild(ag);
+    addText(box, 'div', `Yopishqoqlik (DAU/MAU): ${a.mau ? Math.round(a.dau / a.mau * 100) : 0}% — har kuni qaytadiganlar ulushi`).className = 'note';
+    const b30 = document.createElement('div'); b30.className = 'bars b30';
+    const mx = Math.max(1, ...a.series.map(x => x.n));
+    a.series.forEach((x, i) => {
+      const col = document.createElement('div'); col.className = 'col'; col.title = `${x.day}: ${x.n}`;
+      const st = document.createElement('div'); st.className = 'stack'; st.style.height = Math.max(2, x.n / mx * 86) + 'px';
+      col.appendChild(st); addText(col, 'small', i % 5 === 4 || i === 29 ? x.day.slice(8) : '');
+      b30.appendChild(col);
+    });
+    box.appendChild(b30);
+    addText(box, 'div', "30 kunlik faol foydalanuvchilar (kun bo'yicha, eng o'ngdagisi — bugun)").className = 'note';
+    addText(box, 'div', '{games} Umumiy').className = 'sec';
     const grid = document.createElement('div'); grid.className = 'adm-grid';
     const cell = (v, l, hot) => { const c = document.createElement('div'); if (hot) c.className = 'hot'; addText(c, 'b', String(v)); addText(c, 'small', l); grid.appendChild(c); };
     cell(d.onlineTotal, '🟢 Hozir onlayn', true); cell(d.liveGames, "🎮 Ketayotgan o'yinlar", true);
     cell(d.players, "👥 Jami o'yinchilar"); cell(d.newToday, '🆕 Bugun yangi');
-    cell(d.activeToday, '📅 Bugun kirganlar'); cell(d.active7, '📈 7 kunda kirganlar');
     cell(d.waitingRooms, '⏳ Kutayotgan xonalar'); cell(d.queue, '⭐ Reytingli navbatda');
     cell(d.tours, '🏆 Faol turnirlar'); cell(d.banned, '⛔ Bloklanganlar');
     cell(d.botUsers, '🤖 Bot auditoriyasi'); cell(Object.values(d.rated).reduce((a, b) => a + b, 0), '🏅 Reytingda (jami)');
@@ -2066,8 +2114,8 @@
     const lg = document.createElement('div'); lg.className = 'legend';
     lg.innerHTML = Object.keys(GAME_NAMES).map(k => `<span><i style="background:${GAME_COL[k]}"></i>${SHORT_NAMES[k]}</span>`).join('');
     box.appendChild(lg);
-    addText(box, 'div', 'Har 10 soniyada yangilanadi. Bot o\'yinlari hisobga olinmaydi.').className = 'note';
-    admTimer = setTimeout(() => { if (admAlive() && admTab === 'stats') admStats(box); }, 10000);
+    addText(box, 'div', "LIVE raqamlar darhol yangilanadi, qolganlari har 30 soniyada. Bot o'yinlari grafikda hisobga olinmaydi.").className = 'note';
+    admTimer = setTimeout(() => { if (admAlive() && admTab === 'stats') admStats(box); }, 30000);
   }
 
   let admQ = '', admSort = 'seen';
@@ -2231,6 +2279,114 @@
     }
   }
 
+  // live numbers pushed by the server while the stats tab is open
+  function onAdminPulse(m) {
+    if (!admAlive() || admTab !== 'stats') return;
+    const vals = { dau: m.dau, wau: m.wau, mau: m.mau, month: m.month, online: m.online };
+    document.querySelectorAll('#admBody [data-live]').forEach(el => {
+      const v = String(vals[el.dataset.live]);
+      if (v !== 'undefined' && el.textContent !== v) { el.textContent = v; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    });
+  }
+
+  // ---------- the advertising banner on the games page ----------
+  let adData = null, adSeen = null;
+  function renderAd() {
+    const slot = $('adSlot'); slot.innerHTML = '';
+    const a = adData;
+    if (!a) {
+      if (isAdminUser) { // only the admin sees the empty slot
+        const e = document.createElement('div'); e.className = 'adslot-empty';
+        e.innerHTML = '📣 Reklama joyi<small>Faqat siz ko\'rasiz · Admin panel → Reklama</small>';
+        e.onclick = () => { showAdmin(); admTab = 'ad'; renderAdmin(); };
+        slot.appendChild(e);
+      }
+      return;
+    }
+    slot.appendChild(adBanner(a, false));
+    if (adSeen !== a.v && !$('hub').classList.contains('hide')) { adSeen = a.v; fetch('api/adstat', { method: 'POST', body: JSON.stringify({ kind: 'view', v: a.v }) }).catch(() => {}); }
+  }
+  function adBanner(a, preview) {
+    const b = document.createElement('button'); b.className = 'adban' + (preview ? ' ad-prev' : '');
+    if (a.img) { const im = new Image(); im.alt = ''; im.src = a.img; b.appendChild(im); }
+    if (a.title || a.text || a.button) {
+      const tx = document.createElement('div'); tx.className = 'adtx';
+      const t = document.createElement('div');
+      if (a.title) addText(t, 'b', a.title);
+      if (a.text) addText(t, 'small', a.text);
+      tx.appendChild(t);
+      if (a.button) addText(tx, 'span', a.button).className = 'adbtn';
+      b.appendChild(tx);
+    }
+    addText(b, 'span', 'Reklama').className = 'adtag';
+    b.onclick = () => {
+      if (preview || !a.link) return;
+      haptic('light');
+      fetch('api/adstat', { method: 'POST', body: JSON.stringify({ kind: 'click', v: a.v }) }).catch(() => {});
+      try {
+        if (tg && /^https:\/\/t\.me\//i.test(a.link) && tg.openTelegramLink) tg.openTelegramLink(a.link);
+        else if (tg && tg.openLink) tg.openLink(a.link); else window.open(a.link, '_blank');
+      } catch (e) { window.open(a.link, '_blank'); }
+    };
+    return b;
+  }
+  async function admAd(box) {
+    const d = await adminApi('adGet'), st = await adminApi('stats');
+    if (!admAlive() || admTab !== 'ad') return;
+    box.innerHTML = '';
+    const a = (d && d.ad) || { on: false };
+    addText(box, 'div', '📣 Reklama banneri').className = 'sec';
+    addText(box, 'div', "O'yinlar sahifasida, ro'yxat tepasida ko'rinadi. Rasm tavsiya: 1280×400 (keng), 2.5 MB gacha. Rasm, matn yoki ikkalasi bo'lishi mumkin.").className = 'note';
+    const s2 = st && st.ad;
+    if (s2) {
+      const g = document.createElement('div'); g.className = 'adm-grid';
+      [[s2.views, "👁 Ko'rishlar"], [s2.clicks, '👆 Bosishlar'], [s2.views ? (s2.clicks / s2.views * 100).toFixed(1) + '%' : '—', '📈 CTR'],
+       [s2.on ? 'Yoqilgan' : "O'chirilgan", 'Holat']].forEach(([v, l]) => { const c = document.createElement('div'); addText(c, 'b', String(v)); addText(c, 'small', l); g.appendChild(c); });
+      box.appendChild(g);
+    }
+    const on = document.createElement('label'); on.className = 'chk'; on.innerHTML = `<input type="checkbox" ${a.on ? 'checked' : ''}> Bannerni ko'rsatish`; box.appendChild(on);
+    // picture
+    addText(box, 'div', 'Rasm').className = 'lbl2';
+    let image = null, removeImage = false;
+    const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/png,image/jpeg,image/webp,image/gif'; file.style.display = 'none';
+    const pick = bigBtn(a.img ? '{again} Rasmni almashtirish' : '{plus} Rasm yuklash', () => file.click());
+    const rm = bigBtn("{close} Rasmni olib tashlash", () => { removeImage = true; image = null; paint(); });
+    const row = document.createElement('div'); row.className = 'btn-row'; row.append(pick, rm);
+    box.append(file, row);
+    file.onchange = () => {
+      const f = file.files[0]; if (!f) return;
+      if (f.size > 2.5 * 1024 * 1024) return toast('{alert} Rasm 2.5 MB dan katta');
+      const rd = new FileReader(); rd.onload = () => { image = rd.result; removeImage = false; paint(); }; rd.readAsDataURL(f);
+    };
+    const inp = (ph, val, max) => { const i = document.createElement('input'); i.className = 'adm-in'; i.placeholder = ph; i.value = val || ''; i.maxLength = max; i.oninput = paint; box.appendChild(i); return i; };
+    addText(box, 'div', 'Matn (ixtiyoriy)').className = 'lbl2';
+    const title = inp('Sarlavha, masalan: Yangi kanal!', a.title, 80);
+    const text = inp('Qisqa matn', a.text, 200);
+    const btn = inp("Tugma matni, masalan: Obuna bo'lish", a.button, 30);
+    addText(box, 'div', 'Havola (bosilganda ochiladi)').className = 'lbl2';
+    const link = inp('https://t.me/kanal yoki https://sayt.uz', a.link, 300);
+    addText(box, 'div', "Ko'rinishi:").className = 'lbl2';
+    const prev = document.createElement('div'); box.appendChild(prev);
+    function paint() {
+      prev.innerHTML = '';
+      const img = removeImage ? null : image || (a.img ? `ad.img?v=${a.v}` : null);
+      if (!img && !title.value && !text.value) return addText(prev, 'div', "Rasm yoki matn qo'shing").className = 'note';
+      prev.appendChild(adBanner({ img, title: title.value, text: text.value, button: btn.value }, true));
+    }
+    paint();
+    const save = async (newCampaign) => {
+      const body = { on: on.querySelector('input').checked, title: title.value, text: text.value, button: btn.value, link: link.value, newCampaign };
+      if (image) body.image = image; if (removeImage) body.removeImage = true;
+      const x = await adminApi('ad', body);
+      if (x && x.ok) { toast('{check} Saqlandi — hammada darhol yangilandi'); admAd(box); } else toast('{alert} ' + ((x && x.msg) || 'Xato'));
+    };
+    const r2 = document.createElement('div'); r2.className = 'btn-row';
+    r2.append(bigBtn('{check} Saqlash', () => save(false), 'pri'), bigBtn('{sparkles} Yangi reklama', async () => {
+      if (!await ask("Yangi reklama sifatida saqlansinmi? Ko'rish va bosish hisoblari noldan boshlanadi.")) return; save(true);
+    }));
+    box.appendChild(r2);
+  }
+
   // ---------- announcement banner (from the admin) and the ban screen ----------
   let announceText = null;
   function setAnnounce(text, at) {
@@ -2342,6 +2498,7 @@
     }
     paintOnline();
     setWhere(null);
+    setTimeout(renderAd, 0);
     $('hub').classList.remove('hide');
     showTabs('hub');
     setBackButton(false);
