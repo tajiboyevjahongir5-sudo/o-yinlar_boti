@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>To'siq Jangi</title>
+<title>RAQIB — o'yinlar</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root { --txt:#f4f6ff; --mute:#8d96c0; --red:#ff2d46; --blue:#2f7bff; --green:#2ee66b; --yellow:#ffc531; --you:#ff2d46; }
@@ -144,7 +144,7 @@
   .gcard { --c:var(--blue); display:flex; gap:14px; align-items:center; padding:12px; border-radius:18px; border:2px solid var(--c);
     background:rgba(5,10,30,.8); box-shadow:0 0 10px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 22%, transparent);
     cursor:pointer; transition:transform .15s; animation:cardIn .4s ease-out backwards; }
-  .gcard:nth-child(2) { animation-delay:.07s; } .gcard:nth-child(3) { animation-delay:.14s; }
+  .gcard:nth-child(2) { animation-delay:.07s; } .gcard:nth-child(3) { animation-delay:.14s; } .gcard:nth-child(4) { animation-delay:.21s; }
   @keyframes cardIn { from { transform:translateY(16px); opacity:0; } }
   .gcard:active { transform:scale(.98); }
   .gcard canvas, .gcard .ph { width:92px; height:92px; flex:none; border-radius:14px; background:#0c1230;
@@ -418,6 +418,45 @@
   .panel h1 .i { width:.9em; height:.9em; vertical-align:-.08em; }
   #games { display:flex; flex-direction:column; gap:12px; }
 
+  /* ---------- shashka / shaxmat ---------- */
+  .fc .disc { display:inline-block; width:14px; height:14px; border-radius:50%; background:var(--pc); box-shadow:0 0 6px var(--pc); }
+  .fc .kc { display:inline-block; width:14px; height:14px; border-radius:4px; }
+  .fc .kc.w { background:#f3f5ff; box-shadow:0 0 6px rgba(255,255,255,.6); } .fc .kc.b { background:#1b2147; border:1.5px solid #cfd6ff; }
+  .fc .adv { color:var(--green); font-weight:800; }
+  .new-tag { font-size:10.5px; font-weight:900; color:#0a0f28; background:var(--green); border-radius:8px; padding:2px 7px;
+    margin-left:6px; vertical-align:middle; box-shadow:0 0 8px var(--green); }
+  .promo { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; width:100%; }
+  .promo button { border:2px solid var(--blue); border-radius:14px; background:rgba(5,10,30,.8); padding:6px 2px 8px; color:#fff;
+    font-weight:700; font-size:11.5px; display:flex; flex-direction:column; align-items:center; gap:2px; box-shadow:0 0 8px rgba(47,123,255,.5); }
+  .promo canvas { width:54px; height:54px; }
+  .seg { flex-wrap:wrap; } .seg button { min-width:22%; }
+
+  /* ---------- sound, reactions, rematch ---------- */
+  .tiny-btn { flex:none; width:30px; height:28px; padding:0; border-radius:10px; border:1.5px solid rgba(120,140,255,.5);
+    background:rgba(255,255,255,.06); color:#dfe5ff; display:grid; place-items:center; }
+  .tiny-btn .i { width:16px; height:16px; margin:0 !important; }
+  .tiny-btn.hide { display:none; }
+  .tiny-btn:active { transform:scale(.93); }
+  .hello .tiny-btn { width:40px; height:40px; border-radius:14px; } .hello .tiny-btn .i { width:20px; height:20px; }
+  #reactBar { position:fixed; z-index:9; display:flex; gap:4px; padding:6px; border-radius:18px; background:rgba(12,18,48,.97);
+    border:1px solid rgba(120,140,255,.5); box-shadow:0 0 18px rgba(47,123,255,.45); animation:pop .18s ease-out; }
+  #reactBar.hide { display:none; }
+  .rx { border:0; background:none; font-size:24px; width:38px; height:38px; border-radius:12px; padding:0; line-height:1; }
+  .rx:active { transform:scale(.85); background:rgba(255,255,255,.1); }
+  .rx-row { display:flex; justify-content:center; gap:0; flex-wrap:wrap; }
+  .rx-row .rx { width:33px; height:34px; font-size:21px; }
+  .rbub { position:fixed; z-index:9; pointer-events:none; font-size:40px; line-height:1; padding:8px 10px; border-radius:20px;
+    background:rgba(12,18,48,.92); border:1.5px solid var(--bc, var(--blue)); box-shadow:0 0 16px var(--bc, var(--blue));
+    animation:bubble 2.4s ease-out forwards; }
+  @keyframes bubble { 0% { transform:translate(-50%, 10px) scale(.4); opacity:0; } 12% { transform:translate(-50%, 0) scale(1.15); opacity:1; }
+    20% { transform:translate(-50%, 0) scale(1); } 75% { opacity:1; } 100% { transform:translate(-50%, -46px) scale(1); opacity:0; } }
+  .rm-note { font-size:13.5px; font-weight:800; color:var(--yellow); min-height:0; }
+  .rm-note:empty { display:none; }
+  .big.pulse { animation:rkGlow 1.2s ease-in-out infinite; border-color:var(--yellow); }
+  .big:disabled { opacity:.55; }
+  .btn-row { display:flex; gap:8px; width:100%; } .btn-row .big { flex:1; padding:13px 8px; font-size:14.5px; }
+  .sumrow { cursor:pointer; } .sumrow b.k { flex:1; min-width:0; } .sumrow .el2 { font-weight:900; color:#9cc0ff; }
+
   /* ---------- Telegram fullscreen: keep clear of the status bar and Telegram's Close / ⋯ buttons ---------- */
   :root { --st:calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
     --sb:var(--tg-safe-area-inset-bottom, 0px); }
@@ -488,7 +527,7 @@
     <div class="card" id="card0"><div class="av"></div><div class="who"><div class="nm"></div><div class="fc"><i></i><span></span></div></div><div class="clk"></div></div>
     <div class="card opp" id="card1"><div class="av"></div><div class="who"><div class="nm"></div><div class="fc"><i></i><span></span></div></div><div class="clk"></div></div>
   </div>
-  <div id="log"><span class="ic"><i data-ic="history"></i></span><div class="tx"></div><button id="inviteBtn" class="hide"><i data-ic="send"></i> Taklif</button><button id="exitBtn"><i data-ic="exit"></i> Chiqish</button></div>
+  <div id="log"><span class="ic"><i data-ic="history"></i></span><div class="tx"></div><button id="inviteBtn" class="hide"><i data-ic="send"></i> Taklif</button><button id="reactBtn" class="tiny-btn hide" aria-label="Reaksiya"><i data-ic="smile"></i></button><button id="sndBtn" class="tiny-btn snd" aria-label="Ovoz"></button><button id="exitBtn"><i data-ic="exit"></i> Chiqish</button></div>
   <div id="banner" class="off"><span class="st"></span><div id="msg"></div><span class="st r"></span></div>
   <div id="wrap"><canvas id="c"></canvas></div>
   <div id="xoTray" class="hide">
@@ -501,7 +540,7 @@
   </div>
 </div>
 <div id="hub" class="hide"><div class="hub-in">
-  <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button class="inv-btn" id="hubInvite"><i data-ic="invite"></i> Taklif qilish</button></div>
+  <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button id="hubSnd" class="tiny-btn snd" aria-label="Ovoz"></button><button class="inv-btn" id="hubInvite"><i data-ic="invite"></i> Taklif qilish</button></div>
   <div class="hub-title"><i data-ic="games"></i> O'yinlar</div>
   <div id="games"></div>
 </div></div>
@@ -535,6 +574,7 @@
 </div></nav>
 <div id="overlay"></div>
 <div id="toast"></div>
+<div id="reactBar" class="hide"></div>
 <div id="drag"></div>
 <div id="xoGhost"></div>
 <canvas id="fx"></canvas>
@@ -543,6 +583,8 @@
 <script src="game.js"></script>
 <script src="hero.js"></script>
 <script src="xo.js"></script>
+<script src="checkers.js"></script>
+<script src="chess.js"></script>
 <script>
 (() => {
   const F = window.FenceRace, { COLS, ROWS } = F;
@@ -551,10 +593,13 @@
     .replace(/\{([a-z]+)\}/g, (_, n) => ic(n));
   const COLORS = ['#ff2d46', '#2f7bff'];
   // which game is open; every rules module has newGame/start/apply/checkTimeout/resign/botAction/CLOCK_MS
-  const RULES = { tosiq: F, xo: window.XO };
-  const GAME_NAMES = { tosiq: "To'siq Jangi", xo: 'X va O' };
+  const RULES = { tosiq: F, xo: window.XO, shashka: window.Shashka, shaxmat: window.Chess };
+  const GAME_NAMES = { shaxmat: 'Shaxmat', shashka: 'Shashka', tosiq: "To'siq Jangi", xo: 'X va O' };
+  const SHORT_NAMES = { shaxmat: 'Shaxmat', shashka: 'Shashka', tosiq: "To'siq", xo: 'X va O' };
   let kind = 'tosiq', viewKind = 'tosiq', xoPlaced = {}, xoEndAt = 0;
   const R = () => RULES[kind];
+  const is8 = (k) => k === 'shashka' || k === 'shaxmat'; // the 8x8 board games
+  const stepsOf = (g) => (g.n !== undefined ? g.n : g.log.length);
   // lighten (amt > 0) or darken (amt < 0) a #rrggbb colour
   const shade = (hex, amt) => {
     const n = parseInt(hex.slice(1), 16), t = amt < 0 ? 0 : 255, a = Math.abs(amt);
@@ -578,6 +623,62 @@
   const $ = (id) => document.getElementById(id);
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
                   set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+  // ---------- sound: short synthesized effects (Web Audio), can be muted; remembered per device ----------
+  const Snd = (() => {
+    let ac = null, on = store.get('sound') !== '0';
+    const audio = () => {
+      if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { ac = new A(); } catch (e) { return null; } }
+      if (ac.state === 'suspended') ac.resume().catch(() => {});
+      return ac;
+    };
+    // one note: frequency f (Hz), d seconds long, starting `at` seconds from now, sliding to f2
+    function note(a, f, d, o = {}) {
+      const t = a.currentTime + (o.at || 0), osc = a.createOscillator(), gn = a.createGain();
+      osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t);
+      if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d);
+      gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(o.vol || 0.14, t + 0.008);
+      gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      osc.connect(gn); gn.connect(a.destination); osc.start(t); osc.stop(t + d + 0.02);
+    }
+    function noise(a, d, vol, at = 0, freq = 1800) {
+      const n = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+      const src = a.createBufferSource(), f = a.createBiquadFilter(), gn = a.createGain();
+      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; gn.gain.value = vol;
+      src.connect(f); f.connect(gn); gn.connect(a.destination); src.start(a.currentTime + at);
+    }
+    const SOUNDS = {
+      tap: (a) => note(a, 660, 0.05, { type: 'triangle', vol: 0.06 }),
+      move: (a) => { noise(a, 0.07, 0.5, 0, 2400); note(a, 420, 0.06, { type: 'triangle', vol: 0.08 }); },
+      capture: (a) => { noise(a, 0.12, 0.9, 0, 1400); note(a, 300, 0.12, { type: 'square', vol: 0.05, to: 160 }); },
+      fence: (a) => { note(a, 150, 0.18, { type: 'sine', vol: 0.25, to: 70 }); noise(a, 0.08, 0.5, 0, 700); },
+      check: (a) => { note(a, 880, 0.09, { type: 'square', vol: 0.06 }); note(a, 1175, 0.14, { type: 'square', vol: 0.06, at: 0.09 }); },
+      crown: (a) => [784, 988, 1319].forEach((f, i) => note(a, f, 0.16, { type: 'triangle', vol: 0.1, at: i * 0.07 })),
+      win: (a) => [523, 659, 784, 1047, 1319].forEach((f, i) => note(a, f, i === 4 ? 0.5 : 0.16, { type: 'triangle', vol: 0.13, at: i * 0.11 })),
+      lose: (a) => [392, 330, 262, 196].forEach((f, i) => note(a, f, i === 3 ? 0.5 : 0.2, { type: 'sine', vol: 0.13, at: i * 0.16 })),
+      draw: (a) => [523, 440, 523].forEach((f, i) => note(a, f, 0.18, { type: 'sine', vol: 0.11, at: i * 0.15 })),
+      start: (a) => { note(a, 440, 0.12, { type: 'square', vol: 0.05 }); note(a, 660, 0.12, { type: 'square', vol: 0.05, at: 0.12 }); note(a, 880, 0.25, { type: 'square', vol: 0.05, at: 0.24 }); },
+      tick: (a) => note(a, 1200, 0.03, { type: 'square', vol: 0.04 }),
+      pop: (a) => note(a, 500, 0.12, { type: 'sine', vol: 0.15, to: 1100 }),
+      error: (a) => note(a, 180, 0.15, { type: 'sawtooth', vol: 0.05 }),
+      notify: (a) => { note(a, 988, 0.1, { type: 'triangle', vol: 0.1 }); note(a, 1319, 0.2, { type: 'triangle', vol: 0.1, at: 0.1 }); },
+    };
+    return {
+      play(k) { if (!on || !SOUNDS[k]) return; const a = audio(); if (a) try { SOUNDS[k](a); } catch (e) {} },
+      get on() { return on; },
+      toggle() { on = !on; store.set('sound', on ? '1' : '0'); if (on) this.play('notify'); return on; },
+      unlock() { if (on) audio(); },
+    };
+  })();
+  addEventListener('pointerdown', () => Snd.unlock(), { once: true });
+  function paintSoundButtons() {
+    document.querySelectorAll('.snd').forEach(b => { b.innerHTML = ic(Snd.on ? 'volume' : 'mute'); b.setAttribute('aria-label', Snd.on ? "Ovozni o'chirish" : 'Ovozni yoqish'); });
+  }
+  document.querySelectorAll('.snd').forEach(b => b.onclick = (e) => {
+    e.stopPropagation(); haptic('light'); Snd.toggle(); paintSoundButtons(); toast(Snd.on ? '{volume} Ovoz yoqildi' : "{mute} Ovoz o'chirildi");
+  });
+  paintSoundButtons();
 
   const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
   let uid = user ? 'tg' + user.id : store.get('uid');
@@ -606,6 +707,9 @@
   const newAnim = (p) => ({ r: p.r, c: p.c, tr: p.r, tc: p.c, segD: 0, dir: 'down', walk: 0, moving: 0, landAt: -1e9, movedAt: -1e9 });
   let anim = [newAnim({ r: 0, c: 0 }), newAnim({ r: 0, c: 0 })];
   let resultHero = null; // animated character on the win/lose panel
+  // 8x8 boards: selected square, its legal targets, the last move's slide, and a piece being dragged
+  let sel8 = null, targets8 = [], anim8 = null, drag8 = null, dropped8 = false, rematchState = [false, false];
+  let round = 0; // bumped whenever a new game starts
 
   fetch('config.json').then(r => r.json()).then(c => config = c).catch(() => {});
 
@@ -633,7 +737,9 @@
   function refreshMsg() {
     if (!game || game.winner !== null) return flash('');
     if (mode === 'online' && !online[1 - you]) return flash('{hourglass} Raqib kutilmoqda...');
-    flash(game.turn === you ? (tool ? "To'siq joyini tanlang" : 'Sizning navbatingiz!') : 'Raqib navbati...');
+    if (game.turn === you && game.chain != null) return flash('{swords} Urishni davom ettiring!');
+    if (game.turn === you && game.check) return flash('{alert} Shoh! Shohingizni himoya qiling');
+    flash(game.turn === you ? (tool ? "To'siq joyini tanlang" : 'Sizning navbatingiz!') : game.check ? 'Raqibga shoh! Raqib navbati...' : 'Raqib navbati...');
   }
 
   const myTurn = () => game && game.winner === null && game.turn === you && game.turnStart !== null
@@ -651,13 +757,16 @@
       el.style.setProperty('--pc', COLORS[p]);
       const isBot = mode === 'bot' && p !== you;
       setAvatar(el.querySelector('.av'), isBot ? null : mode === 'bot' ? myPhoto : photos[p], isBot ? ICON_BOT : ICON_USER);
-      el.querySelector('.fc i').style.display = kind === 'xo' ? 'none' : '';
+      el.querySelector('.fc i').style.display = kind === 'tosiq' ? '' : 'none';
       el.querySelector('.fc span').innerHTML = kind === 'xo' ? `<span class="sym">${XO.symbol(game, p)}</span> <small>${p === you ? 'siz' : 'raqib'}</small>`
+        : kind === 'shashka' ? `<span class="disc"></span> ${Shashka.count(game, p)} <small>dona</small>`
+        : kind === 'shaxmat' ? chessBadge(p)
         : `${game.left[p]} <small>/${F.FENCES}</small>`;
     });
     document.documentElement.style.setProperty('--you', COLORS[you]);
-    $('tools').style.display = kind === 'xo' ? 'none' : '';
+    $('tools').style.display = kind === 'tosiq' ? '' : 'none';
     $('inviteBtn').classList.toggle('hide', !(mode === 'online' && !roomRanked && !online[1 - you] && game.turnStart === null));
+    $('reactBtn').classList.toggle('hide', !(mode === 'online' && names[1 - you]));
     // X va O: your own mark waits in the tray below the board
     $('xoTray').classList.toggle('hide', kind !== 'xo');
     if (kind === 'xo') {
@@ -683,9 +792,11 @@
       shownWinner = true;
       const won = game.winner === you, draw = game.winner === -1;
       haptic(won ? 'success' : draw ? 'warning' : 'error');
+      setTimeout(() => Snd.play(won ? 'win' : draw ? 'draw' : 'lose'), 350);
       // let the board celebrate / mourn for a moment first
-      const g = game;
-      setTimeout(() => { if (game === g) showResult(won, draw); }, 1500);
+      // (compare rounds, not objects: a later update of the same finished game must not cancel the card)
+      const r = round;
+      setTimeout(() => { if (round === r && game && game.winner !== null) showResult(won, draw); }, 1500);
     }
   }
 
@@ -693,16 +804,26 @@
     const prev = game;
     game = g;
     const fresh = !prev || (prev.winner !== null && g.winner === null) || g.log.length < prev.log.length;
-    if (fresh) { if (g.pawns) anim = g.pawns.map(newAnim); shownWinner = false; resultHero = null; xoPlaced = {}; xoEndAt = 0; }
+    if (fresh) { round++; if (g.pawns) anim = g.pawns.map(newAnim); shownWinner = false; resultHero = null; xoPlaced = {}; xoEndAt = 0; }
     if (g.kind === 'xo') { // remember when each mark appeared so it can be drawn in
       g.board.forEach((v, i) => { if (v !== null && !(i in xoPlaced)) xoPlaced[i] = fresh && prev ? 0 : performance.now(); });
       if (g.winner !== null && !xoEndAt) xoEndAt = performance.now();
     }
     if (prev && prev.winner !== null && g.winner === null) hideOverlay();
-    if (prev && g.last && g.log.length > prev.log.length && g.last.p !== you) haptic(g.last.t === 'fence' ? 'heavy' : 'light');
+    const stepped = prev && !fresh && g.last && stepsOf(g) > stepsOf(prev);
+    if (stepped) {
+      const L = g.last;
+      if (L.p !== you) haptic(L.t === 'fence' || L.cap != null ? 'heavy' : 'light');
+      Snd.play(L.t === 'fence' ? 'fence' : L.check ? 'check' : L.crowned || L.promo ? 'crown' : L.cap != null ? 'capture' : 'move');
+      if (is8(g.kind) && L.from !== undefined && !(L.p === you && dropped8)) anim8 = { from: L.from, to: L.to, at: performance.now() };
+    }
+    if (fresh && prev && g.winner === null) Snd.play('start');
+    dropped8 = false;
+    if (is8(g.kind)) { sel8 = null; targets8 = []; if (g.turn === you && g.chain != null && g.winner === null) select8(g.chain); }
     if (g.fences && g.fences.length > (prev && !fresh && prev.fences ? prev.fences.length : g.fences.length)) popAt = performance.now();
     ghost = null;
     render();
+    updateRematch();
   }
 
   // ---------- actions ----------
@@ -711,7 +832,7 @@
     if (mode === 'online') { ws.send(JSON.stringify(a)); ghost = null; return; }
     const g = JSON.parse(JSON.stringify(game));
     const err = R().apply(g, you, a, Date.now());
-    if (err) { haptic('warning'); return flash(err, 1500); }
+    if (err) { haptic('warning'); Snd.play('error'); return flash(err, 1500); }
     haptic(a.t === 'fence' ? 'heavy' : 'light');
     if (a.t === 'fence') setTool(null);
     setState(g);
@@ -719,13 +840,20 @@
   }
   function botTurn() {
     if (mode !== 'bot' || game.winner !== null || game.turn === you) return;
-    const g = JSON.parse(JSON.stringify(game));
-    R().apply(g, 1 - you, R().botAction(g, 1 - you), Date.now());
+    const g = JSON.parse(JSON.stringify(game)), a = R().botAction(g, 1 - you);
+    if (!a) return;
+    R().apply(g, 1 - you, a, Date.now());
     setState(g);
+    // shashka: a multi-capture is played one jump at a time
+    if (g.winner === null && g.turn !== you) setTimeout(botTurn, 450);
   }
   function rematch() {
+    if (mode === 'online') {
+      if (!ws || ws.readyState !== 1) return toast("{offline} Aloqa yo'q");
+      haptic('light');
+      return ws.send(JSON.stringify({ t: 'rematch' }));
+    }
     hideOverlay();
-    if (mode === 'online') return ws.send(JSON.stringify({ t: 'rematch' }));
     const g = R().newGame(1 - (game.starter || 0)); // take turns starting
     R().start(g, Date.now()); setTool(null); setState(g);
     if (g.turn !== you) setTimeout(botTurn, 600);
@@ -823,7 +951,7 @@
   function connect() {
     mode = 'online';
     hideHub(); hideLobby(); hideOverlay();
-    game = null;
+    game = null; rematchState = [false, false]; sel8 = null; targets8 = []; anim8 = null;
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const sock = ws = new WebSocket(`${proto}://${location.host}/ws`);
     const join = Object.assign({ initData: tg ? tg.initData : '', photo: myPhoto },
@@ -836,6 +964,9 @@
         you = m.you; names = m.names; online = m.online; clockOffset = m.now - Date.now(); photos = m.photos || [null, null];
         pendingCreate = null; joinCode = null; roomId = m.room; roomPub = m.pub; roomCode = m.code || roomCode; eloInfo = m.elo;
         roomRanked = m.ranked; searching = false; if (m.kind) kind = m.kind;
+        const rm = m.rematch || [false, false];
+        if (rm[1 - you] && !rematchState[1 - you] && m.game.winner !== null) { Snd.play('notify'); haptic('medium'); toast("{again} Raqib revansh so'rayapti!"); }
+        rematchState = rm;
         if (online[0] && online[1] && ['wait', 'vs', 'search'].includes($('overlay').dataset.kind)) hideOverlay();
         setState(m.game);
         if (!(online[0] && online[1]) && m.game.turnStart === null) showWaiting();
@@ -845,7 +976,8 @@
       else if (m.t === 'err' && m.code === 'auth') { showLobby(); haptic('warning'); toast('{alert} ' + m.msg); }
       else if (m.t === 'err' && m.code === 'badcode') { const t = lastTarget; showLobby(); haptic('warning'); showJoinCode(t, m.msg); }
       else if (m.t === 'err' && m.code === 'notfound') { showLobby(); haptic('warning'); toast('{alert} ' + m.msg); }
-      else if (m.t === 'err') { haptic('warning'); flash(m.msg, 1500); }
+      else if (m.t === 'react') showReaction(m.e, m.from === you);
+      else if (m.t === 'err') { haptic('warning'); Snd.play('error'); flash(m.msg, 1500); if ($('overlay').dataset.kind === 'result') toast('{alert} ' + m.msg); }
       else if (m.t === 'full') { showLobby(); haptic('warning'); toast("{alert} Bu xonada allaqachon 2 o'yinchi bor"); }
     };
     sock.onclose = () => {
@@ -859,7 +991,9 @@
     return `${location.origin}${location.pathname}?room=${key}`;
   }
   const GAME_LINE = { tosiq: ['🧱', "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing!"],
-    xo: ['❌⭕', "Uchta belgini bir qatorga birinchi bo'lib tering!"] };
+    xo: ['❌⭕', "Uchta belgini bir qatorga birinchi bo'lib tering!"],
+    shashka: ['⚫⚪', "Raqibning barcha donalarini urib oling yoki uni yurolmaydigan qiling!"],
+    shaxmat: ['♟️', "Raqib shohiga mot qo'ying!"] };
   const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // same wording as the server's inviteText(); kept as HTML for the preview bubble
   function inviteHtml(code, elo) {
@@ -875,6 +1009,8 @@
       + `<blockquote>⚔️ Kim aqlliroq — bellashib ko'ramizmi?</blockquote>\n`
       + `🧱 <b>To'siq Jangi</b> — yo'lni to'sib, marraga birinchi yet\n`
       + `❌⭕ <b>X va O</b> — uchtasini bir qatorga ter\n`
+      + `⚫ <b>Shashka</b> — donalarni urib ol, damka qil\n`
+      + `♟️ <b>Shaxmat</b> — raqib shohiga mot qo'y\n`
       + `✨ <i>…va yangi o'yinlar yo'lda!</i>\n\n`
       + `🏆 Reyting va ELO  •  👥 Do'stlar bilan xonalar  •  🤖 Botga qarshi\n\n`
       + `👇 <b>Tugmani bosing — o'yin boshlanadi!</b>`;
@@ -951,23 +1087,34 @@
     const g = game, starter = g.starter || 0;
     const mine = g.log.filter((_, i) => (i % 2 === 0) === (starter === you));
     const walls = mine.filter(m => /[hv]$/.test(m)).length, steps = mine.length - walls;
+    // captures: "exd5" in chess, every ":" of a multi-jump in shashka
+    const hits = kind === 'shaxmat' ? mine.filter(m => m.includes('x')).length : mine.reduce((n, m) => n + (m.match(/:/g) || []).length, 0);
     const used = Math.max(0, Math.round((R().CLOCK_MS - g.clock[you]) / 1000));
-    const why = draw ? "Hech kim yutmadi — kuchlar teng!"
+    const opp = names[g.winner] || 'Raqib';
+    const DRAWS = { stalemate: "Pat — yurishga joy yo'q. Durrang!", material: "Mot qo'yishga kuch yetmaydi. Durrang!",
+      fifty: "50 yurish davomida urish ham, piyoda yurishi ham bo'lmadi. Durrang!", repetition: "Bir xil holat 3 marta takrorlandi. Durrang!",
+      'time-draw': "Vaqt tugadi, lekin mot qo'yishga kuch yo'q edi. Durrang!",
+      draw: kind === 'shashka' ? "15 yurish davomida faqat damkalar yurdi va urish bo'lmadi. Durrang!" : "Hech kim yutmadi — kuchlar teng!" };
+    const why = draw ? DRAWS[g.reason] || DRAWS.draw
       : g.reason === 'resign' ? (won ? "Raqib o'yindan chiqib ketdi." : "Siz o'yindan chiqdingiz.")
       : g.reason === 'time' ? (won ? 'Raqibning vaqti tugadi.' : 'Vaqtingiz tugab qoldi.')
-      : kind === 'xo' ? (won ? "Siz uchta belgini bir qatorga terdingiz!" : (names[g.winner] || 'Raqib') + ' uchta belgini bir qatorga terdi.')
-      : (won ? 'Siz raqib tomoniga birinchi yetib bordingiz!' : (names[g.winner] || 'Raqib') + ' sizning tomoningizga birinchi yetdi.');
+      : g.reason === 'mate' ? (won ? "Mot! Siz raqib shohini yengdingiz!" : opp + ' sizga mot qo\'ydi.')
+      : g.reason === 'captured' ? (won ? "Siz raqibning barcha donalarini urdingiz!" : opp + ' barcha donalaringizni urdi.')
+      : g.reason === 'blocked' ? (won ? "Raqibning yurishga joyi qolmadi!" : 'Donalaringiz yurolmaydigan bo\'lib qoldi.')
+      : kind === 'xo' ? (won ? "Siz uchta belgini bir qatorga terdingiz!" : opp + ' uchta belgini bir qatorga terdi.')
+      : (won ? 'Siz raqib tomoniga birinchi yetib bordingiz!' : opp + ' sizning tomoningizga birinchi yetdi.');
     const o = $('overlay'), panel = document.createElement('div');
     o.innerHTML = ''; o.dataset.kind = 'result';
     panel.className = 'panel result ' + (draw ? 'draw' : won ? 'win' : 'lose');
-    const labels = (kind === 'xo' ? ['{pen} Yurish', '{mark} Belgingiz', '{timer} Vaqt'] : ['{steps} Qadam', "{fence} To'siq", '{timer} Vaqt']).map(lbl);
+    const labels = (kind === 'xo' ? ['{pen} Yurish', '{mark} Belgingiz', '{timer} Vaqt']
+      : is8(kind) ? ['{pen} Yurish', '{swords} Urish', '{timer} Vaqt'] : ['{steps} Qadam', "{fence} To'siq", '{timer} Vaqt']).map(lbl);
     panel.innerHTML = '<div class="stage"><div class="rays"></div><canvas></canvas></div><h1></h1><p></p>'
       + `<div class="stats"><div><b class="s1"></b><small>${labels[0]}</small></div><div><b class="s2"></b><small>${labels[1]}</small></div>`
       + `<div><b class="s3"></b><small>${labels[2]}</small></div></div>`;
     panel.querySelector('h1').textContent = draw ? 'DURRANG' : won ? "G'ALABA!" : "MAG'LUBIYAT";
     panel.querySelector('p').textContent = draw || won ? (won ? "Ajoyib o'yin! " : '') + why : why + ' Keyingi safar albatta yutasiz!';
-    panel.querySelector('.s1').textContent = kind === 'xo' ? mine.length : steps;
-    panel.querySelector('.s2').textContent = kind === 'xo' ? XO.symbol(g, you) : walls;
+    panel.querySelector('.s1').textContent = kind === 'xo' || is8(kind) ? mine.length : steps;
+    panel.querySelector('.s2').textContent = kind === 'xo' ? XO.symbol(g, you) : is8(kind) ? hits : walls;
     panel.querySelector('.s3').textContent = Math.floor(used / 60) + ':' + String(used % 60).padStart(2, '0');
     if (mode === 'online' && eloInfo) {
       const d = eloInfo.delta[you], line = document.createElement('div'); line.className = 'elo-line';
@@ -978,12 +1125,22 @@
     } else if (mode === 'online' && !roomRanked) {
       addText(panel, 'div', "ℹ️ Xona o'yini reytingga ta'sir qilmaydi. ELO uchun \"Reytingli o'yin\"ni tanlang").className = 'note';
     }
-    (mode === 'online' && roomRanked ? [['{search} Yana reytingli', startSearch], ['{back} Xonalar', showLobby]]
-      : [["{again} Qayta o'ynash", rematch], ['{back} Xonalar', showLobby]]).forEach(([label, fn], i) => {
-      const b = document.createElement('button'); b.className = 'big' + (i === 0 ? ' pri' : '');
-      b.innerHTML = lbl(label); b.onclick = fn; panel.appendChild(b);
-    });
+    if (mode === 'online') { // quick emoji right on the result card ("gg", "😭"...)
+      const row = document.createElement('div'); row.className = 'rx-row';
+      for (const e of REACTIONS) { const b = document.createElement('button'); b.className = 'rx'; b.textContent = e; b.onclick = () => sendReaction(e); row.appendChild(b); }
+      panel.appendChild(row);
+    }
+    addText(panel, 'div', '').className = 'rm-note';
+    const again = bigBtn(mode === 'online' ? '{again} Revansh' : "{again} Qayta o'ynash", rematch, 'pri');
+    again.classList.add('rm-btn');
+    panel.appendChild(again);
+    if (mode === 'online' && roomRanked) {
+      const row = document.createElement('div'); row.className = 'btn-row';
+      row.append(bigBtn('{search} Yangi raqib', startSearch), bigBtn('{back} Xonalar', showLobby));
+      panel.appendChild(row);
+    } else panel.appendChild(bigBtn('{back} Xonalar', showLobby));
     o.appendChild(panel);
+    updateRematch();
     o.classList.remove('hide');
     const c = panel.querySelector('canvas'), dpr = window.devicePixelRatio || 1;
     c.width = 150 * dpr; c.height = 140 * dpr;
@@ -1021,14 +1178,75 @@
 
   function hideOverlay() { $('overlay').classList.add('hide'); $('overlay').dataset.kind = ''; }
 
+  // ---------- rematch: both players must agree; the result card shows where things stand ----------
+  function updateRematch() {
+    const o = $('overlay');
+    if (o.dataset.kind !== 'result' || mode !== 'online' || !game) return;
+    const note = o.querySelector('.rm-note'), btn = o.querySelector('.rm-btn');
+    if (!note || !btn) return;
+    const mine = rematchState[you], theirs = rematchState[1 - you], gone = !online[1 - you];
+    btn.disabled = gone || mine;
+    btn.classList.toggle('pulse', theirs && !mine && !gone);
+    btn.innerHTML = lbl(gone ? '{again} Revansh' : mine ? '{hourglass} Raqib javobi kutilmoqda...' : theirs ? '{check} Revanshni qabul qilish' : '{again} Revansh');
+    note.innerHTML = lbl(gone ? "{offline} Raqib o'yindan chiqib ketdi" : theirs && !mine ? "{again} Raqib revansh so'rayapti!" : '');
+  }
+
+  // ---------- emoji reactions (online games) ----------
+  const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
+  function sendReaction(e) {
+    $('reactBar').classList.add('hide');
+    if (mode !== 'online' || !ws || ws.readyState !== 1) return;
+    const now = Date.now();
+    if (now - (sendReaction.at || 0) < 1200) return toast('{hourglass} Biroz kuting');
+    sendReaction.at = now; haptic('light');
+    ws.send(JSON.stringify({ t: 'react', e })); // the server echoes it back to both players
+  }
+  function showReaction(e, mine) {
+    if (!REACTIONS.includes(e)) return;
+    Snd.play('pop'); if (!mine) haptic('light');
+    // above the sender's card; on the result screen the cards are hidden, so float up from the middle
+    const card = $(mine ? 'card0' : 'card1').getBoundingClientRect(), onCard = $('overlay').classList.contains('hide') && card.width;
+    const b = document.createElement('div'); b.className = 'rbub'; b.textContent = e;
+    b.style.setProperty('--bc', mine ? 'var(--green)' : COLORS[1 - you]);
+    b.style.left = (onCard ? card.left + card.width / 2 : innerWidth * (mine ? 0.3 : 0.7)) + 'px';
+    b.style.top = (onCard ? card.bottom + 6 : innerHeight * 0.16) + 'px';
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 2500);
+  }
+  (() => {
+    const bar = $('reactBar');
+    for (const e of REACTIONS) { const b = document.createElement('button'); b.className = 'rx'; b.textContent = e; b.onclick = () => sendReaction(e); bar.appendChild(b); }
+    $('reactBtn').onclick = (ev) => {
+      ev.stopPropagation(); haptic('light');
+      if (!bar.classList.contains('hide')) return bar.classList.add('hide');
+      bar.classList.remove('hide');
+      const r = $('reactBtn').getBoundingClientRect(), w = bar.offsetWidth;
+      bar.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';
+      bar.style.top = (r.bottom + 8) + 'px';
+    };
+    addEventListener('pointerdown', (ev) => { if (!bar.contains(ev.target) && ev.target.closest('#reactBtn') === null) bar.classList.add('hide'); });
+  })();
+
+  // chess card badge: colour, plus the material lead in pawns
+  const MAT = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  function chessBadge(p) {
+    const col = Chess.colorOf(game, p);
+    let lead = 0;
+    for (const x of game.board) if (x) lead += (Chess.colorOfPiece(x) === col ? 1 : -1) * MAT[x.toLowerCase()];
+    return `<span class="kc ${col}"></span> ${col === 'w' ? 'Oq' : 'Qora'}` + (lead > 0 ? ` <small class="adv">+${lead}</small>` : '');
+  }
+
   function leaveOnline() { if (ws) { mode = null; const s = ws; ws = null; s.close(); } }
   // ---------- games hub ----------
   const GAMES = [
+    { id: 'shaxmat', title: 'Shaxmat', isNew: true, desc: "Klassik shaxmat: rokirovka, o'tib olish, piyodani almashtirish. Raqib shohiga mot qo'ying!",
+      tags: ["{users} 2 o'yinchi", '{timer} 10 daq', '{grid} 8×8'], open: () => openGame('shaxmat') },
+    { id: 'shashka', title: 'Shashka', isNew: true, desc: "Rus shashkasi: urish majburiy, damka butun diagonal bo'ylab yuradi. Hamma donalarni urib oling!",
+      tags: ["{users} 2 o'yinchi", '{timer} 5 daq', '{grid} 8×8'], open: () => openGame('shashka') },
     { id: 'tosiq', title: "To'siq Jangi", desc: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing.",
       tags: ["{users} 2 o'yinchi", '{timer} 5 daq', "{fence} 10 to'siq"], open: () => openGame('tosiq') },
     { id: 'xo', title: 'X va O', desc: "Uchta belgini bir qatorga birinchi bo'lib tering — gorizontal, vertikal yoki diagonal.",
       tags: ["{users} 2 o'yinchi", '{timer} 1 daq', '{grid} 3×3'], open: () => openGame('xo') },
-    { id: 'soon1', title: "Yangi o'yin", desc: "Tez orada shu yerda yangi o'yin paydo bo'ladi.", soon: true },
   ];
   const getStats = (id) => { try { return Object.assign({ w: 0, l: 0, d: 0 }, JSON.parse(store.get('stats_' + id) || '{}')); } catch (e) { return { w: 0, l: 0, d: 0 }; } };
   function openGame(k) { kind = k; viewKind = k; showLobby(); }
@@ -1055,12 +1273,13 @@
       const info = document.createElement('div'); info.className = 'info';
       const h = document.createElement('h3'); h.textContent = g.title;
       if (g.soon) { const t = document.createElement('span'); t.className = 'soon-tag'; t.textContent = 'Tez kunda'; h.appendChild(t); }
+      if (g.isNew) { const t = document.createElement('span'); t.className = 'new-tag'; t.textContent = 'YANGI'; h.appendChild(t); }
       const p = document.createElement('p'); p.textContent = g.desc;
       info.append(h, p);
       if (g.tags) { const ch = document.createElement('div'); ch.className = 'chips'; ch.innerHTML = g.tags.map(t => `<span>${lbl(t)}</span>`).join(''); info.appendChild(ch); }
       if (!g.soon) {
         const st = getStats(g.id), rec = document.createElement('div'); rec.className = 'rec';
-        rec.innerHTML = `${ic('star')} ELO: <b class="hubElo">…</b> &nbsp;·&nbsp; ${ic('bot')} Bot: <b>${st.w}</b>G / <b>${st.l}</b>M`;
+        rec.innerHTML = `${ic('star')} ELO: <b class="hubElo">…</b> &nbsp;·&nbsp; ${ic('bot')} Bot: <b>${st.w}</b>G / <b>${st.l}</b>M` + (st.d ? ` / <b>${st.d}</b>D` : '');
         api('profile', g.id).then(d => { const e = rec.querySelector('.hubElo'); if (e) e.textContent = d ? d.elo : '—'; });
         info.appendChild(rec);
       }
@@ -1084,7 +1303,7 @@
   function buildSeg(el, onChange) {
     el.innerHTML = '';
     for (const k of Object.keys(GAME_NAMES)) {
-      const b = document.createElement('button'); b.textContent = GAME_NAMES[k];
+      const b = document.createElement('button'); b.textContent = SHORT_NAMES[k];
       b.classList.toggle('on', k === viewKind);
       b.onclick = () => { if (k === viewKind) return; haptic('light'); viewKind = k; onChange(); };
       el.appendChild(b);
@@ -1149,10 +1368,10 @@
   }
 
   async function loadProfile() {
-    const box = $('profIn');
+    const box = $('profIn'), ver = loadProfile.v = (loadProfile.v || 0) + 1;
     box.innerHTML = '<div class="note">Yuklanmoqda...</div>';
     const d = await api('profile');
-    if ($('profile').classList.contains('hide')) return;
+    if ($('profile').classList.contains('hide') || ver !== loadProfile.v) return;
     box.innerHTML = '';
     const seg = document.createElement('div'); seg.className = 'seg'; box.appendChild(seg);
     buildSeg(seg, loadProfile);
@@ -1181,11 +1400,28 @@
     const grid = document.createElement('div'); grid.className = 'pgrid';
     const rate = p.games ? Math.round(p.wins / p.games * 100) + '%' : '—';
     [[p.games, "{games} O'yinlar"], [p.wins, "{rating} G'alaba"], [p.losses, "{frown} Mag'lubiyat"], [rate, "{trend} G'alaba %"],
-     viewKind === 'xo' ? [p.draws || 0, '{draw} Durrang'] : [p.rank ? '#' + p.rank : '—', "{medal} O'rin"],
-     [`${st.w}/${st.l}` + (viewKind === 'xo' ? `/${st.d}` : ''), viewKind === 'xo' ? '{bot} Bot G/M/D' : '{bot} Bot G/M']].forEach(([v, l]) => {
+     viewKind !== 'tosiq' ? [p.draws || 0, '{draw} Durrang'] : [p.rank ? '#' + p.rank : '—', "{medal} O'rin"],
+     [`${st.w}/${st.l}` + (viewKind !== 'tosiq' ? `/${st.d}` : ''), viewKind !== 'tosiq' ? '{bot} Bot G/M/D' : '{bot} Bot G/M']].forEach(([v, l]) => {
       const cell = document.createElement('div'); addText(cell, 'b', String(v)); addText(cell, 'small', l); grid.appendChild(cell);
     });
     box.appendChild(grid);
+    // every game at a glance; tap a row to open its details
+    addText(box, 'div', "{games} Barcha o'yinlar").className = 'sec';
+    const sum = document.createElement('div'); sum.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+    box.appendChild(sum);
+    const kinds = Object.keys(GAME_NAMES), all = await Promise.all(kinds.map(k => k === viewKind ? Promise.resolve(d) : api('profile', k)));
+    if ($('profile').classList.contains('hide') || ver !== loadProfile.v) return;
+    let total = 0, wins = 0;
+    kinds.forEach((k, i) => {
+      const q = all[i] || { elo: 1000, games: 0, wins: 0, losses: 0, draws: 0 }, b = getStats(k);
+      total += q.games + b.w + b.l + b.d; wins += q.wins + b.w;
+      const row = document.createElement('div'); row.className = 'hrow sumrow';
+      row.innerHTML = `<b class="k"></b><small>${ic('games')} ${q.games} · ${ic('bot')} ${b.w}/${b.l}${b.d ? '/' + b.d : ''}</small><span class="el2">${q.elo}</span>`;
+      row.querySelector('.k').textContent = GAME_NAMES[k] + (k === viewKind ? ' •' : '');
+      row.onclick = () => { if (k === viewKind) return; haptic('light'); viewKind = k; loadProfile(); };
+      sum.appendChild(row);
+    });
+    addText(sum, 'div', `Jami: ${total} ta o'yin (onlayn + bot), ${wins} ta g'alaba` + (total ? ` — ${Math.round(wins / total * 100)}%` : '')).className = 'note';
     addText(box, 'div', "{history} So'nggi onlayn o'yinlar").className = 'sec';
     if (!p.history.length) addText(box, 'div', "Hali onlayn o'yin o'ynamagansiz. Xonalar bo'limidan raqib toping!").className = 'empty2';
     for (const h of p.history.slice(0, 10)) {
@@ -1213,6 +1449,7 @@
     for (const { x, id } of hubThumbs) {
       x.clearRect(0, 0, 92, 92);
       if (id === 'xo') { drawXoThumb(x, now); continue; }
+      if (is8(id)) { drawBoard8Thumb(x, id, now); continue; }
       const n = 4, cs = 92 / n;
       for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
         x.fillStyle = '#1b2240'; x.beginPath();
@@ -1235,6 +1472,7 @@
     if (!$('hub').classList.contains('hide')) return;
     if (!$('lobby').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
     if ($('overlay').dataset.kind === 'confirm') return hideOverlay();
+    if ($('overlay').dataset.kind === 'promo') { select8(null); return hideOverlay(); }
     if ($('overlay').dataset.kind === 'search') return showLobby(); // cancels the search
     if ($('overlay').dataset.kind === 'vs') return;
     // still waiting for an opponent, or the game is over: just leave (an unstarted room closes)
@@ -1456,7 +1694,7 @@
   }
   function showVersus(m) {
     clearInterval(searchTimer);
-    haptic('success');
+    haptic('success'); Snd.play('start');
     const p = openPanel('vs');
     p.classList.add('gold');
     addText(p, 'h1', '{swords} Raqib topildi!');
@@ -1479,7 +1717,7 @@
     let n = 3;
     const tick = setInterval(() => {
       if ($('overlay').dataset.kind !== 'vs') return clearInterval(tick);
-      n--; cd.innerHTML = n > 0 ? n : ic('flag'); haptic('light');
+      n--; cd.innerHTML = n > 0 ? n : ic('flag'); haptic('light'); Snd.play(n > 0 ? 'tick' : 'notify');
       if (n <= 0) clearInterval(tick);
     }, 1000);
   }
@@ -1500,6 +1738,7 @@
     leaveOnline();
     mode = 'bot'; you = 0; names = [myName, 'Bot']; online = [true, true]; clockOffset = 0;
     hideOverlay(); hideHub(); hideLobby(); setTool(null);
+    sel8 = null; targets8 = []; anim8 = null; rematchState = [false, false];
     const g = R().newGame(0); R().start(g, Date.now());
     game = null; setState(g);
   }
@@ -1551,6 +1790,7 @@
   function draw(now) {
     ctx.clearRect(0, 0, W, H);
     if (!game) return;
+    if (is8(game.kind)) { paint8(now); drawConfetti(); drawResultHero(now); drawClocks(); return; }
     if (game.kind === 'xo') {
       paintXO(ctx, offX, offY, cell * COLS, game, now, myTurn());
       if (xoHover >= 0) { // where the dragged mark will land
@@ -1647,6 +1887,9 @@
       const txt = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
       if (el.dataset.t !== txt) { el.dataset.t = txt; el.innerHTML = ICON_CLOCK + txt; }
       el.classList.toggle('low', ms < 30000);
+      // the last ten seconds of your own clock tick
+      if (p === you && game.winner === null && game.turn === you && game.turnStart !== null && s <= 10 && s > 0 && drawClocks.s !== s) Snd.play('tick');
+      if (p === you) drawClocks.s = s;
     });
   }
 
@@ -1731,6 +1974,235 @@
     paintXO(c, 3, 3, 86, g, now, false, placed, now - (t - seq.length * 500));
   }
 
+  // ---------- shashka & shaxmat: 8x8 board ----------
+  // the board fills the same square as the 9x9 one; black sees it turned around
+  const sq8 = () => cell * COLS / 8;
+  const flip8 = () => !!game && is8(game.kind) && (game.kind === 'shashka' ? Shashka : Chess).colorOf(game, you) === 'b';
+  const view8 = (i) => (flip8() ? 63 - i : i); // its own inverse
+  const ownerOf8 = (g, x) => (x.toLowerCase() === 'w' || (g.kind === 'shaxmat' && x === x.toUpperCase()) ? g.starter : 1 - g.starter);
+  // chess pieces as vector shapes in a 100x100 box (base at the bottom)
+  const BASE = 'M22 92 L78 92 L78 85 Q78 80 73 80 L27 80 Q22 80 22 85 Z';
+  const PIECE_PATHS = {
+    p: ['M38 31 a12 12 0 1 0 24 0 a12 12 0 1 0 -24 0 Z', 'M40 44 L60 44 L57 50 C61 60 66 70 68 80 L32 80 C34 70 39 60 43 50 Z'],
+    r: ['M27 44 L27 20 L37 20 L37 28 L45 28 L45 20 L55 20 L55 28 L63 28 L63 20 L73 20 L73 44 Z', 'M33 44 L67 44 L70 80 L30 80 Z'],
+    b: ['M46 11 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0 Z', 'M50 16 C63 25 67 37 62 48 L38 48 C33 37 37 25 50 16 Z', 'M38 52 L62 52 C63 63 66 72 68 80 L32 80 C34 72 37 63 38 52 Z'],
+    n: ['M31 80 C30 66 38 58 45 50 C38 52 31 56 26 52 C21 48 23 41 29 37 C37 30 41 21 47 13 L50 21 C60 19 70 27 72 42 C74 56 69 68 71 80 Z'],
+    q: ['M22 30 L32 66 L68 66 L78 30 L64 48 L60 24 L50 46 L40 24 L36 48 Z', 'M32 68 L68 68 L66 80 L34 80 Z',
+      'M18 28 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0 Z', 'M35 22 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0 Z', 'M55 22 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0 Z',
+      'M72 28 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0 Z'],
+    k: ['M46 8 L54 8 L54 16 L61 16 L61 23 L54 23 L54 34 L46 34 L46 23 L39 23 L39 16 L46 16 Z',
+      'M50 44 C40 30 24 34 26 48 C27 57 33 62 34 66 L66 66 C67 62 73 57 74 48 C76 34 60 30 50 44 Z', 'M33 68 L67 68 L66 80 L34 80 Z'],
+  };
+  const DETAIL = { b: 'M55 25 L46 37', n: 'M41 30 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0', k: 'M50 44 L50 64', q: 'M34 66 L66 66', r: 'M33 44 L67 44' };
+  let piecePaths = null;
+  const pathsFor = (t) => {
+    if (!piecePaths) {
+      piecePaths = {};
+      for (const k in PIECE_PATHS) piecePaths[k] = { body: [BASE].concat(PIECE_PATHS[k]).map(d => new Path2D(d)), detail: DETAIL[k] ? new Path2D(DETAIL[k]) : null };
+    }
+    return piecePaths[t];
+  };
+  // glow: the owner's colour (player 0 red, player 1 blue)
+  function drawChessPiece(c, x, y, s, piece, glow) {
+    const P = pathsFor(piece.toLowerCase()), white = piece === piece.toUpperCase();
+    c.save(); c.translate(x - s / 2, y - s / 2); c.scale(s / 100, s / 100);
+    c.lineJoin = 'round'; c.lineWidth = 4;
+    c.shadowColor = glow; c.shadowBlur = 14;
+    c.fillStyle = white ? '#f3f5ff' : '#1d2350';
+    for (const p of P.body) c.fill(p);
+    c.shadowBlur = 0; c.strokeStyle = white ? '#2a3160' : '#d7ddff';
+    for (const p of P.body) c.stroke(p);
+    if (P.detail) { c.lineWidth = 3.5; c.stroke(P.detail); if (piece.toLowerCase() === 'n') { c.fillStyle = c.strokeStyle; c.fill(P.detail); } }
+    c.restore();
+  }
+  function drawDisc(c, x, y, s, color, king, alpha) {
+    const r = s * 0.38;
+    c.save(); c.globalAlpha = alpha == null ? 1 : alpha;
+    c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x, y + r * 0.22, r, r * 0.95, 0, 0, 7); c.fill();
+    c.shadowColor = color; c.shadowBlur = 12;
+    const gr = c.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r);
+    gr.addColorStop(0, shade(color, 0.45)); gr.addColorStop(1, shade(color, -0.25));
+    c.fillStyle = gr; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
+    c.shadowBlur = 0; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1.5, s * 0.035);
+    c.beginPath(); c.arc(x, y, r * 0.68, 0, 7); c.stroke();
+    if (king) { // a little crown
+      const k = r * 0.55;
+      c.fillStyle = '#ffd34d'; c.shadowColor = '#ffc531'; c.shadowBlur = 8;
+      c.beginPath(); c.moveTo(x - k, y + k * 0.55); c.lineTo(x - k, y - k * 0.35); c.lineTo(x - k * 0.5, y + k * 0.05); c.lineTo(x, y - k * 0.6);
+      c.lineTo(x + k * 0.5, y + k * 0.05); c.lineTo(x + k, y - k * 0.35); c.lineTo(x + k, y + k * 0.55); c.closePath(); c.fill();
+    }
+    c.restore();
+  }
+  function drawPiece8(c, g, x, y, s, piece, alpha) {
+    const color = COLORS[ownerOf8(g, piece)];
+    if (g.kind === 'shaxmat') { c.save(); c.globalAlpha = alpha == null ? 1 : alpha; drawChessPiece(c, x, y, s * 0.86, piece, color); c.restore(); }
+    else drawDisc(c, x, y, s, color, piece === 'W' || piece === 'B', alpha);
+  }
+
+  function select8(i) {
+    sel8 = i;
+    if (i === null) { targets8 = []; return; }
+    targets8 = game.kind === 'shashka'
+      ? Shashka.legalSteps(game, you).filter(s => s.from === i).map(s => ({ to: s.to, cap: s.over !== undefined }))
+      : Chess.legalMoves(game, Chess.colorOf(game, you)).filter(m => m.from === i && (!m.promo || m.promo === 'q'))
+          .map(m => ({ to: m.to, cap: !!game.board[m.to] || !!m.ep, promo: !!m.promo }));
+  }
+  const mine8 = (i) => { const x = game.board[i]; return !!x && ownerOf8(game, x) === you; };
+
+  function paint8(now) {
+    const S = sq8(), g = game, chess = g.kind === 'shaxmat';
+    const lastSq = g.last && g.last.from !== undefined ? [g.last.from, g.last.to] : [];
+    const kingInCheck = chess && g.check && g.winner === null ? Chess.kingSq(g.board, Chess.colorOf(g, g.turn)) : -1;
+    const matedKing = chess && g.reason === 'mate' ? Chess.kingSq(g.board, Chess.colorOf(g, 1 - g.winner)) : -1;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    ctx.save();
+    ctx.shadowColor = 'rgba(47,123,255,.55)'; ctx.shadowBlur = 18; ctx.fillStyle = '#0d1230';
+    rr(offX - 3, offY - 3, S * 8 + 6, S * 8 + 6, 10); ctx.fill();
+    ctx.restore();
+    for (let v = 0; v < 64; v++) {
+      const i = view8(v), r = Math.floor(v / 8), c = v % 8, x = offX + c * S, y = offY + r * S, dark = (r + c) % 2 === 1;
+      ctx.fillStyle = dark ? (chess ? '#27305e' : '#232a52') : (chess ? '#8f9bd0' : '#3b4474');
+      ctx.fillRect(x, y, S, S);
+      if (lastSq.includes(i)) { ctx.fillStyle = 'rgba(255,197,49,.28)'; ctx.fillRect(x, y, S, S); }
+      if (i === sel8) { ctx.fillStyle = hexA(COLORS[you], 0.38); ctx.fillRect(x, y, S, S); }
+      if (i === kingInCheck || i === matedKing) {
+        const gr = ctx.createRadialGradient(x + S / 2, y + S / 2, 0, x + S / 2, y + S / 2, S * 0.7);
+        gr.addColorStop(0, `rgba(255,45,70,${0.65 + 0.3 * pulse})`); gr.addColorStop(1, 'rgba(255,45,70,0)');
+        ctx.fillStyle = gr; ctx.fillRect(x, y, S, S);
+      }
+      // coordinates along the left and bottom edges
+      ctx.fillStyle = dark ? 'rgba(200,210,255,.55)' : 'rgba(20,26,60,.6)';
+      ctx.font = `700 ${Math.max(8, S * 0.18)}px system-ui,sans-serif`;
+      if (c === 0) { ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(String(8 - Math.floor(i / 8)), x + 2, y + 2); }
+      if (r === 7) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('abcdefgh'[i % 8], x + S - 2, y + S - 1); }
+    }
+    // pieces that can move this turn get a soft hint when nothing is selected (shashka: shows forced captures)
+    const movable = new Set();
+    if (myTurn() && sel8 === null && g.kind === 'shashka') for (const s of Shashka.legalSteps(g, you)) movable.add(s.from);
+    const a = anim8, at = a ? Math.min(1, (now - a.at) / 190) : 1;
+    for (let v = 0; v < 64; v++) {
+      const i = view8(v), x = g.board[i];
+      if (!x || (drag8 && drag8.moved && drag8.i === i)) continue;
+      let cx = offX + (v % 8 + 0.5) * S, cy = offY + (Math.floor(v / 8) + 0.5) * S;
+      if (a && at < 1 && a.to === i) { // slide in from where it came from
+        const fv = view8(a.from), e = 1 - Math.pow(1 - at, 3);
+        cx = lerp(offX + (fv % 8 + 0.5) * S, cx, e); cy = lerp(offY + (Math.floor(fv / 8) + 0.5) * S, cy, e);
+      }
+      if (movable.has(i)) {
+        ctx.save(); ctx.strokeStyle = hexA(COLORS[you], 0.5 + 0.4 * pulse); ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(cx, cy, S * 0.45, 0, 7); ctx.stroke(); ctx.restore();
+      }
+      drawPiece8(ctx, g, cx, cy, S, x, g.taken && g.taken.includes(i) ? 0.35 : 1);
+    }
+    for (const t of targets8) {
+      const v = view8(t.to), x = offX + (v % 8 + 0.5) * S, y = offY + (Math.floor(v / 8) + 0.5) * S;
+      ctx.save(); ctx.fillStyle = ctx.strokeStyle = hexA(COLORS[you], 0.75); ctx.shadowColor = COLORS[you]; ctx.shadowBlur = 8;
+      if (t.cap && g.board[t.to]) { ctx.lineWidth = Math.max(3, S * 0.07); ctx.beginPath(); ctx.arc(x, y, S * 0.44, 0, 7); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(x, y, S * (t.cap ? 0.2 : 0.14) * (0.9 + 0.1 * pulse), 0, 7); ctx.fill(); }
+      ctx.restore();
+    }
+    if (drag8 && drag8.moved) {
+      ctx.save(); ctx.globalAlpha = 0.95;
+      drawPiece8(ctx, g, drag8.x, drag8.y, S * 1.15, g.board[drag8.i]);
+      ctx.restore();
+    }
+  }
+
+  // tap a piece, then a square; or drag the piece there
+  function square8At(clientX, clientY) {
+    const b = cv.getBoundingClientRect(), S = sq8();
+    const c = Math.floor((clientX - b.left - offX) / S), r = Math.floor((clientY - b.top - offY) / S);
+    return c >= 0 && c < 8 && r >= 0 && r < 8 ? view8(r * 8 + c) : -1;
+  }
+  function try8(to) {
+    const t = targets8.find(x => x.to === to);
+    if (!t) return false;
+    const from = sel8;
+    if (t.promo) { showPromo(from, to); return true; }
+    act({ t: 'move', from, to });
+    return true;
+  }
+  function down8(e) {
+    if ($('overlay').dataset.kind === 'promo') return;
+    const i = square8At(e.clientX, e.clientY);
+    if (i < 0) return;
+    if (sel8 !== null && i !== sel8 && try8(i)) return;
+    if (!mine8(i)) { if (sel8 !== null && !(game.chain != null)) { select8(null); } else if (game.winner === null) flash(myTurn() ? "O'z donangizni tanlang" : 'Hozir sizning navbatingiz emas', 1000); return; }
+    if (!myTurn()) return flash('Hozir sizning navbatingiz emas', 1200);
+    if (game.chain != null && i !== game.chain) return flash('{swords} Urishni shu dona bilan davom ettiring', 1200);
+    if (game.kind === 'shashka') {
+      const all = Shashka.legalSteps(game, you);
+      if (!all.some(s => s.from === i)) {
+        haptic('warning');
+        return flash(all.length && all[0].over !== undefined ? '{swords} Urish majburiy!' : "Bu dona yura olmaydi", 1300);
+      }
+    }
+    if (sel8 !== i) { select8(i); haptic('light'); Snd.play('tap'); }
+    if (!targets8.length && game.kind === 'shaxmat') flash("Bu dona yura olmaydi", 1000);
+    const b = cv.getBoundingClientRect();
+    drag8 = { i, x0: e.clientX, y0: e.clientY, x: e.clientX - b.left, y: e.clientY - b.top, moved: false, lift: e.pointerType === 'mouse' ? 0 : sq8() * 0.6 };
+  }
+  addEventListener('pointermove', (e) => {
+    if (!drag8) return;
+    if (!drag8.moved && Math.hypot(e.clientX - drag8.x0, e.clientY - drag8.y0) < 7) return;
+    drag8.moved = true;
+    const b = cv.getBoundingClientRect();
+    drag8.x = e.clientX - b.left; drag8.y = e.clientY - b.top - drag8.lift;
+  });
+  addEventListener('pointerup', (e) => {
+    if (!drag8) return;
+    const d = drag8; drag8 = null;
+    if (!d.moved) return; // a tap: the piece stays selected
+    const to = square8At(e.clientX, e.clientY - d.lift);
+    if (to >= 0 && to !== d.i && targets8.some(t => t.to === to)) { dropped8 = true; try8(to); }
+  });
+  addEventListener('pointercancel', () => { drag8 = null; });
+
+  function showPromo(from, to) {
+    const p = openPanel('promo');
+    addText(p, 'h1', 'Piyodani almashtirish');
+    addText(p, 'p', "Piyoda oxirgi qatorga yetdi. Qaysi donaga aylansin?");
+    const row = document.createElement('div'); row.className = 'promo';
+    const white = Chess.colorOf(game, you) === 'w';
+    [['q', 'Farzin'], ['r', 'Ruh'], ['b', 'Fil'], ['n', 'Ot']].forEach(([t, name]) => {
+      const b = document.createElement('button'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+      c.width = 54 * dpr; c.height = 54 * dpr;
+      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawChessPiece(x, 27, 27, 48, white ? t.toUpperCase() : t, COLORS[you]);
+      b.append(c, name);
+      b.onclick = () => { hideOverlay(); act({ t: 'move', from, to, promo: t }); };
+      row.appendChild(b);
+    });
+    p.append(row, bigBtn('Bekor qilish', () => { hideOverlay(); select8(null); }));
+  }
+
+  // hub thumbnails: a corner of the board with a piece hopping across
+  function drawBoard8Thumb(c, id, now) {
+    const n = 4, cs = 92 / n, chess = id === 'shaxmat';
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) {
+      c.fillStyle = (r + k) % 2 ? (chess ? '#27305e' : '#232a52') : (chess ? '#8f9bd0' : '#3b4474');
+      c.fillRect(k * cs, r * cs, cs, cs);
+    }
+    const t = (now % 3200) / 3200, hop = Math.sin(Math.min(1, t * 2) * Math.PI) * cs * 0.5, e = Math.min(1, t * 2);
+    const g = { kind: id, starter: 0 };
+    if (chess) {
+      drawChessPiece(c, cs * 0.5, cs * 3.45, cs * 0.9, 'R', COLORS[0]);
+      drawChessPiece(c, cs * 3.5, cs * 0.45, cs * 0.9, 'q', COLORS[1]);
+      drawChessPiece(c, cs * 2.5, cs * 2.45, cs * 0.9, 'k', COLORS[1]);
+      // the knight jumps b1 -> c3 and back
+      const fx = t < 0.5 ? lerp(1.5, 2.5, e) : 2.5 - (t - 0.5) * 2, fy = t < 0.5 ? lerp(3.5, 1.5, e) : 1.5 + (t - 0.5) * 4;
+      drawChessPiece(c, cs * Math.min(2.5, fx), cs * Math.min(3.5, fy) - (t < 0.5 ? hop : 0) - cs * 0.05, cs * 0.9, 'N', COLORS[0]);
+    } else {
+      drawPiece8(c, g, cs * 0.5, cs * 3.5, cs, 'w');
+      drawPiece8(c, g, cs * 0.5, cs * 0.5, cs, 'B');
+      // a man jumps over a black piece: b2 x c3 -> d4
+      const cap = t < 0.5 || t > 0.95;
+      if (cap) drawPiece8(c, g, cs * 2.5, cs * 1.5, cs, 'b');
+      const px = lerp(1.5, 3.5, e), py = lerp(2.5, 0.5, e);
+      if (t < 0.95) drawPiece8(c, g, cs * px, cs * py - hop, cs, 'w');
+    }
+  }
+
   // ---------- input ----------
   // board position (in cells, view space) -> fence in game coordinates, centred on the nearest intersection
   function fenceAt(o, fx, fy) {
@@ -1745,6 +2217,7 @@
     if (!game) return;
     const b = cv.getBoundingClientRect();
     const fx = (e.clientX - b.left - offX) / cell, fy = (e.clientY - b.top - offY) / cell;
+    if (is8(game.kind)) return down8(e);
     if (game.kind === 'xo') { // the 3x3 board covers the same area as the 9x9 one
       const col = Math.floor(fx / 3), row = Math.floor(fy / 3);
       if (col < 0 || col > 2 || row < 0 || row > 2) return;

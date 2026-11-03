@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 // every game kind has the same rules API: newGame, start, apply, checkTimeout, resign
-const GAMES = { tosiq: require('./public/game.js'), xo: require('./public/xo.js') };
+const GAMES = { tosiq: require('./public/game.js'), xo: require('./public/xo.js'),
+  shashka: require('./public/checkers.js'), shaxmat: require('./public/chess.js') };
 const kindOf = (k) => (GAMES[k] ? k : 'tosiq');
 const rulesOf = (room) => GAMES[room.kind];
 
@@ -92,7 +93,11 @@ function verifyInitData(initData) {
 const GAME_INFO = {
   tosiq: { title: "To'siq Jangi", emoji: '🧱', line: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing!" },
   xo: { title: 'X va O', emoji: '❌⭕', line: "Uchta belgini bir qatorga birinchi bo'lib tering!" },
+  shashka: { title: 'Shashka', emoji: '⚫⚪', line: "Raqibning barcha donalarini urib oling yoki uni yurolmaydigan qiling!" },
+  shaxmat: { title: 'Shaxmat', emoji: '♟️', line: "Raqib shohiga mot qo'ying!" },
 };
+// the emoji players can send each other during a game
+const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
 const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 // the invite text (Telegram HTML); the same wording is shown as a preview inside the app
@@ -110,6 +115,8 @@ function inviteText(name, kind, code, elo) {
     + `<blockquote>⚔️ Kim aqlliroq — bellashib ko'ramizmi?</blockquote>\n`
     + `🧱 <b>To'siq Jangi</b> — yo'lni to'sib, marraga birinchi yet\n`
     + `❌⭕ <b>X va O</b> — uchtasini bir qatorga ter\n`
+    + `⚫ <b>Shashka</b> — donalarni urib ol, damka qil\n`
+    + `♟️ <b>Shaxmat</b> — raqib shohiga mot qo'y\n`
     + `✨ <i>…va yangi o'yinlar yo'lda!</i>\n\n`
     + `🏆 Reyting va ELO  •  👥 Do'stlar bilan xonalar  •  🤖 Botga qarshi\n\n`
     + `👇 <b>Tugmani bosing — o'yin boshlanadi!</b>`;
@@ -124,7 +131,7 @@ async function prepareInvite(body) {
   const text = inviteText(v.name, kind, code, st && st.games ? st.elo : null);
   const button = { text: code ? '▶️ Xonaga kirish' : "🎮 O'ynash", style: 'success', url: link };
   const title = code ? `${GAME_INFO[kind].title} — o'yinga taklif` : "RAQIB — do'stingizni taklif qiling";
-  const description = code ? `Xona kodi: ${code}` : "O'yinlar markazi: To'siq Jangi, X va O va boshqalar";
+  const description = code ? `Xona kodi: ${code}` : "O'yinlar markazi: Shaxmat, Shashka, To'siq Jangi, X va O";
   // with a public address the invite goes out as a photo (the neon banner) with the text as its caption
   const photo = APP_URL ? `${APP_URL}/img/invite.png` : null;
   const result = photo
@@ -296,7 +303,7 @@ function broadcast(room) {
     if (!pl || !pl.ws) return;
     pl.ws.send(JSON.stringify({
       t: 'state', game: g, kind: room.kind, you: i, now, room: room.id, pub: room.pub, code: room.code, ranked: !!room.ranked, elo: room.elo || null,
-      names: room.players.map(x => x && x.name),
+      names: room.players.map(x => x && x.name), rematch: room.rematch || [false, false],
       photos: room.players.map(x => (x && x.photo) || null),
       online: room.players.map(x => !!(x && x.ws)),
     }));
@@ -379,11 +386,27 @@ wss.on('connection', (ws) => {
       broadcast(room);
     } else if (m.t === 'resign') {
       if (G.resign(room.game, slot)) broadcast(room);
-    } else if (m.t === 'rematch' && room.game.winner !== null && !room.ranked) { // rated games re-queue instead
-      room.starter = 1 - room.starter;
-      room.game = G.newGame(room.starter);
-      room.rated = false; room.elo = null;
+    } else if (m.t === 'rematch' && room.game.winner !== null) {
+      // a rematch needs both players: the first request is shown to the opponent, the second starts the game
+      // (a rated game's rematch is rated too)
+      const other = room.players[1 - slot];
+      if (!other || !other.ws) return send({ t: 'err', msg: "Raqib o'yindan chiqib ketgan" });
+      room.rematch = room.rematch || [false, false];
+      room.rematch[slot] = true;
+      if (room.rematch.every(Boolean)) {
+        room.rematch = null;
+        room.starter = 1 - room.starter;
+        room.game = G.newGame(room.starter);
+        room.rated = false; room.elo = null;
+      }
       broadcast(room);
+    } else if (m.t === 'react') { // a quick emoji for both screens, at most one per 1.2 s
+      if (!REACTIONS.includes(m.e) || !room.players[1 - slot]) return;
+      const now = Date.now();
+      if (now - (ws.lastReact || 0) < 1200) return;
+      ws.lastReact = now;
+      const msg = JSON.stringify({ t: 'react', e: m.e, from: slot });
+      for (const pl of room.players) if (pl && pl.ws && pl.ws.readyState === 1) pl.ws.send(msg);
     }
   });
 
@@ -431,7 +454,7 @@ function playButton(code) {
 }
 function shareButton() {
   if (!BOT_USERNAME) return null;
-  const text = "🎮 To'siq Jangi va X va O — men bilan bellashasanmi? Reytingda kim yuqori, ko'ramiz! 🏆";
+  const text = "🎮 Shaxmat, Shashka, To'siq Jangi va X va O — men bilan bellashasanmi? Reytingda kim yuqori, ko'ramiz! 🏆";
   return { text: "👥 Do'stni taklif qilish", style: 'primary', url: `https://t.me/share/url?url=${encodeURIComponent('https://t.me/' + BOT_USERNAME)}&text=${encodeURIComponent(text)}` };
 }
 // ---------- premium (custom) emoji: the admin maps a plain emoji to a premium one with /emoji ----------
@@ -480,7 +503,9 @@ function welcomeText(firstName) {
   return `🎮 <b>Assalomu alaykum, ${esc(firstName || "do'stim")}!</b>\n\n`
     + `Bu yerda do'stlaring va butun O'zbekiston bilan <b>aql o'yinlari</b>da kuch sinashasan:\n\n`
     + `🧱 <b>To'siq Jangi</b> — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet\n`
-    + `❌⭕ <b>X va O</b> — uchta belgini bir qatorga birinchi bo'lib ter\n\n`
+    + `❌⭕ <b>X va O</b> — uchta belgini bir qatorga birinchi bo'lib ter\n`
+    + `⚫ <b>Shashka</b> — raqib donalarini urib ol, damka bilan g'alaba qil\n`
+    + `♟️ <b>Shaxmat</b> — klassik shaxmat, raqib shohiga mot qo'y\n\n`
     + `🏆 Reytingli o'yinlar va ELO\n👥 Do'stlar bilan ochiq va maxfiy xonalar\n🤖 Botga qarshi mashq\n\n`
     + `👇 Boshlash uchun <b>O'ynash</b> tugmasini bos!`;
 }
@@ -488,7 +513,9 @@ const HELP_TEXT = `ℹ️ <b>Qanday o'ynaladi?</b>\n\n`
   + `1️⃣ <b>O'ynash</b> tugmasini bosing va o'yinni tanlang\n`
   + `2️⃣ <b>⭐ Reytingli o'yin</b> — sizga kuchi teng raqib topiladi, g'alaba uchun ELO beriladi\n`
   + `3️⃣ <b>Xona yaratish</b> — do'stingiz bilan o'ynang: ochiq xonaga istalgan kishi, maxfiy xonaga faqat kod bilan kiriladi\n`
-  + `4️⃣ <b>🤖 Botga qarshi</b> — mashq qiling\n\n`
+  + `4️⃣ <b>🤖 Botga qarshi</b> — mashq qiling\n`
+  + `5️⃣ O'yin tugagach <b>🔁 Revansh</b> — o'sha raqib bilan yana bir bor\n\n`
+  + `O'yin paytida raqibga 👍😂🔥 emoji yuborishingiz mumkin.\n`
   + `Reyting va profilingiz ilovaning pastki menyusida.`;
 
 async function onMessage(msg) {
@@ -542,6 +569,8 @@ const BOT_DESCRIPTION = [
   "",
   "🧱 To'siq Jangi — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet",
   "❌⭕ X va O — uchta belgini bir qatorga ter",
+  "⚫ Shashka — donalarni urib ol, damka qil",
+  "♟️ Shaxmat — raqib shohiga mot qo'y",
   "",
   "⭐ Reytingli o'yin — kuchi teng raqib topiladi",
   "🏆 ELO reyting va g'oliblar jadvali",

@@ -1,7 +1,7 @@
 {
   "name": "oyinlar-boti",
   "version": "1.0.0",
-  "description": "Telegram Web App: To'siq Jangi and X va O, online rooms, rated matchmaking and ELO",
+  "description": "Telegram Web App: chess, checkers, To'siq Jangi and X va O, online rooms, rated matchmaking and ELO",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

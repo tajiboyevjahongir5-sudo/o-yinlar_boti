@@ -1,7 +1,37 @@
 # O'yinlar — Telegram Web App
 
-Ikkita o'yin: **To'siq Jangi** va **X va O**. Ikkalasida ham ochiq/maxfiy xonalar, reytingli o'yin (mos raqib) va
-botga qarshi rejim bor. ELO har bir o'yin uchun alohida hisoblanadi.
+To'rtta o'yin: **Shaxmat**, **Shashka**, **To'siq Jangi** va **X va O**. Hammasida ochiq/maxfiy xonalar, reytingli
+o'yin (mos raqib) va botga qarshi rejim bor. ELO har bir o'yin uchun alohida hisoblanadi.
+
+## Shaxmat
+
+Klassik shaxmat, to'liq qoidalar bilan: rokirovka, o'tib olish (en passant), piyodani almashtirish (farzin, ruh, fil
+yoki ot tanlanadi), shoh, mot va pat. Durrang: pat, 50 yurish qoidasi, holatning 3 marta takrorlanishi, mot qo'yishga
+kuch yetmasligi; vaqti tugaganda raqibda faqat shoh qolgan bo'lsa ham durrang. Birinchi yurgan **oq** bilan o'ynaydi
+(qayta o'ynashda ranglar almashadi), har o'yinchiga 10 daqiqa. Qora o'ynayotgan o'yinchi taxtani teskari ko'radi.
+Yurish: donani bosing va yashil nuqtali katakni bosing (yoki donani surib qo'ying). Bot 3 yurish oldinga hisoblaydi,
+ba'zan adashadi. Qoidalar: `public/chess.js` (perft testlari bilan tekshirilgan).
+
+## Shashka
+
+Rus shashkasi (8×8, 12 tadan dona): oddiy dona bir katak oldinga diagonal yuradi, lekin oldinga ham, orqaga ham uradi.
+**Urish majburiy**; bir nechta urish bir yurishda davom etadi (har sakrash alohida bosiladi, taxta keyingi urishni
+ko'rsatadi). Oxirgi qatorga yetgan dona **damka** bo'ladi (urish o'rtasida ham — keyin damka kabi uradi).
+Damka butun diagonal bo'ylab yuradi va uradi; urilgan donalar yurish tugaguncha taxtada turadi va ikki marta
+urilmaydi. Raqibda dona qolmasa yoki yurishga joyi bo'lmasa — g'alaba. 15 yurish davomida faqat damkalar yurib,
+urish bo'lmasa — durrang. Har o'yinchiga 5 daqiqa. Qoidalar: `public/checkers.js`.
+
+## Revansh, reaksiyalar va ovoz
+
+- **🔁 Revansh**: o'yin tugagach o'sha raqib bilan yana o'ynash. Ikkala o'yinchi ham rozi bo'lishi kerak: birinchi
+  so'rov raqibga "Raqib revansh so'rayapti!" bo'lib ko'rinadi, u qabul qilsa yangi o'yin boshlanadi (ranglar
+  almashadi). Reytingli o'yindagi revansh ham reytingli. Raqib chiqib ketgan bo'lsa, tugma o'chadi.
+- **Emoji reaksiyalar** (onlayn o'yinda): 😊 tugmasi yoki natija oynasidagi qator — 👍 😂 😮 😡 🔥 👏 🤝 😭.
+  Emoji yuboruvchining kartasi ustida ko'rinadi. Server faqat shu ro'yxatdagilarni qabul qiladi, 1,2 soniyada bittadan.
+- **Ovoz**: yurish, urish, to'siq, shoh, damka, g'alaba/mag'lubiyat, raqib topilganda va vaqt tugashiga 10 soniya
+  qolganda — Web Audio bilan yaratiladi (fayl yuklanmaydi). 🔊 tugmasi (bosh sahifa va o'yin ekrani) ovozni
+  o'chiradi/yoqadi, tanlov qurilmada saqlanadi. Telegram titrashi (haptic) ham bor.
+- **Profil**: tanlangan o'yin statistikasi va "Barcha o'yinlar" — har bir o'yindagi ELO, onlayn va bot natijalari.
 
 ## X va O
 
@@ -121,7 +151,8 @@ o'yinlar ro'yxati, o'yindagi kartalar va reytingda ko'rinadi; bo'lmasa personaj/
 
 ## Fayllar
 
-- `public/game.js` — o'yin qoidalari (server ham, brauzer ham ishlatadi) va bot
+- `public/game.js` — To'siq Jangi qoidalari (server ham, brauzer ham ishlatadi) va bot
+- `public/xo.js`, `public/checkers.js`, `public/chess.js` — X va O, Shashka, Shaxmat qoidalari va botlari
 - `public/index.html` — o'yin interfeysi (canvas, Telegram haptik)
 - `server.js` — statik fayllar + WebSocket xonalar (`/ws`)
 
