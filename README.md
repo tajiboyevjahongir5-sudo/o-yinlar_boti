@@ -51,7 +51,11 @@ Ma'lumot: `data/meta.json`.
 
 ## Do'stlar, chaqiruv va tomosha
 
-- **Do'st qo'shish**: o'yin tugagach natija oynasidan yoki Reyting ro'yxatida o'yinchini bosib.
+- **Do'st qo'shish** (Do'stlar → "Do'st qo'shish"): ism bo'yicha qidirib, natija oynasidan yoki Reyting ro'yxatidan.
+  Bu **so'rov** bo'lib boradi: u odamga ilovada va bot orqali xabar keladi, Do'stlar bo'limida (menyuda qizil son)
+  "Qabul" bossa ikkalangiz do'st bo'lasiz. Ikkalangiz bir-biringizga so'rov yuborsangiz, darhol do'st bo'lasiz.
+- **Do'stlik havolasi**: tugmali xabar; havolani ochgan odam bilan darhol do'st bo'lasiz (havolani o'zingiz yuborgansiz).
+- Do'stlikdan o'chirish ikki tomonlama.
 - **Do'stlar** bo'limi: kim onlayn, kim o'ynayapti; **Chaqirish** (o'yin va vaqtni tanlab) — do'stingizga ilovada
   darhol oyna chiqadi va bot orqali "Xonaga kirish" tugmali xabar boradi. Rad etsa, sizga xabar keladi.
 - **Tomosha**: Xonalar ro'yxatida ketayotgan ochiq, reytingli va turnir o'yinlarida "Tomosha" tugmasi bor;

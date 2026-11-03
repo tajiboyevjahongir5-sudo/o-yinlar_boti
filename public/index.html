@@ -591,6 +591,14 @@
     font-weight:800; font-size:15px; border:2px solid var(--green); background:rgba(46,230,107,.13);
     box-shadow:0 0 12px var(--green), inset 0 0 12px rgba(46,230,107,.2); }
   .add-friend:active { transform:scale(.98); }
+  .frow button.done, .big.done { border-color:#3a4270 !important; background:transparent !important; box-shadow:none !important; color:var(--mute) !important; opacity:1; }
+  .frow.req { border-color:rgba(255,197,49,.55); box-shadow:0 0 10px rgba(255,197,49,.25); }
+  .frow button.no { border-color:#4b5480; background:rgba(255,255,255,.05); box-shadow:none; padding:7px 9px; }
+  .nbadge { position:absolute; top:2px; left:calc(50% + 6px); min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red);
+    color:#fff; font-size:11px; font-weight:900; display:grid; place-items:center; box-shadow:0 0 8px var(--red); }
+  .nbadge:empty { display:none; }
+  /* long notices wrap instead of running off the screen */
+  #toast { white-space:normal; text-align:center; width:max-content; max-width:calc(100vw - 32px); line-height:1.35; }
   .search-in { width:100%; padding:12px 14px; border-radius:14px; border:2px solid var(--blue); background:#070b1f; color:#fff; font-size:15px;
     outline:none; font-family:inherit; box-shadow:0 0 10px rgba(47,123,255,.4); user-select:text; -webkit-user-select:text; touch-action:auto; }
   .sres { width:100%; display:flex; flex-direction:column; gap:8px; max-height:42vh; overflow-y:auto; touch-action:pan-y; }
@@ -720,7 +728,7 @@
 <nav id="nav" class="hide"><div class="in">
   <button data-tab="hub" class="on"><span><i data-ic="games"></i></span>O'yinlar</button>
   <button data-tab="rating"><span><i data-ic="rating"></i></span>Reyting</button>
-  <button data-tab="friends"><span><i data-ic="users"></i></span>Do'stlar</button>
+  <button data-tab="friends"><span><i data-ic="users"></i></span>Do'stlar<b class="nbadge" id="frBadge"></b></button>
   <button data-tab="profile"><span><i data-ic="profile"></i></span>Profil</button>
 </div></nav>
 <div id="overlay"></div>
@@ -1368,12 +1376,9 @@
     }
     const oppPid = pids[1 - you];
     if (mode === 'online' && oppPid) { // add the opponent as a friend right from here
-      const fb = bigBtn("{invite} Do'stlarga qo'shish", async () => {
-        fb.disabled = true;
-        const r = await postApi('friend', { pid: oppPid });
-        if (r && r.ok) { fb.innerHTML = lbl("{check} Do'stlar ro'yxatida"); Snd.play('notify'); } else { fb.disabled = false; toast('{alert} ' + ((r && r.msg) || 'Xato')); }
-      });
-      api('player', null, '&pid=' + encodeURIComponent(oppPid)).then(d => { if (d && d.friend) { fb.disabled = true; fb.innerHTML = lbl("{check} Do'stlar ro'yxatida"); } });
+      const fb = bigBtn("{invite} Do'st qo'shish", null);
+      wireFriendBtn(fb, { pid: oppPid, name: names[1 - you] || 'Raqib' }, true);
+      api('player', null, '&pid=' + encodeURIComponent(oppPid)).then(d => { if (d && d.ok) wireFriendBtn(fb, d, true); });
       panel.appendChild(fb);
     }
     if (roomTour) { // tournament match: no rematch, the bracket decides what comes next
@@ -1541,7 +1546,15 @@
     s.onopen = () => s.send(JSON.stringify(authBody({ t: 'hello', kind: whereKind })));
     s.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
-      if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; }
+      if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; setFriendBadge(m.requests || 0); }
+      else if (m.t === 'freq') { // someone wants to be my friend
+        setFriendBadge(m.count); Snd.play('notify'); haptic('medium');
+        toast(`{invite} ${m.from.name} sizga do'stlik so'rovi yubordi — Do'stlar bo'limida tasdiqlang`);
+        if (!$('friends').classList.contains('hide')) loadFriends();
+      } else if (m.t === 'faccept') {
+        Snd.play('crown'); haptic('success'); toast(`{check} ${m.name} do'stlik so'rovingizni qabul qildi!`);
+        if (!$('friends').classList.contains('hide')) loadFriends();
+      }
       else if (m.t === 'online') { onlineData = m; paintOnline(); }
       else if (m.t === 'ach') {
         const a = Rewards.ACHIEVEMENTS.find(x => x.id === m.id);
@@ -1650,23 +1663,52 @@
     p.appendChild(grid);
     if (d.ach.length) addText(p, 'div', d.ach.map(id => (Rewards.ACHIEVEMENTS.find(a => a.id === id) || {}).icon || '').join(' ')).className = 'mini-badges';
     if (!d.me) {
-      const fb = bigBtn(d.friend ? "{close} Do'stlardan o'chirish" : "{invite} Do'st qo'shish", async () => {
-        const r = await postApi('friend', { pid, remove: d.friend });
-        if (r && r.ok) { toast(r.friend ? "{check} Do'stlar ro'yxatiga qo'shildi" : "Do'stlardan o'chirildi"); showPlayer(pid); if (!$('friends').classList.contains('hide')) loadFriends(); }
-        else toast('{alert} ' + ((r && r.msg) || 'Xato'));
-      }, d.friend ? '' : 'pri');
-      p.appendChild(fb);
+      const reload = () => { if (!$('friends').classList.contains('hide')) loadFriends(); };
+      if (d.friend) p.appendChild(bigBtn("{close} Do'stlardan o'chirish", async () => {
+        const r = await postApi('friend', { pid, remove: true });
+        if (r && r.ok) { toast("Do'stlardan o'chirildi"); showPlayer(pid); reload(); } else toast('{alert} ' + ((r && r.msg) || 'Xato'));
+      }));
+      else p.appendChild(wireFriendBtn(bigBtn('', null, 'pri'), d, true, reload));
       p.appendChild(bigBtn('{swords} Chaqirish', () => challengeFriend(pid, d.name), d.friend ? 'pri' : ''));
       if (st === 'playing') p.appendChild(bigBtn("{search} O'yinini tomosha qilish", () => watchGame(d.status.room, d.status.kind)));
     }
     p.appendChild(bigBtn('Yopish', hideOverlay));
   }
 
+  // one "add friend" button everywhere: already friends / request sent / they asked me / add
+  function wireFriendBtn(b, f, big, onChange) {
+    const set = (st) => {
+      b.disabled = st === 'friend' || st === 'pending';
+      b.classList.toggle('done', b.disabled);
+      b.innerHTML = lbl(st === 'friend' ? (big ? "{check} Do'stlar ro'yxatida" : "{check} Do'st") : st === 'pending' ? (big ? "{hourglass} So'rov yuborildi — javob kutilmoqda" : "{hourglass} Kutilmoqda")
+        : st === 'incoming' ? (big ? "{check} Do'stlik so'rovini qabul qilish" : '{check} Qabul') : (big ? "{invite} Do'st qo'shish" : "{plus} Qo'shish"));
+    };
+    set(f.friend ? 'friend' : f.pending ? 'pending' : f.incoming ? 'incoming' : 'add');
+    b.onclick = async (e) => {
+      e.stopPropagation(); b.disabled = true;
+      const r = await postApi('friend', { pid: f.pid });
+      if (!r || !r.ok) { b.disabled = false; return toast('{alert} ' + ((r && r.msg) || 'Xato')); }
+      if (r.friend) { set('friend'); Snd.play('crown'); haptic('success'); toast(`{check} ${f.name} bilan do'st bo'ldingiz!`); refreshRequests(); }
+      else { set('pending'); Snd.play('notify'); haptic('light'); toast(`{send} So'rov yuborildi — ${f.name} tasdiqlashi kerak`); }
+      if (onChange) onChange();
+    };
+    return b;
+  }
+  function setFriendBadge(n) { $('frBadge').textContent = n > 0 ? (n > 9 ? '9+' : n) : ''; }
+  async function refreshRequests() { const d = await api('friends'); if (d) setFriendBadge((d.requests || []).length); }
+  async function answerRequest(f, accept) {
+    const r = await postApi('freply', { pid: f.pid, accept });
+    if (!r || !r.ok) return toast('{alert} ' + ((r && r.msg) || 'Xato'));
+    if (accept) { Snd.play('crown'); haptic('success'); toast(`{check} ${f.name} bilan do'st bo'ldingiz!`); }
+    else toast("So'rov rad etildi");
+    loadFriends();
+  }
+
   // add a friend: send a personal link (opening it makes you friends both ways) or search by name
   function showAddFriend() {
     const p = openPanel('addfriend');
     addText(p, 'h1', "{invite} Do'st qo'shish");
-    addText(p, 'p', "Havolani do'stingizga yuboring — u ochishi bilan ikkalangiz bir-biringizning ro'yxatingizda bo'lasiz.");
+    addText(p, 'p', "Havolani do'stingizga yuboring — u ochishi bilan ikkalangiz do'st bo'lasiz. Ism bo'yicha topsangiz, unga so'rov boradi va u tasdiqlagach do'st bo'lasiz.");
     p.appendChild(bigBtn("{send} Do'stlik havolasini yuborish", showFriendInvite, 'pri'));
     addText(p, 'div', 'yoki').className = 'or-line';
     const inp = document.createElement('input');
@@ -1694,18 +1736,7 @@
           sm.innerHTML = `<span class="st-dot ${stt}"></span>`;
           sm.append(best ? `${SHORT_NAMES[best[0]]} ${best[1].elo} ELO` : stt === 'offline' ? 'Oflayn' : 'Onlayn');
           who.appendChild(sm); who.onclick = () => showPlayer(f.pid);
-          const b = document.createElement('button');
-          const done = () => { b.className = 'done'; b.innerHTML = lbl('{check} Do\'st'); b.disabled = true; };
-          if (f.friend) done();
-          else {
-            b.innerHTML = lbl("{plus} Qo'shish");
-            b.onclick = async () => {
-              b.disabled = true;
-              const r = await postApi('friend', { pid: f.pid });
-              if (r && r.ok) { done(); Snd.play('notify'); haptic('success'); toast(`{check} ${f.name} do'stlarga qo'shildi`); loadFriends(); }
-              else { b.disabled = false; toast('{alert} ' + ((r && r.msg) || 'Xato')); }
-            };
-          }
+          const b = wireFriendBtn(document.createElement('button'), f, false, loadFriends);
           row.append(av, who, b);
           res.appendChild(row);
         }
@@ -1772,6 +1803,27 @@
     const add = document.createElement('button'); add.className = 'add-friend'; add.innerHTML = lbl("{invite} Do'st qo'shish");
     add.onclick = () => { haptic('light'); showAddFriend(); };
     box.appendChild(add);
+    const reqs = (d && d.requests) || [];
+    setFriendBadge(reqs.length);
+    if (reqs.length) {
+      addText(box, 'div', `{invite} Do'stlik so'rovlari · ${reqs.length}`).className = 'sec';
+      for (const f of reqs) {
+        const row = document.createElement('div'); row.className = 'frow req';
+        const av = document.createElement('div'); av.className = 'ini ' + frameCls(f.frame);
+        if (isPhoto(f.photo)) setAvatar(av, f.photo, initial(f.name)); else av.textContent = initial(f.name);
+        const who = document.createElement('div'); who.className = 'who2';
+        addText(who, 'b', f.name);
+        const best = Object.entries(f.elo).sort((a, b) => b[1].elo - a[1].elo)[0];
+        addText(who, 'small', "Do'st bo'lmoqchi" + (best ? ` · ${SHORT_NAMES[best[0]]} ${best[1].elo}` : ''));
+        who.onclick = () => showPlayer(f.pid);
+        const yes = document.createElement('button'); yes.innerHTML = lbl('{check} Qabul'); yes.onclick = () => { yes.disabled = true; answerRequest(f, true); };
+        const no = document.createElement('button'); no.className = 'no'; no.innerHTML = ic('close'); no.setAttribute('aria-label', 'Rad etish');
+        no.onclick = () => { no.disabled = true; answerRequest(f, false); };
+        row.append(av, who, yes, no);
+        box.appendChild(row);
+      }
+      addText(box, 'div', "{users} Do'stlarim").className = 'sec';
+    }
     const list = (d && d.friends) || [];
     if (!list.length) {
       addText(box, 'div', "Hali do'stlaringiz yo'q.\n\nYuqoridagi tugma orqali do'stingizni ismi bo'yicha toping yoki unga do'stlik havolasini yuboring. O'yin tugagach natija oynasidan ham qo'shsa bo'ladi.").className = 'empty2';

@@ -127,7 +127,7 @@ function playerRec(uid, name, photo) {
   const p = players[uid] || (players[uid] = { name: name || "O'yinchi", stats: {} });
   if (name) p.name = name;
   if (photo !== undefined && photo !== null) p.photo = photo;
-  p.ach = p.ach || {}; p.friends = p.friends || []; p.equip = p.equip || { frame: null, skin: {} };
+  p.ach = p.ach || {}; p.friends = p.friends || []; p.requests = p.requests || []; p.equip = p.equip || { frame: null, skin: {} };
   p.counters = p.counters || { wins: 0, streak: 0, best: 0, won: {} };
   pidIndex.set(pidOf(uid), uid);
   return p;
@@ -206,6 +206,17 @@ function recordOnline(room) {
   savePlayers();
 }
 
+function makeFriends(me, uid) {
+  const p = playerRec(me.uid, me.name, me.photo), o = playerRec(uid);
+  p.requests = p.requests.filter(x => x !== uid); o.requests = o.requests.filter(x => x !== me.uid);
+  if (!p.friends.includes(uid)) p.friends.unshift(uid);
+  if (!o.friends.includes(me.uid)) o.friends.unshift(me.uid);
+  award(me.uid, 'friend'); award(uid, 'friend');
+  notify(uid, { t: 'faccept', name: me.name });
+  savePlayers();
+  return { ok: true, friend: true, name: o.name };
+}
+
 // ---------- presence: every open app keeps one socket, so friends can see each other and be challenged ----------
 const presence = new Map(); // uid -> Set of sockets
 function notify(uid, msg) {
@@ -226,7 +237,8 @@ function cardOf(uid, me) {
   const elo = {};
   for (const k of Object.keys(GAMES)) if (p.stats && p.stats[k]) elo[k] = { elo: p.stats[k].elo, games: p.stats[k].games, wins: p.stats[k].wins };
   return { pid: pidOf(uid), name: p.name || "O'yinchi", photo: p.photo || null, frame: l.frame, elo, status: statusOf(uid),
-    ach: Object.keys(p.ach || {}), champ: champOf(uid), friend: !!(me && players[me] && (players[me].friends || []).includes(uid)), me: uid === me };
+    ach: Object.keys(p.ach || {}), champ: champOf(uid), friend: !!(me && players[me] && (players[me].friends || []).includes(uid)), me: uid === me,
+    pending: !!(me && (p.requests || []).includes(me)), incoming: !!(me && players[me] && (players[me].requests || []).includes(uid)) };
 }
 
 const MINUTES = [1, 3, 5, 10];
@@ -257,11 +269,39 @@ const ACTIONS = {
     }
     const uid = uidOfPid(String(m.pid || ''));
     if (!uid || uid === me.uid || !players[uid]) return { ok: false, msg: "O'yinchi topilmadi" };
+    const p = playerRec(me.uid, me.name, me.photo), o = playerRec(uid);
+    if (m.remove) { // unfriend both ways, and drop any pending request
+      p.friends = p.friends.filter(x => x !== uid); o.friends = o.friends.filter(x => x !== me.uid);
+      o.requests = o.requests.filter(x => x !== me.uid); p.requests = p.requests.filter(x => x !== uid);
+      savePlayers();
+      return { ok: true, friend: false };
+    }
+    if (p.friends.includes(uid) && o.friends.includes(me.uid)) return { ok: true, friend: true };
+    // they already asked me: accept it right away
+    if (p.requests.includes(uid)) return makeFriends(me, uid);
+    if (p.friends.length >= 100) return { ok: false, msg: "Do'stlar ro'yxati to'la" };
+    // otherwise a request; the other player confirms it
+    if (!o.requests.includes(me.uid)) {
+      o.requests.unshift(me.uid); o.requests = o.requests.slice(0, 50);
+      notify(uid, { t: 'freq', from: cardOf(me.uid, uid), count: o.requests.length });
+      if (BOT_TOKEN && uid.startsWith('tg')) {
+        tgApi('sendMessage', { chat_id: Number(uid.slice(2)), parse_mode: 'HTML',
+          text: `🤝 <b>${esc(me.name)}</b> sizga do'stlik so'rovi yubordi!\n\nQabul qilsangiz, bir-biringizni o'yinga chaqirib, o'yinlaringizni tomosha qila olasiz.\n\n👇 Ilovada <b>Do'stlar</b> bo'limini oching`,
+          reply_markup: keyboard([playButton()]) }).catch(() => {});
+      }
+      savePlayers();
+    }
+    return { ok: true, friend: false, pending: true };
+  },
+  // answer a friend request
+  freply(me, m) {
+    const uid = uidOfPid(String(m.pid || ''));
     const p = playerRec(me.uid, me.name, me.photo);
-    p.friends = p.friends.filter(x => x !== uid);
-    if (!m.remove) { if (p.friends.length >= 100) return { ok: false, msg: "Do'stlar ro'yxati to'la" }; p.friends.unshift(uid); award(me.uid, 'friend'); }
+    if (!uid || !p.requests.includes(uid)) return { ok: false, msg: "So'rov topilmadi" };
+    if (m.accept) return makeFriends(me, uid);
+    p.requests = p.requests.filter(x => x !== uid);
     savePlayers();
-    return { ok: true, friend: !m.remove };
+    return { ok: true, friend: false };
   },
   // challenge a friend: a private room is made for both; the friend gets an in-app card and a bot message
   async challenge(me, m) {
@@ -477,9 +517,10 @@ const server = http.createServer((req, res) => {
     const list = (p && p.friends || []).filter(u => players[u]).map(u => cardOf(u));
     const order = { playing: 0, online: 1, offline: 2 };
     list.sort((a, b) => order[a.status.state] - order[b.status.state]);
-    return sendJson(res, { friends: list });
+    const requests = (p && p.requests || []).filter(u => players[u]).map(u => cardOf(u));
+    return sendJson(res, { friends: list, requests });
   }
-  const act = url.pathname.match(/^\/api\/(friend|challenge|decline|equip|botwin)$/);
+  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin)$/);
   if (act && req.method === 'POST') {
     readJson(req).then(async (body) => {
       const me = whoIs(body);
@@ -811,7 +852,7 @@ wss.on('connection', (ws) => {
       presence.get(me.uid).add(ws);
       const t = tourOf(me.uid);
       ws.kind = GAMES[m.kind] ? m.kind : null;
-      send({ t: 'hi', pid: pidOf(me.uid), tour: t ? tourPublic(t) : null });
+      send({ t: 'hi', pid: pidOf(me.uid), tour: t ? tourPublic(t) : null, requests: (players[me.uid].requests || []).length });
       send(onlineCounts());
       return lobbyChanged();
     }
