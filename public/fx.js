@@ -102,6 +102,39 @@
     spark(x, y, { colors: ['#ffd34d', '#ff8a1a', '#ff3b2f', '#fff'], n: 26, speed: size * 9, size: Math.max(2, size * 0.12), life: 700, grav: 120 });
     spark(x, y, { colors: ['rgba(90,90,110,.8)', 'rgba(60,60,80,.7)'], n: 8, speed: size * 2, size: size * 0.35, life: 900, grav: -60, glow: false, delay: 60 });
   };
-  const api = { ease, spark, ring, text, fly, flash, custom, shake, offset, draw, busy, clear, pop, boom };
+  // ---------- the shared look of every board ----------
+  const rrect = (c, x, y, w, h, r) => { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, Math.max(0, r)) : c.rect(x, y, w, h); };
+  // a raised frame around a board: drop shadow, a lit rim (top light, bottom dark), a thin highlight and an optional glow.
+  // o: { rim: [top, bottom], t (rim width), glow (colour), face (fill for the inside) }
+  function bezel(c, x, y, w, h, r, o = {}) {
+    const t = o.t || Math.max(6, Math.min(w, h) * 0.022), rim = o.rim || ['#3a4690', '#0b1030'];
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = Math.min(w, h) * 0.07; c.shadowOffsetY = Math.min(w, h) * 0.025;
+    const g = c.createLinearGradient(0, y - t, 0, y + h + t); g.addColorStop(0, rim[0]); g.addColorStop(0.5, rim[2] || rim[0]); g.addColorStop(1, rim[1]);
+    c.fillStyle = g; rrect(c, x - t, y - t, w + 2 * t, h + 2 * t, r + t); c.fill();
+    c.restore();
+    if (o.glow) { c.save(); c.strokeStyle = o.glow; c.globalAlpha = 0.7; c.lineWidth = 1.5; c.shadowColor = o.glow; c.shadowBlur = 16; rrect(c, x - t, y - t, w + 2 * t, h + 2 * t, r + t); c.stroke(); c.restore(); }
+    c.save(); c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 1; rrect(c, x - t + 0.5, y - t + 0.5, w + 2 * t - 1, h + 2 * t - 1, r + t); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,.45)'; rrect(c, x - 0.5, y - 0.5, w + 1, h + 1, r); c.stroke(); c.restore();
+    if (o.face) { c.save(); c.fillStyle = o.face; rrect(c, x, y, w, h, r); c.fill(); c.restore(); }
+  }
+  // a soft shadow along the inner edge, so the playing surface looks sunk into its frame
+  function inset(c, x, y, w, h, r, k = 1) {
+    const t = Math.max(6, Math.min(w, h) * 0.03) * k;
+    c.save(); rrect(c, x, y, w, h, r); c.clip();
+    c.shadowColor = 'rgba(0,0,0,.7)'; c.shadowBlur = t * 1.6; c.shadowOffsetY = t * 0.35;
+    c.strokeStyle = 'rgba(0,0,0,.65)'; c.lineWidth = t; rrect(c, x - t / 2, y - t / 2, w + t, h + t, r + t / 2); c.stroke();
+    c.restore();
+    // light falls from the top: a faint sheen over the upper half
+    c.save(); rrect(c, x, y, w, h, r); c.clip();
+    const g = c.createLinearGradient(0, y, 0, y + h * 0.6); g.addColorStop(0, 'rgba(255,255,255,.07)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(x, y, w, h * 0.6); c.restore();
+  }
+  // a little contact shadow under a piece standing on the board
+  const contact = (c, x, y, rx, a = 0.32) => { c.save(); c.fillStyle = `rgba(0,0,0,${a})`; c.beginPath(); c.ellipse(x, y, rx, rx * 0.32, 0, 0, 7); c.fill(); c.restore(); };
+  // the frame colours of the materials the boards are made of
+  const RIM = { navy: ['#4654a8', '#0a0f2c', '#1f2a66'], wood: ['#a06a3a', '#3a2010', '#6e4322'], gold: ['#ffe08a', '#7a5200', '#c79a2e'],
+    steel: ['#9aa6c2', '#2a3350', '#5d6888'], green: ['#3f8a57', '#0f3a1f', '#22603a'], blue: ['#4f86ff', '#0d2a80', '#2457d6'] };
+  const api = { ease, spark, ring, text, fly, flash, custom, shake, offset, draw, busy, clear, pop, boom, bezel, inset, contact, RIM };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else window.FX = api;
 })();

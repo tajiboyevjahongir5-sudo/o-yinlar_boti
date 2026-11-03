@@ -37,11 +37,15 @@ window.Boards = function (env) {
       draw(c, g, now, B) {
         const { cs, x, y, h } = geo(B);
         if (g.n !== lastN) { lastN = g.n; dropAt = now; }
-        c.save(); c.shadowColor = 'rgba(47,123,255,.6)'; c.shadowBlur = 18; c.fillStyle = env.theme().frame; rr(c, x - 4, y - 4, cs * C + 8, h + 8, 14); c.fill(); c.restore();
+        const face = c.createLinearGradient(x, y, x, y + h); face.addColorStop(0, '#3a74ff'); face.addColorStop(1, '#1a3fb0');
+        FX.bezel(c, x, y, cs * C, h, 12, { rim: FX.RIM.blue, t: 7, face, glow: 'rgba(90,140,255,.7)' });
         if (hover >= 0 && env.myTurn()) { c.fillStyle = env.hexA(col(env.you), 0.16); c.fillRect(x + hover * cs, y, cs, h); }
         for (let r = 0; r < R; r++) for (let k = 0; k < C; k++) {
           const v = g.board[r * C + k], cx = x + (k + 0.5) * cs, cy = y + (r + 0.5) * cs;
-          c.fillStyle = '#070b1f'; c.beginPath(); c.arc(cx, cy, cs * 0.38, 0, 7); c.fill();
+          const hg = c.createRadialGradient(cx, cy - cs * 0.12, cs * 0.05, cx, cy, cs * 0.4); hg.addColorStop(0, '#0b1338'); hg.addColorStop(1, '#03061a');
+          c.fillStyle = hg; c.beginPath(); c.arc(cx, cy, cs * 0.38, 0, 7); c.fill();
+          c.strokeStyle = 'rgba(0,0,30,.55)'; c.lineWidth = cs * 0.05; c.beginPath(); c.arc(cx, cy, cs * 0.4, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+          c.strokeStyle = 'rgba(160,200,255,.45)'; c.lineWidth = cs * 0.03; c.beginPath(); c.arc(cx, cy, cs * 0.41, Math.PI * 0.15, Math.PI * 0.85); c.stroke();
           if (v === null) continue;
           let yy = cy;
           if (g.last && g.last.r === r && g.last.c === k) { const t = Math.min(1, Math.max(0, (now - dropAt) / DROP)); yy = y - cs * 0.5 + (cy - y + cs * 0.5) * FX.ease.bounce(t); }
@@ -112,7 +116,11 @@ window.Boards = function (env) {
       badge: (g, p) => `<span class="disc"></span> ${g.score[p]} <small>katak</small>`,
       msg: (g) => (g.last && g.last.got && g.turn === g.last.p && g.winner === null ? (g.turn === env.you ? '{check} Katak yopildi — yana yuring!' : 'Raqib katak yopdi — yana yuradi') : null),
       draw(c, g, now, B) {
-        const G = geo(B), pulse = 0.5 + 0.5 * Math.sin(now / 250);
+        const G = geo(B), pulse = 0.5 + 0.5 * Math.sin(now / 250), m = G.step * 0.45;
+        const slate = c.createRadialGradient(B.x0 + B.S / 2, B.y0 + B.S * 0.4, B.S * 0.1, B.x0 + B.S / 2, B.y0 + B.S / 2, B.S * 0.7);
+        slate.addColorStop(0, '#1b2452'); slate.addColorStop(1, '#0b1030');
+        FX.bezel(c, G.x - m, G.y - m, N * G.step + 2 * m, N * G.step + 2 * m, 14, { rim: FX.RIM.navy, t: 7, face: slate, glow: env.hexA('#2ee66b', 0.55) });
+        FX.inset(c, G.x - m, G.y - m, N * G.step + 2 * m, N * G.step + 2 * m, 14, 0.7);
         for (let r = 0; r < N; r++) for (let k = 0; k < N; k++) {
           const o = g.boxes[r * N + k];
           if (o === null) continue;
@@ -178,13 +186,51 @@ window.Boards = function (env) {
   {
     const M = window.Battleship, N = M.N;
     let fleet = null; // my fleet while placing (re-rolled / dragged locally)
-    const enemyGeo = (B) => { const s = B.S * 0.62; return { x: B.x0 + (B.S - s) / 2, y: B.y0 + B.S * 0.04, s, cs: s / N }; };
-    const mineGeo = (B, big) => { const s = big ? B.S * 0.9 : B.S * 0.3; return { x: B.x0 + (B.S - s) / 2, y: big ? B.y0 + B.S * 0.05 : B.y0 + B.S * 0.69, s, cs: s / N }; };
-    const grid = (c, G, title) => {
-      c.fillStyle = '#0b1640'; rr(c, G.x, G.y, G.s, G.s, 6); c.fill();
-      c.strokeStyle = 'rgba(120,170,255,.18)'; c.lineWidth = 1;
+    const enemyGeo = (B) => { const s = B.S * 0.6; return { x: B.x0 + (B.S - s) / 2 + B.S * 0.02, y: B.y0 + B.S * 0.075, s, cs: s / N }; };
+    const mineGeo = (B, big) => { const s = big ? B.S * 0.86 : B.S * 0.29; return { x: big ? B.x0 + (B.S - s) / 2 + B.S * 0.025 : B.x0 + B.S * 0.07, y: big ? B.y0 + B.S * 0.08 : B.y0 + B.S * 0.71, s, cs: s / N }; };
+    const LET = 'ABCDEFGHIK';
+    // the sea: deep blue water with slow waves, a steel frame and A-K / 1-10 along the edges when there is room
+    const grid = (c, G, title, now = 0) => {
+      const sea = c.createLinearGradient(G.x, G.y, G.x + G.s, G.y + G.s); sea.addColorStop(0, '#0e3a7a'); sea.addColorStop(1, '#061738');
+      FX.bezel(c, G.x, G.y, G.s, G.s, 6, { rim: FX.RIM.steel, t: Math.max(3, G.cs * 0.22), face: sea });
+      c.save(); rr(c, G.x, G.y, G.s, G.s, 6); c.clip();
+      c.strokeStyle = 'rgba(140,200,255,.10)'; c.lineWidth = Math.max(1, G.cs * 0.06);
+      for (let k = 0; k < 7; k++) {
+        const yy = G.y + (k + 0.5) * G.s / 7; c.beginPath();
+        for (let xx = 0; xx <= G.s; xx += 4) c.lineTo(G.x + xx, yy + Math.sin(xx / G.s * 9 + now / 900 + k * 1.3) * G.cs * 0.12);
+        c.stroke();
+      }
+      c.restore();
+      c.strokeStyle = 'rgba(150,200,255,.2)'; c.lineWidth = 1;
       for (let i = 1; i < N; i++) { c.beginPath(); c.moveTo(G.x + i * G.cs, G.y); c.lineTo(G.x + i * G.cs, G.y + G.s); c.moveTo(G.x, G.y + i * G.cs); c.lineTo(G.x + G.s, G.y + i * G.cs); c.stroke(); }
-      if (title) { c.fillStyle = 'rgba(200,215,255,.8)'; c.font = `800 ${Math.max(9, G.cs * 0.45)}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText(T(title), G.x, G.y - 2); }
+      FX.inset(c, G.x, G.y, G.s, G.s, 6, 0.5);
+      const coords = G.cs >= 16;
+      if (coords) {
+        c.fillStyle = 'rgba(190,210,255,.6)'; c.font = `700 ${G.cs * 0.36}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+        for (let i = 0; i < N; i++) c.fillText(LET[i], G.x + (i + 0.5) * G.cs, G.y - G.cs * 0.28);
+        c.textAlign = 'right'; c.textBaseline = 'middle';
+        for (let i = 0; i < N; i++) c.fillText(i + 1, G.x - G.cs * 0.3, G.y + (i + 0.5) * G.cs);
+      }
+      if (title) { c.fillStyle = 'rgba(220,230,255,.9)'; c.font = `800 ${Math.max(10, G.cs * 0.42)}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText(T(title), G.x - (coords ? G.cs * 0.6 : 0), G.y - (coords ? G.cs * 0.75 : G.cs * 0.35)); }
+    };
+    // what is left of a fleet: one small ship per ship, crossed out when sunk
+    const fleetPanel = (c, B, g, p, now) => {
+      const x0 = B.x0 + B.S * 0.43, y0 = B.y0 + B.S * 0.71, w = B.S * 0.53, cs = B.S * 0.04;
+      c.fillStyle = 'rgba(220,230,255,.9)'; c.font = `800 ${Math.max(10, cs * 0.62)}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+      c.fillText(T('Raqib floti'), x0, y0 - cs * 0.35);
+      c.fillStyle = 'rgba(10,20,55,.6)'; rr(c, x0 - 4, y0, w, B.S * 0.29, 10); c.fill();
+      c.strokeStyle = 'rgba(150,180,255,.18)'; c.lineWidth = 1; c.stroke();
+      const ships = g.ships[p] || [], sunk = g.sunk[p] || [];
+      const rows = [[0], [1, 2], [3, 4, 5], [6, 7, 8, 9]];
+      rows.forEach((row, ri) => {
+        let xx = x0 + 6;
+        row.forEach(i => {
+          const len = ships[i] ? ships[i].len : M.FLEET[i], dead = sunk.includes(i), y = y0 + cs * 0.4 + ri * cs * 1.7;
+          ship(c, { x: xx, y, cs }, { r: 0, c: 0, len, dir: 'h' }, dead ? '#5c6488' : col(p), dead ? 0.35 : 1, palOf('dengiz', p));
+          if (dead) { c.save(); c.strokeStyle = '#ff4d5e'; c.lineWidth = 2; c.beginPath(); c.moveTo(xx + 2, y + cs * 0.5); c.lineTo(xx + len * cs - 2, y + cs * 0.5); c.stroke(); c.restore(); }
+          xx += len * cs + cs * 0.6;
+        });
+      });
     };
     // a warship drawn along +x in a box len x 1 cells, then turned for vertical ones:
     // pointed bow, grey hull with a stripe in the owner's colour, deck, guns and a bridge that depend on the size
@@ -243,7 +289,7 @@ window.Boards = function (env) {
         : g.turn === env.you ? (g.last && g.last.p === env.you && g.last.res !== 'miss' ? "{check} Tegdi! Yana oting" : "{target} O'q uzing!") : 'Raqib otmoqda...',
       draw(c, g, now, B) {
         if (g.phase === 'place') {
-          const G = mineGeo(B, true); grid(c, G, placing(g) ? 'Sizning flotingiz' : 'Joylandi ✓');
+          const G = mineGeo(B, true); grid(c, G, placing(g) ? 'Sizning flotingiz' : 'Joylandi ✓', now);
           if (!fleet) fleet = M.randomFleet(); // a fresh fleet for every game (cleared once the battle starts)
           const mine = placing(g) ? fleet : (g.ships[env.you] || fleet);
           (mine || []).forEach((s, i) => { if (!(drag && drag.moved && drag.i === i)) ship(c, G, s, col(env.you), 1, palOf('dengiz', env.you)); });
@@ -257,7 +303,8 @@ window.Boards = function (env) {
         }
         fleet = null; drag = null;
         const E = enemyGeo(B), Me = mineGeo(B, false), opp = 1 - env.you;
-        grid(c, E, 'Raqib maydoni'); grid(c, Me, 'Sizniki');
+        grid(c, E, 'Raqib maydoni', now); grid(c, Me, 'Sizniki', now);
+        fleetPanel(c, B, g, opp, now);
         // enemy ships stay hidden until sunk (in bot games the app holds the whole fleet)
         (g.ships[opp] || []).forEach((s, i) => s && (g.winner !== null || g.sunk[opp].includes(i)) && ship(c, E, s, '#5c6488', 0.9, palOf('dengiz', opp)));
         const lk = g.last && g.last.cap != null ? g.last.cap : g.last ? g.last.r * N + g.last.c : -1;
@@ -398,7 +445,12 @@ window.Boards = function (env) {
       msg: (g) => g.turn === env.you && g.winner === null ? (M.canPlay(g, env.you) ? 'Tosh tanlang' : g.bazar.length ? "Mos tosh yo'q — bozordan oling" : "Yurish yo'q — o'tkazing") : null,
       draw(c, g, now, B) {
         // the line of tiles as a snake: left to right, then right to left
-        const L = g.line, u = B.S / 17, perRow = 7, rowH = u * 1.6;
+        const felt = c.createRadialGradient(B.x0 + B.S / 2, B.y0 + B.S / 2, B.S * 0.05, B.x0 + B.S / 2, B.y0 + B.S / 2, B.S * 0.72);
+        felt.addColorStop(0, '#1d7a52'); felt.addColorStop(1, '#0b3a27');
+        FX.bezel(c, B.x0, B.y0, B.S, B.S, 18, { rim: FX.RIM.wood, t: 8, face: felt });
+        FX.inset(c, B.x0, B.y0, B.S, B.S, 18);
+        c.save(); c.strokeStyle = 'rgba(255,215,120,.22)'; c.lineWidth = 1.5; rr(c, B.x0 + 7, B.y0 + 7, B.S - 14, B.S - 14, 13); c.stroke(); c.restore();
+        const L = g.line, u = B.S / 15.5, perRow = 6, rowH = u * 1.55;
         const rows = Math.max(1, Math.ceil(L.length / perRow)), top = B.y0 + B.S * 0.5 - rows * rowH / 2;
         L.forEach((x, i) => {
           const row = Math.floor(i / perRow), k = i % perRow, ltr = row % 2 === 0;
@@ -421,11 +473,17 @@ window.Boards = function (env) {
         });
         if (!L.length) { c.fillStyle = 'rgba(200,210,255,.6)'; c.font = `700 ${u * 0.7}px system-ui`; c.textAlign = 'center'; c.fillText(T(g.turn === env.you ? "Birinchi toshni qo'ying" : 'Raqib boshlaydi'), B.x0 + B.S / 2, B.y0 + B.S / 2); }
         // the opponent's hand (face down) and the bozor
-        const n = oppCount(g), su = u * 0.62;
-        for (let i = 0; i < n; i++) tile(c, B.x0 + B.S / 2 - n * su * 1.1 / 2 + i * su * 1.1, B.y0 + 4, su, 0, 0, true, null, true);
-        c.fillStyle = 'rgba(200,210,255,.75)'; c.font = `700 ${u * 0.55}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom';
-        c.fillText(T(`Bozor: ${g.bazar.length}`), B.x0 + 4, B.y0 + B.S - 2);
-        if (g.ends) { c.textAlign = 'right'; c.fillText(T(`Uchlari: ${g.ends[0]} · ${g.ends[1]}`), B.x0 + B.S - 4, B.y0 + B.S - 2); }
+        const n = oppCount(g), su = u * 0.6;
+        for (let i = 0; i < n; i++) tile(c, B.x0 + B.S / 2 - n * su * 1.15 / 2 + i * su * 1.15, B.y0 + 14, su, 0, 0, true, null, true);
+        // the bozor: a little stack of face-down tiles in the corner
+        const bz = g.bazar.length;
+        for (let i = 0; i < Math.min(bz, 5); i++) tile(c, B.x0 + 16 + i * 2, B.y0 + B.S - 16 - u * 1.3 - i * 2, u * 0.65, 0, 0, true, null, true);
+        c.fillStyle = 'rgba(230,240,255,.85)'; c.font = `800 ${u * 0.48}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'middle';
+        c.fillText(T(`Bozor: ${bz}`), B.x0 + 16 + u * 0.9, B.y0 + B.S - 16 - u * 0.65);
+        if (g.ends) {
+          // the two open ends as round badges
+          c.textAlign = 'right'; c.fillText(T(`Uchlari: ${g.ends[0]} · ${g.ends[1]}`), B.x0 + B.S - 16, B.y0 + B.S - 16 - u * 0.65);
+        }
       },
       down() {},
       step(prev, g, B) {
@@ -444,7 +502,7 @@ window.Boards = function (env) {
         const wrap = document.createElement('div'); wrap.className = 'dhand';
         my.forEach(t => {
           const can = mine && M.fits(g, t).length > 0;
-          const cv = document.createElement('canvas'), d = window.devicePixelRatio || 1, u = 22;
+          const cv = document.createElement('canvas'), d = window.devicePixelRatio || 1, u = 27;
           cv.width = u * d; cv.height = u * 2 * d; cv.style.width = u + 'px'; cv.style.height = u * 2 + 'px';
           const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); tile(x, 0, 0, u, t[0], t[1], true, null, false, palOf('domino', env.you));
           const b = document.createElement('button'); b.className = 'dtile' + (can ? ' can' : '') + (pick && pick[0] === t[0] && pick[1] === t[1] ? ' sel' : '');
@@ -502,7 +560,10 @@ window.Boards = function (env) {
       msg: (g) => g.winner !== null ? null : g.turn === env.you ? (g.dice ? `Zar: ${g.dice[0]}-${g.dice[1]} · ${sel === null ? 'tosh tanlang' : 'qayerga?'}` : '') : (g.passed ? "Raqibda yurish yo'q edi — navbat sizda" : 'Raqib yurmoqda...'),
       draw(c, g, now, B) {
         const G = geo(B), pulse = 0.5 + 0.5 * Math.sin(now / 260);
-        c.fillStyle = '#3b2716'; rr(c, G.x, G.y - 6, 12 * G.w + G.bar, G.h + 12, 10); c.fill();
+        FX.bezel(c, G.x, G.y - 6, 12 * G.w + G.bar + G.off, G.h + 12, 10, { rim: FX.RIM.wood, t: 7 });
+        const wood = c.createLinearGradient(G.x, 0, G.x + 12 * G.w, 0); wood.addColorStop(0, '#3f2a17'); wood.addColorStop(0.5, '#4a321c'); wood.addColorStop(1, '#3a2613');
+        c.fillStyle = wood; rr(c, G.x, G.y - 6, 12 * G.w + G.bar, G.h + 12, 10); c.fill();
+        FX.inset(c, G.x, G.y - 6, 12 * G.w + G.bar, G.h + 12, 10, 0.8);
         c.fillStyle = '#2a1a0d'; c.fillRect(G.x + 6 * G.w, G.y - 6, G.bar, G.h + 12);
         const legal = env.myTurn() ? M.legalSteps(g, env.you) : [];
         const targets = sel === null ? [] : legal.filter(m => m.from === sel);
@@ -673,7 +734,8 @@ window.Boards = function (env) {
         const S = B.S, cw = S * 0.13, ch = cw * 1.42;
         // felt
         const fg = c.createRadialGradient(B.x0 + S / 2, B.y0 + S / 2, S * 0.1, B.x0 + S / 2, B.y0 + S / 2, S * 0.75);
-        fg.addColorStop(0, '#16704a'); fg.addColorStop(1, '#0a3424'); c.fillStyle = fg; rr(c, B.x0, B.y0, S, S, 16); c.fill();
+        fg.addColorStop(0, '#1b7d52'); fg.addColorStop(1, '#0a3424');
+        FX.bezel(c, B.x0, B.y0, S, S, 16, { rim: FX.RIM.wood, t: 8, face: fg }); FX.inset(c, B.x0, B.y0, S, S, 16);
         c.strokeStyle = 'rgba(255,215,120,.35)'; c.lineWidth = 2; rr(c, B.x0 + 5, B.y0 + 5, S - 10, S - 10, 13); c.stroke();
         // the opponent's hand (backs, or faces at the end)
         const n = oppN(g), opp = g.hands[1 - env.you] || [], step = Math.min(cw * 0.55, (S * 0.8 - cw) / Math.max(1, n - 1));
@@ -776,7 +838,7 @@ window.Boards = function (env) {
         tray.innerHTML = '';
         if (sel && !handOf(g).includes(sel)) sel = null;
         const wrap = document.createElement('div'); wrap.className = 'dhand chand';
-        const d = window.devicePixelRatio || 1, w = 40, h = 57, pal = palOf('durak', env.you);
+        const d = window.devicePixelRatio || 1, w = 50, h = 71, pal = palOf('durak', env.you);
         sortHand(g, handOf(g)).forEach(cd => {
           const cv = document.createElement('canvas'); cv.width = (w + 4) * d; cv.height = (h + 6) * d; cv.style.width = (w + 4) + 'px'; cv.style.height = (h + 6) + 'px';
           const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); card(x, 2, 2, w, h, cd, false, pal);
@@ -847,7 +909,8 @@ window.Boards = function (env) {
         // wooden board
         const wg = c.createLinearGradient(B.x0, B.y0, B.x0, B.y0 + S);
         wg.addColorStop(0, '#6b4223'); wg.addColorStop(0.5, '#8a5a30'); wg.addColorStop(1, '#5a361b');
-        c.fillStyle = wg; rr(c, B.x0, B.y0 + S * 0.04, S, S * 0.92, 18); c.fill();
+        FX.bezel(c, B.x0, B.y0 + S * 0.04, S, S * 0.92, 18, { rim: ['#5a3418', '#1e0f05', '#3a200c'], t: 8, face: wg });
+        FX.inset(c, B.x0, B.y0 + S * 0.04, S, S * 0.92, 18, 0.7);
         c.strokeStyle = 'rgba(255,220,160,.25)'; c.lineWidth = 2; rr(c, B.x0 + 4, B.y0 + S * 0.04 + 4, S - 8, S * 0.92 - 8, 15); c.stroke();
         // the stores (qozon) in the middle strip
         const my = env.you, op = 1 - my, mid = B.y0 + S * 0.5;

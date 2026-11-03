@@ -115,6 +115,13 @@ Hammasida xonalar, reytingli o'yin, turnir, tomosha, botga qarshi (3 daraja), va
   birma-bir tushadi, olingan toshlar qozonga uchadi.
 - Bot javob berishdan oldin animatsiya tugashini kutadi.
 
+## Dizayn
+- Har bir doska "haqiqiy stol o'yini" kabi: yoritilgan ramka (`FX.bezel`), ichki soya (`FX.inset`), donalar ostida soya
+  (`FX.contact`). Ramka materiali mavzuga mos (Neon — to'q ko'k, Yog'och, Marmar, Yashil).
+- Doska orqasida o'yin rangidagi yumshoq yorug'lik. Shaxmatda kataklar yorug'lik bilan, donalar hajmli; shashka donalari qalin
+  qirrali. To'siqda marra qatorlari o'yinchi rangida. 4 ta qatorga — ko'k plastik stend. Nuqtalar — taxta panel. Dengiz jangi —
+  to'lqinli okean, A–K / 1–10 koordinatalar va "Raqib floti" paneli. Domino va Durak — yog'och ramkali yashil movut stol.
+
 ## Tangalar, kunlik bonus, vazifalar, do'kon, VIP, referal
 
 - **Tangalar 🪙**: onlayn g'alaba +10 (reytingli +15), durrang +5, mag'lubiyat +2; botni yutish +3/+5/+8

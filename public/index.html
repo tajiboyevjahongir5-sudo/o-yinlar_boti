@@ -57,7 +57,11 @@
     text-shadow:0 0 8px rgba(255,197,49,.5); white-space:nowrap; }
   #banner.off { visibility:hidden; }
 
-  #wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
+  #wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; position:relative; }
+  /* the board stands in a soft pool of light in its game's colour, on a darker floor */
+  #wrap::before { content:""; position:absolute; left:50%; top:50%; width:min(150%, 760px); aspect-ratio:1; transform:translate(-50%, -50%);
+    background:radial-gradient(closest-side, var(--gcA, rgba(47,123,255,.2)), rgba(7,11,31,.55) 62%, transparent 100%); pointer-events:none; z-index:0; }
+  #wrap > canvas { position:relative; z-index:1; }
   canvas { display:block; }
 
   #tools { display:flex; gap:16px; justify-content:center; }
@@ -734,7 +738,7 @@
   .dtile { flex:none; padding:3px; border-radius:8px; border:2px solid transparent; background:rgba(255,255,255,.05); opacity:.55; }
   .dtile.can { opacity:1; border-color:var(--green); box-shadow:0 0 8px var(--green); }
   .dtile.sel { border-color:var(--yellow); box-shadow:0 0 12px var(--yellow); transform:translateY(-4px); }
-  .chand { gap:0; padding-left:14px; } .chand .ccard { padding:0; margin-left:-14px; border-radius:6px; opacity:.8; } .chand .ccard.can { opacity:1; } .chand .ccard.sel { transform:translateY(-8px); }
+  .chand { gap:0; padding-left:20px; } .chand .ccard { padding:0; margin-left:-20px; border-radius:6px; opacity:.8; } .chand .ccard.can { opacity:1; } .chand .ccard.sel { transform:translateY(-8px); }
   .drow { display:flex; gap:8px; width:100%; max-width:360px; } .drow .big { flex:1; padding:11px 6px; font-size:14px; }
   @media (min-width:900px) and (min-height:520px), (orientation:landscape) and (max-height:560px) { #plugTray { grid-area:tray; } }
 
@@ -1054,10 +1058,10 @@
   let myInfo = { pid: null, equip: { frame: null, skin: {} }, skins: {}, frames: [] };
   // board themes (Profile): squares of the 8x8 boards, cells of To'siq Jangi / X va O, the 4-in-a-row frame
   const THEMES = {
-    neon: { name: 'Neon', light: '#8f9bd0', dark: '#27305e', light2: '#3b4474', dark2: '#232a52', top: '#20263f', bot: '#171c31', edge: 'rgba(170,185,255,.16)', frame: '#16205a' },
-    yogoch: { name: "Yog'och", light: '#f0d9b5', dark: '#b58863', light2: '#e3c597', dark2: '#9c6b43', top: '#c9a26f', bot: '#a87e4b', edge: 'rgba(60,35,10,.35)', frame: '#7a4a22' },
-    marmar: { name: 'Marmar', light: '#eef0f4', dark: '#8e9aaf', light2: '#d9dde6', dark2: '#7a869c', top: '#c9cfdb', bot: '#a9b2c4', edge: 'rgba(40,50,70,.3)', frame: '#5d6b85' },
-    yashil: { name: 'Yashil', light: '#d7e8c4', dark: '#5f8f4a', light2: '#bcd6a2', dark2: '#4a7a39', top: '#2f6b3a', bot: '#24572e', edge: 'rgba(255,255,255,.14)', frame: '#1f5a34' },
+    neon: { name: 'Neon', rim: 'navy', light: '#8f9bd0', dark: '#27305e', light2: '#3b4474', dark2: '#232a52', top: '#20263f', bot: '#171c31', edge: 'rgba(170,185,255,.16)', frame: '#16205a' },
+    yogoch: { name: "Yog'och", rim: 'wood', light: '#f0d9b5', dark: '#b58863', light2: '#e3c597', dark2: '#9c6b43', top: '#c9a26f', bot: '#a87e4b', edge: 'rgba(60,35,10,.35)', frame: '#7a4a22' },
+    marmar: { name: 'Marmar', rim: 'steel', light: '#eef0f4', dark: '#8e9aaf', light2: '#d9dde6', dark2: '#7a869c', top: '#c9cfdb', bot: '#a9b2c4', edge: 'rgba(40,50,70,.3)', frame: '#5d6b85' },
+    yashil: { name: 'Yashil', rim: 'green', light: '#d7e8c4', dark: '#5f8f4a', light2: '#bcd6a2', dark2: '#4a7a39', top: '#2f6b3a', bot: '#24572e', edge: 'rgba(255,255,255,.14)', frame: '#1f5a34' },
   };
   const theme = () => THEMES[store.get('theme')] || THEMES.neon;
   const MIN_DEFAULT = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3, durak: 5, qumaloq: 5 };
@@ -1106,6 +1110,7 @@
     && (mode !== 'online' || online[1 - you]);
 
   function render() {
+    $('wrap').style.setProperty('--gcA', hexA(GAME_COL[kind] || '#2f7bff', 0.28));
     // left card = you, right card = opponent
     [you, 1 - you].forEach((p, k) => {
       const el = $('card' + k);
@@ -3975,13 +3980,22 @@
     }
     let hints = [];
     if (!tool && myTurn()) hints = F.validMoves(game, you).map(m => cellView(m.r, m.c));
-    const rad = Math.max(5, cell * 0.16), pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    const rad = Math.max(5, cell * 0.16), pulse = 0.5 + 0.5 * Math.sin(now / 300), th = theme();
+    // the board: a framed tray; the finish lines glow in the colour of whoever runs to them (mine is at the top)
+    FX.bezel(ctx, offX, offY, cell * COLS, cell * ROWS, rad, { rim: FX.RIM[th.rim || 'navy'], t: pad - 2, glow: th.rim === 'navy' ? hexA('#ffc531', 0.55) : null, face: shade(th.bot, -0.35) });
+    for (const [row, p] of [[0, you], [ROWS - 1, 1 - you]]) {
+      const gy = offY + row * cell, gr = ctx.createLinearGradient(0, gy, 0, gy + cell);
+      gr.addColorStop(row ? 1 : 0, hexA(COLORS[p], 0.45)); gr.addColorStop(row ? 0 : 1, hexA(COLORS[p], 0.05));
+      ctx.fillStyle = gr; rr(offX, gy, cell * COLS, cell, rad); ctx.fill();
+    }
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       const x = offX + c * cell + gap / 2, y = offY + r * cell + gap / 2, s = cell - gap;
-      const g = ctx.createLinearGradient(0, y, 0, y + s);
-      g.addColorStop(0, theme().top); g.addColorStop(1, theme().bot);
-      ctx.fillStyle = g; rr(x, y, s, s, rad); ctx.fill();
-      ctx.strokeStyle = 'rgba(170,185,255,.16)'; ctx.lineWidth = 1; rr(x + .5, y + .5, s - 1, s - 1, rad); ctx.stroke();
+      const g = ctx.createLinearGradient(x, y, x + s * 0.4, y + s);
+      g.addColorStop(0, shade(th.top, 0.1)); g.addColorStop(1, th.bot);
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1.5;
+      ctx.fillStyle = g; rr(x, y, s, s, rad); ctx.fill(); ctx.restore();
+      if (r === 0 || r === ROWS - 1) { ctx.fillStyle = hexA(COLORS[r === 0 ? you : 1 - you], 0.13); rr(x, y, s, s, rad); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(190,205,255,.2)'; ctx.lineWidth = 1; rr(x + .5, y + .5, s - 1, s - 1, rad); ctx.stroke();
       if (hints.some(h => h.r === r && h.c === c)) {
         ctx.save(); ctx.shadowColor = 'rgba(255,255,255,.8)'; ctx.shadowBlur = 6 + 4 * pulse;
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; rr(x + 1.5, y + 1.5, s - 3, s - 3, rad); ctx.stroke();
@@ -4127,6 +4141,7 @@
   }
   function paintXO(c, x0, y0, size, g, now, hints, placed = xoPlaced, endAt = xoEndAt) {
     const cs = size / 3, gp = Math.max(5, cs * 0.06), rad = cs * 0.14, pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    if (c === ctx) FX.bezel(c, x0, y0, size, size, rad, { rim: FX.RIM[theme().rim || 'navy'], t: pad - 2, glow: hexA('#c084fc', 0.6), face: shade(theme().bot, -0.4) });
     for (let i = 0; i < 9; i++) {
       const x = x0 + (i % 3) * cs + gp / 2, y = y0 + Math.floor(i / 3) * cs + gp / 2, s = cs - gp;
       const gr = c.createLinearGradient(0, y, 0, y + s); gr.addColorStop(0, theme().top); gr.addColorStop(1, theme().bot);
@@ -4207,11 +4222,15 @@
     const P = pathsFor(piece.toLowerCase()), white = piece === piece.toUpperCase(), gp = gemSkin('shaxmat', skin);
     const sk = gp ? (white ? [shade(gp[0], 0.55), gp[0], shade(gp[1], -0.35), gp[0]] : [gp[1], shade(gp[1], -0.55), shade(gp[0], 0.3), gp[0]])
       : CHESS_SKINS[skin] && CHESS_SKINS[skin][white ? 'w' : 'b'];
+    FX.contact(c, x, y + s * 0.42, s * 0.3, 0.35);
     c.save(); c.translate(x - s / 2, y - s / 2); c.scale(s / 100, s / 100);
     c.lineJoin = 'round'; c.lineWidth = skin === 'neon' ? 5 : 4;
-    c.shadowColor = (sk && sk[3]) || glow; c.shadowBlur = skin === 'neon' ? 22 : 14;
-    if (sk) { const gr = c.createLinearGradient(0, 8, 0, 92); gr.addColorStop(0, sk[0]); gr.addColorStop(1, sk[1]); c.fillStyle = gr; }
-    else c.fillStyle = white ? '#f3f5ff' : '#1d2350';
+    c.shadowColor = (sk && sk[3]) || glow; c.shadowBlur = skin === 'neon' ? 22 : 12;
+    const gr = c.createLinearGradient(20, 8, 80, 92);
+    if (sk) { gr.addColorStop(0, sk[0]); gr.addColorStop(1, sk[1]); }
+    else if (white) { gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.55, '#eef0fb'); gr.addColorStop(1, '#b9c0dc'); }
+    else { gr.addColorStop(0, '#59629c'); gr.addColorStop(0.5, '#262d5c'); gr.addColorStop(1, '#0b0e24'); }
+    c.fillStyle = gr;
     for (const p of P.body) c.fill(p);
     c.shadowBlur = skin === 'neon' ? 10 : 0; c.strokeStyle = sk ? sk[2] || glow : white ? '#2a3160' : '#d7ddff';
     for (const p of P.body) c.stroke(p);
@@ -4224,9 +4243,12 @@
   function drawDisc(c, x, y, s, color, king, alpha, skin) {
     const r = s * 0.38;
     c.save(); c.globalAlpha = alpha == null ? 1 : alpha;
-    c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x, y + r * 0.22, r, r * 0.95, 0, 0, 7); c.fill();
-    c.shadowColor = color; c.shadowBlur = skin === 'neon' ? 20 : 12;
+    c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(x, y + r * 0.3, r * 1.02, r * 0.95, 0, 0, 7); c.fill();
     const gpal = gemSkin('shashka', skin);
+    // the edge of the draught: a thick, darker cylinder under the top face
+    c.fillStyle = skin === 'neon' ? '#05081a' : shade(color, -0.45); c.beginPath(); c.arc(x, y + r * 0.16, r, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1; c.stroke();
+    c.shadowColor = color; c.shadowBlur = skin === 'neon' ? 20 : 12;
     const gr = c.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r), ds = DISC_SKINS[skin] || (gpal && [shade(gpal[0], 0.4), gpal[0], gpal[1]]);
     if (ds) { gr.addColorStop(0, ds[0]); gr.addColorStop(0.55, ds[1]); gr.addColorStop(1, ds[2]); }
     else if (skin === 'neon') { gr.addColorStop(0, '#141a3a'); gr.addColorStop(1, '#070b1f'); }
@@ -4235,6 +4257,8 @@
     if (skin) { c.strokeStyle = color; c.lineWidth = Math.max(2.5, s * (skin === 'neon' ? 0.09 : 0.07)); c.beginPath(); c.arc(x, y, r - c.lineWidth / 2, 0, 7); c.stroke(); }
     c.shadowBlur = 0; c.strokeStyle = skin === 'neon' ? color : 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1.5, s * 0.035);
     c.beginPath(); c.arc(x, y, r * 0.6, 0, 7); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.arc(x, y, r * 0.82, 0, 7); c.stroke(); // the groove near the rim
+    c.strokeStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.arc(x, y, r * 0.86, Math.PI * 1.05, Math.PI * 1.7); c.stroke();
     if (skin === 'olmos') { // facets
       c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1;
       for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; c.beginPath(); c.moveTo(x + Math.cos(a) * r * 0.6, y + Math.sin(a) * r * 0.6); c.lineTo(x + Math.cos(a + 0.5) * r * 0.85, y + Math.sin(a + 0.5) * r * 0.85); c.stroke(); }
@@ -4270,15 +4294,15 @@
     const kingInCheck = chess && g.check && g.winner === null ? Chess.kingSq(g.board, Chess.colorOf(g, g.turn)) : -1;
     const matedKing = chess && g.reason === 'mate' ? Chess.kingSq(g.board, Chess.colorOf(g, 1 - g.winner)) : -1;
     const pulse = 0.5 + 0.5 * Math.sin(now / 300);
-    ctx.save();
-    ctx.shadowColor = 'rgba(47,123,255,.55)'; ctx.shadowBlur = 18; ctx.fillStyle = '#0d1230';
-    rr(offX - 3, offY - 3, S * 8 + 6, S * 8 + 6, 10); ctx.fill();
-    ctx.restore();
+    const th = theme();
+    FX.bezel(ctx, offX, offY, S * 8, S * 8, 4, { rim: FX.RIM[th.rim || 'navy'], t: Math.min(pad - 1, Math.max(6, S * 0.2)), glow: th.rim === 'navy' ? hexA(GAME_COL[g.kind], 0.8) : null });
     for (let v = 0; v < 64; v++) {
       const i = view8(v), r = Math.floor(v / 8), c = v % 8, x = offX + c * S, y = offY + r * S, dark = (r + c) % 2 === 1;
-      const th = theme();
-      ctx.fillStyle = dark ? (chess ? th.dark : th.dark2) : (chess ? th.light : th.light2);
-      ctx.fillRect(x, y, S, S);
+      // each square lit a little from the top left
+      const base = dark ? (chess ? th.dark : th.dark2) : (chess ? th.light : th.light2), sg = ctx.createLinearGradient(x, y, x + S, y + S);
+      sg.addColorStop(0, shade(base, 0.07)); sg.addColorStop(1, shade(base, -0.07));
+      ctx.fillStyle = sg;
+      ctx.fillRect(x, y, S + 0.5, S + 0.5);
       if (lastSq.includes(i)) { ctx.fillStyle = 'rgba(255,197,49,.28)'; ctx.fillRect(x, y, S, S); }
       if (i === sel8) { ctx.fillStyle = hexA(COLORS[you], 0.38); ctx.fillRect(x, y, S, S); }
       if (i === kingInCheck || i === matedKing) {
@@ -4292,6 +4316,7 @@
       if (c === 0) { ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(String(8 - Math.floor(i / 8)), x + 2, y + 2); }
       if (r === 7) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('abcdefgh'[i % 8], x + S - 2, y + S - 1); }
     }
+    FX.inset(ctx, offX, offY, S * 8, S * 8, 4, 0.8);
     // pieces that can move this turn get a soft hint when nothing is selected (shashka: shows forced captures)
     const movable = new Set();
     if (myTurn() && sel8 === null && g.kind === 'shashka') for (const s of Shashka.legalSteps(g, you)) movable.add(s.from);
