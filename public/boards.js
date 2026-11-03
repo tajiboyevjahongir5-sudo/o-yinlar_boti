@@ -232,32 +232,88 @@ window.Boards = function (env) {
         });
       });
     };
-    // a warship drawn along +x in a box len x 1 cells, then turned for vertical ones:
-    // pointed bow, grey hull with a stripe in the owner's colour, deck, guns and a bridge that depend on the size
-    const ship = (c, G, s, color, alpha, tint) => {
-      const L = s.len * G.cs, H = G.cs, x0 = G.x + s.c * G.cs, y0 = G.y + s.r * G.cs;
+    // a warship seen from above, drawn along +x (bow to the right) in a box len x 1 cells, then turned for vertical ones.
+    // Layers: shadow on the water, dark lower hull, a band in the owner's colour along the deck edge, a planked deck,
+    // then the superstructure of its class: patrol boat (1), destroyer (2), cruiser (3), battleship (4).
+    // `now` adds a foam wake and a little funnel smoke; tiny ships (fleet panel, thumbnails) skip the small details.
+    const ship = (c, G, s, color, alpha, tint, now) => {
+      const L = s.len * G.cs, H = G.cs, x0 = G.x + s.c * G.cs, y0 = G.y + s.r * G.cs, small = H < 15;
       c.save(); c.globalAlpha = alpha == null ? 1 : alpha;
       c.translate(x0, y0);
       if (s.dir === 'v') { c.translate(H, 0); c.rotate(Math.PI / 2); }
-      const pad = H * 0.12, top = pad, bot = H - pad, mid = H / 2, bow = L - pad * 0.6, stern = pad * 0.8;
-      const hullTop = tint ? tint[0] : '#9aa6c2', hullBot = tint ? tint[1] : '#4d5878';
-      // hull
-      c.shadowColor = color; c.shadowBlur = 10;
-      const gr = c.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, hullTop); gr.addColorStop(1, hullBot);
-      c.fillStyle = gr;
-      c.beginPath(); c.moveTo(stern, top + H * 0.08); c.lineTo(bow - H * 0.45, top); c.quadraticCurveTo(bow, mid, bow - H * 0.45, bot);
-      c.lineTo(stern, bot - H * 0.08); c.quadraticCurveTo(stern - pad * 0.6, mid, stern, top + H * 0.08); c.closePath(); c.fill();
-      c.shadowBlur = 0; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.2; c.stroke();
-      // owner's stripe and the deck
-      c.fillStyle = color; c.fillRect(stern + H * 0.1, mid + H * 0.2, (bow - stern) * 0.7, H * 0.08);
-      c.fillStyle = 'rgba(255,255,255,.18)'; rr(c, stern + H * 0.2, top + H * 0.16, bow - stern - H * 0.8, H * 0.36, H * 0.1); c.fill();
-      const gun = (gx) => { c.fillStyle = '#2b3350'; c.beginPath(); c.arc(gx, mid - H * 0.03, H * 0.13, 0, 7); c.fill(); c.fillRect(gx, mid - H * 0.06, H * 0.32, H * 0.06); };
-      const bridge = (bx, w) => { c.fillStyle = '#d7deef'; rr(c, bx, top + H * 0.18, w, H * 0.42, H * 0.06); c.fill(); c.fillStyle = '#1d2a55';
-        for (let k = 0; k < 3; k++) c.fillRect(bx + w * (0.18 + k * 0.26), top + H * 0.26, w * 0.14, H * 0.08); };
-      if (s.len === 1) bridge(L * 0.3, L * 0.32);
-      else if (s.len === 2) { bridge(L * 0.22, H * 0.55); gun(L * 0.62); }
-      else if (s.len === 3) { gun(L * 0.2); bridge(L * 0.38, H * 0.7); gun(L * 0.7); }
-      else { gun(L * 0.14); gun(L * 0.3); bridge(L * 0.46, H * 0.8); c.fillStyle = '#3a4466'; c.fillRect(L * 0.62, top + H * 0.12, H * 0.16, H * 0.2); gun(L * 0.78); }
+      const mid = H / 2, top = H * 0.13, bot = H * 0.87, bow = L - H * 0.05, stern = H * 0.08;
+      const sharp = Math.min(H * 1.05, L * 0.42);
+      const hull = (k) => { // the hull outline, shrunk by k
+        const t = top + k, b = bot - k, bw = bow - k * 1.6, st = stern + k;
+        c.beginPath(); c.moveTo(st + H * 0.1, t); c.lineTo(bw - sharp, t);
+        c.bezierCurveTo(bw - sharp * 0.35, t, bw - sharp * 0.08, mid - (b - t) * 0.2, bw, mid);
+        c.bezierCurveTo(bw - sharp * 0.08, mid + (b - t) * 0.2, bw - sharp * 0.35, b, bw - sharp, b);
+        c.lineTo(st + H * 0.1, b); c.quadraticCurveTo(st, b, st, b - H * 0.12); c.lineTo(st, t + H * 0.12); c.quadraticCurveTo(st, t, st + H * 0.1, t); c.closePath();
+      };
+      const steel = tint ? tint : ['#aeb8d0', '#5a6584'];
+      if (now != null && !small) { // foam: a soft trail astern and white water folding off the bow
+        const f = 0.5 + 0.5 * Math.sin(now / 320 + s.r * 1.7 + s.c);
+        const tr = c.createLinearGradient(stern, 0, stern - H * 0.5, 0); tr.addColorStop(0, `rgba(225,240,255,${0.2 + 0.1 * f})`); tr.addColorStop(1, 'rgba(225,240,255,0)');
+        c.fillStyle = tr; c.beginPath(); c.moveTo(stern + H * 0.04, top + H * 0.2); c.lineTo(stern - H * 0.5, top + H * 0.12); c.lineTo(stern - H * 0.5, bot - H * 0.12); c.lineTo(stern + H * 0.04, bot - H * 0.2); c.closePath(); c.fill();
+        c.save(); c.strokeStyle = `rgba(225,240,255,${0.35 + 0.2 * f})`; c.lineWidth = H * 0.05; c.lineCap = 'round';
+        const bx = bow - sharp * 0.55;
+        c.beginPath(); c.moveTo(bow - H * 0.04, mid - H * 0.04); c.quadraticCurveTo(bx, top - H * 0.02, bx - H * 0.25, top - H * 0.06); c.stroke();
+        c.beginPath(); c.moveTo(bow - H * 0.04, mid + H * 0.04); c.quadraticCurveTo(bx, bot + H * 0.02, bx - H * 0.25, bot + H * 0.06); c.stroke();
+        c.restore();
+      }
+      // shadow on the water
+      c.save(); c.translate(H * 0.05, H * 0.09); hull(0); c.fillStyle = 'rgba(0,10,30,.45)'; c.fill(); c.restore();
+      // lower hull
+      let gr = c.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, env.shade(steel[1], -0.1)); gr.addColorStop(0.5, env.shade(steel[1], -0.35)); gr.addColorStop(1, env.shade(steel[1], -0.55));
+      hull(0); c.fillStyle = gr; c.fill(); c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 1; c.stroke();
+      // the owner's band along the deck edge
+      c.save(); c.shadowColor = color; c.shadowBlur = small ? 4 : 8; hull(H * 0.06); c.strokeStyle = color; c.lineWidth = H * (small ? 0.1 : 0.07); c.stroke(); c.restore();
+      // deck
+      gr = c.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, env.shade(steel[0], 0.25)); gr.addColorStop(0.55, steel[0]); gr.addColorStop(1, env.shade(steel[0], -0.2));
+      hull(H * 0.11); c.fillStyle = gr; c.fill();
+      if (!small) { // planks
+        c.save(); hull(H * 0.11); c.clip(); c.strokeStyle = 'rgba(40,50,80,.14)'; c.lineWidth = 1;
+        for (let k = 1; k < 5; k++) { const yy = top + (bot - top) * k / 5; c.beginPath(); c.moveTo(0, yy); c.lineTo(L, yy); c.stroke(); }
+        c.restore();
+      }
+      const dark = '#2a3150', metal = (x, y, r) => { const g2 = c.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r); g2.addColorStop(0, '#8f9abb'); g2.addColorStop(1, '#2b3352'); return g2; };
+      // a gun turret at tx; dir 1 = barrels to the bow, -1 = to the stern
+      const turret = (tx, dir = 1, big = 1) => {
+        const r = H * 0.17 * big;
+        c.strokeStyle = '#1b2036'; c.lineCap = 'round'; c.lineWidth = Math.max(1.2, H * 0.06 * big);
+        for (const d of small ? [0] : [-0.07, 0.07]) { c.beginPath(); c.moveTo(tx, mid + H * d); c.lineTo(tx + dir * H * 0.42 * big, mid + H * d); c.stroke(); }
+        c.fillStyle = metal(tx, mid, r); c.beginPath(); c.arc(tx, mid, r, 0, 7); c.fill();
+        c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 1; c.stroke();
+        if (!small) { c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.arc(tx - dir * r * 0.3, mid, r * 0.28, 0, 7); c.fill(); }
+      };
+      // the bridge: a light block with dark windows facing the bow, a mast and a radar dish
+      const bridge = (bx, w, h = 0.46) => {
+        const by = mid - H * h / 2;
+        c.fillStyle = 'rgba(0,0,0,.3)'; rr(c, bx + H * 0.04, by + H * 0.05, w, H * h, H * 0.07); c.fill();
+        const g3 = c.createLinearGradient(0, by, 0, by + H * h); g3.addColorStop(0, '#f2f5ff'); g3.addColorStop(1, '#aab3cc');
+        c.fillStyle = g3; rr(c, bx, by, w, H * h, H * 0.07); c.fill();
+        c.fillStyle = '#1d2a55'; c.fillRect(bx + w - H * 0.09, by + H * 0.06, H * 0.05, H * h - H * 0.12);
+        if (!small) {
+          c.fillStyle = '#dfe5f5'; rr(c, bx + w * 0.15, by + H * h * 0.22, w * 0.5, H * h * 0.56, H * 0.04); c.fill();
+          c.strokeStyle = '#3a4466'; c.lineWidth = Math.max(1, H * 0.035); c.beginPath(); c.moveTo(bx + w * 0.35, mid - H * 0.3); c.lineTo(bx + w * 0.35, mid + H * 0.3); c.stroke();
+          c.fillStyle = color; c.beginPath(); c.arc(bx + w * 0.35, mid, H * 0.06, 0, 7); c.fill();
+        }
+      };
+      const funnel = (fx) => {
+        c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(fx + H * 0.03, mid + H * 0.04, H * 0.13, H * 0.1, 0, 0, 7); c.fill();
+        c.fillStyle = '#4a5478'; c.beginPath(); c.ellipse(fx, mid, H * 0.13, H * 0.1, 0, 0, 7); c.fill();
+        c.fillStyle = '#121528'; c.beginPath(); c.ellipse(fx, mid, H * 0.08, H * 0.055, 0, 0, 7); c.fill();
+        if (now != null && !small) for (let k = 0; k < 3; k++) { // smoke drifting astern
+          const q = ((now / 1400 + k / 3 + fx / 97) % 1);
+          c.fillStyle = `rgba(200,205,220,${0.28 * (1 - q)})`; c.beginPath(); c.arc(fx - q * H * 0.9, mid - q * H * 0.15, H * (0.07 + q * 0.12), 0, 7); c.fill();
+        }
+      };
+      if (s.len === 1) { bridge(H * 0.22, H * 0.38, 0.4); if (!small) turret(H * 0.78, 1, 0.65); }
+      else if (s.len === 2) { bridge(H * 0.3, H * 0.42); funnel(H * 0.95); turret(H * 1.42, 1, 0.85); }
+      else if (s.len === 3) { turret(H * 0.5, -1); funnel(H * 1.05); bridge(H * 1.3, H * 0.48); turret(H * 2.2, 1); }
+      else { turret(H * 0.5, -1, 1.05); funnel(H * 1.15); funnel(H * 1.5); bridge(H * 1.8, H * 0.55, 0.52); turret(H * 2.75, 1, 1.05); turret(H * 3.25, 1, 1.05); }
+      // a small flag at the stern in the owner's colour
+      if (!small) { c.fillStyle = color; c.fillRect(stern + H * 0.05, mid - H * 0.05, H * 0.12, H * 0.1); }
       c.restore();
     };
     let shot = null; // the shell in the air: { grid: 'E' | 'M', k, at, life }
@@ -292,7 +348,7 @@ window.Boards = function (env) {
           const G = mineGeo(B, true); grid(c, G, placing(g) ? 'Sizning flotingiz' : 'Joylandi ✓', now);
           if (!fleet) fleet = M.randomFleet(); // a fresh fleet for every game (cleared once the battle starts)
           const mine = placing(g) ? fleet : (g.ships[env.you] || fleet);
-          (mine || []).forEach((s, i) => { if (!(drag && drag.moved && drag.i === i)) ship(c, G, s, col(env.you), 1, palOf('dengiz', env.you)); });
+          (mine || []).forEach((s, i) => { if (!(drag && drag.moved && drag.i === i)) ship(c, G, s, col(env.you), 1, palOf('dengiz', env.you), now); });
           if (drag && drag.moved) { // the dragged ship at its snapped spot
             const s = Object.assign({}, fleet[drag.i], { r: drag.r, c: drag.c }), ok = !M.fleetError(fleetWith(drag.i, { r: drag.r, c: drag.c }));
             const w = s.dir === 'h' ? s.len : 1, h = s.dir === 'v' ? s.len : 1;
@@ -310,7 +366,7 @@ window.Boards = function (env) {
         const lk = g.last && g.last.cap != null ? g.last.cap : g.last ? g.last.r * N + g.last.c : -1;
         const flying = shot && now - shot.at < shot.life ? shot : null;
         marks(c, E, g.shots[env.you], now, g.last && g.last.p === env.you ? lk : -1, flying && flying.grid === 'E' ? flying.k : -1);
-        (g.ships[env.you] || []).forEach(s => s && ship(c, Me, s, col(env.you), 1, palOf('dengiz', env.you)));
+        (g.ships[env.you] || []).forEach((s, i) => s && ship(c, Me, s, g.sunk[env.you].includes(i) ? '#5c6488' : col(env.you), g.sunk[env.you].includes(i) ? 0.55 : 1, palOf('dengiz', env.you), g.sunk[env.you].includes(i) ? null : now));
         marks(c, Me, g.shots[opp], now, g.last && g.last.p === opp ? lk : -1, flying && flying.grid === 'M' ? flying.k : -1);
         if (env.myTurn()) { c.save(); c.strokeStyle = env.hexA(col(env.you), 0.5 + 0.3 * Math.sin(now / 250)); c.lineWidth = 2; rr(c, E.x - 2, E.y - 2, E.s + 4, E.s + 4, 8); c.stroke(); c.restore(); }
       },
