@@ -102,6 +102,19 @@ Hammasida xonalar, reytingli o'yin, turnir, tomosha, botga qarshi (3 daraja), va
 - Chizish va boshqaruv: `public/boards.js`. Nardi, Domino, Dengiz jangi, Durak va Qumaloqda
   "Yurishlarni ko'rish" o'chirilgan (tasodif va yashirin ma'lumot sababli).
 
+## Animatsiyalar
+- `public/fx.js` — barcha o'yinlar uchun umumiy effektlar: uchqunlar, to'lqin halqalar, ko'tariluvchi matn, uchuvchi
+  narsalar va doskaning silkinishi (telefonda "kamroq harakat" yoqilgan bo'lsa silkinmaydi).
+- Shaxmat/Shashka: dona ko'tarilib sirpanadi, rokirovkada ruh ham suriladi; urilgan dona sakrab, aylanib parchalanadi;
+  "Shoh!" va damka/almashtirishda oltin yulduzchalar. To'siq: to'siq qo'yilganda chang va silkinish, sakrab tushganda chang.
+  X va O: belgi atrofida halqa, g'alaba qatorida yulduzchalar. 4 ta qatorga: tosh sakrab tushadi, g'alaba chizig'i chiziladi.
+  Nuqtalar: chiziq o'rtasidan o'sadi, yopilgan katak "+1" bilan otilib chiqadi. Dengiz jangi: snaryad tutun izi bilan uchadi,
+  suv sachraydi yoki portlaydi, tekkan joylar yonib turadi, cho'kkan kema bo'ylab portlashlar. Domino: tosh qo'ldan aylanib
+  uchib keladi. Nardi: tosh yoy bo'ylab sirpanadi, zarlar aylanib tashlanadi. Durak: kartalar qo'ldan stolga uchadi,
+  "Olaman"da qo'lga, "Bito"da teskari o'girilib chetga ketadi, kolodadan tarqatiladi. To'qqiz qumaloq: toshlar uyama-uya
+  birma-bir tushadi, olingan toshlar qozonga uchadi.
+- Bot javob berishdan oldin animatsiya tugashini kutadi.
+
 ## Tangalar, kunlik bonus, vazifalar, do'kon, VIP, referal
 
 - **Tangalar 🪙**: onlayn g'alaba +10 (reytingli +15), durrang +5, mag'lubiyat +2; botni yutish +3/+5/+8

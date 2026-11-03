@@ -24,11 +24,13 @@ window.Boards = function (env) {
   };
   const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   const P = {};
+  const FX = window.FX;
 
   // ---------------- 4 ta qatorga ----------------
   {
     const M = window.Connect4, C = M.C, R = M.R;
     let hover = -1, dropAt = 0, lastN = -1;
+    const DROP = 560;
     const geo = (B) => { const cs = B.S / C, h = cs * R; return { cs, x: B.x0, y: B.y0 + (B.S - h) / 2, h }; };
     P.c4 = {
       badge: (g, p) => `<span class="disc"></span> <small>${p === env.you ? 'siz' : 'raqib'}</small>`,
@@ -42,15 +44,31 @@ window.Boards = function (env) {
           c.fillStyle = '#070b1f'; c.beginPath(); c.arc(cx, cy, cs * 0.38, 0, 7); c.fill();
           if (v === null) continue;
           let yy = cy;
-          if (g.last && g.last.r === r && g.last.c === k) { const t = Math.min(1, (now - dropAt) / 320); yy = y + cs * 0.5 + (cy - y - cs * 0.5) * t * t; }
+          if (g.last && g.last.r === r && g.last.c === k) { const t = Math.min(1, Math.max(0, (now - dropAt) / DROP)); yy = y - cs * 0.5 + (cy - y + cs * 0.5) * FX.ease.bounce(t); }
           glowDisc(c, cx, yy, cs * 0.36, col(v), 1, palOf('c4', v));
         }
         if (g.line) {
           const pts = g.line.map(i => [x + (i % C + 0.5) * cs, y + (Math.floor(i / C) + 0.5) * cs]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-          c.save(); c.strokeStyle = '#fff'; c.lineWidth = cs * 0.12; c.lineCap = 'round'; c.shadowColor = col(g.winner); c.shadowBlur = 20;
-          c.beginPath(); c.moveTo(...pts[0]); c.lineTo(...pts[pts.length - 1]); c.stroke(); c.restore();
+          const t = Math.min(1, Math.max(0, (now - dropAt - DROP) / 420)), [ax, ay] = pts[0], [bx, by] = pts[pts.length - 1];
+          if (t > 0) {
+            c.save(); c.strokeStyle = '#fff'; c.lineWidth = cs * 0.12; c.lineCap = 'round'; c.shadowColor = col(g.winner); c.shadowBlur = 14 + 8 * Math.sin(now / 200);
+            c.beginPath(); c.moveTo(ax, ay); c.lineTo(ax + (bx - ax) * FX.ease.out(t), ay + (by - ay) * FX.ease.out(t)); c.stroke(); c.restore();
+          }
         }
       },
+      step(prev, g, B) {
+        const L = g.last; if (!L || L.r == null) return;
+        const G = geo(B), cx = G.x + (L.c + 0.5) * G.cs, cy = G.y + (L.r + 0.5) * G.cs, hit = DROP * 0.36;
+        lastN = g.n; dropAt = performance.now();
+        FX.spark(cx, cy + G.cs * 0.3, { colors: [col(L.p), '#fff'], n: 8, speed: G.cs * 2.4, size: G.cs * 0.05, life: 380, grav: G.cs * 4, spread: Math.PI * 0.8, dir: -Math.PI / 2, delay: hit });
+        FX.shake(Math.max(2, G.cs * 0.05), 160, hit);
+        if (g.line) g.line.forEach((i, j) => {
+          const x = G.x + (i % C + 0.5) * G.cs, y = G.y + (Math.floor(i / C) + 0.5) * G.cs;
+          FX.ring(x, y, { color: col(g.winner), r0: G.cs * 0.2, r1: G.cs * 0.7, life: 500, width: 3, delay: DROP + j * 120 });
+          FX.spark(x, y, { colors: [col(g.winner), '#ffd34d', '#fff'], n: 12, speed: G.cs * 3, size: G.cs * 0.06, life: 800, shape: 'star', delay: DROP + j * 120 });
+        });
+      },
+      busy: () => performance.now() - dropAt < DROP,
       move(x, y, g, B) { const { cs, x: x0 } = geo(B); const k = Math.floor((x - x0) / cs); hover = k >= 0 && k < C ? k : -1; },
       down(x, y, g, B) {
         const { cs, x: x0 } = geo(B), k = Math.floor((x - x0) / cs);
@@ -74,7 +92,7 @@ window.Boards = function (env) {
   // ---------------- Nuqtalar va kataklar ----------------
   {
     const M = window.Dots, N = M.N;
-    let hover = -1;
+    let hover = -1, lineAt = 0, boxAt = {};
     const geo = (B) => { const m = B.S * 0.08, step = (B.S - 2 * m) / N; return { m, step, x: B.x0 + m, y: B.y0 + m }; };
     const lineEnds = (e, G) => {
       if (e < M.H) { const r = Math.floor(e / N), k = e % N; return [G.x + k * G.step, G.y + r * G.step, G.x + (k + 1) * G.step, G.y + r * G.step]; }
@@ -98,15 +116,22 @@ window.Boards = function (env) {
         for (let r = 0; r < N; r++) for (let k = 0; k < N; k++) {
           const o = g.boxes[r * N + k];
           if (o === null) continue;
+          const bt = boxAt[r * N + k] ? Math.min(1, Math.max(0, (now - boxAt[r * N + k]) / 420)) : 1, bs = FX.ease.back(bt);
+          c.save(); c.translate(G.x + (k + 0.5) * G.step, G.y + (r + 0.5) * G.step); c.scale(bs, bs); c.translate(-(G.x + (k + 0.5) * G.step), -(G.y + (r + 0.5) * G.step));
           c.fillStyle = env.hexA(col(o), 0.28); c.fillRect(G.x + k * G.step + 2, G.y + r * G.step + 2, G.step - 4, G.step - 4);
           const sd = skinDef('dots', o);
           c.fillStyle = sd ? (sd.color === 'rainbow' ? `hsl(${(now / 12 + (r + k) * 40) % 360},90%,65%)` : sd.color) : env.hexA(col(o), 0.9);
           c.font = `900 ${G.step * (sd ? 0.5 : 0.32)}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
           if (sd) { c.shadowColor = c.fillStyle; c.shadowBlur = 8; }
           c.fillText(sd ? sd.sym : o === env.you ? '★' : '●', G.x + (k + 0.5) * G.step, G.y + (r + 0.5) * G.step); c.shadowBlur = 0;
+          c.restore();
         }
         for (let e = 0; e < M.E; e++) {
-          const [a, b, cc, d] = lineEnds(e, G), o = g.lines[e];
+          let [a, b, cc, d] = lineEnds(e, G); const o = g.lines[e];
+          if (o !== null && g.last && g.last.e === e) { // grows out from the middle
+            const t = FX.ease.out(Math.min(1, Math.max(0, (now - lineAt) / 240))), mx = (a + cc) / 2, my = (b + d) / 2;
+            a = mx + (a - mx) * t; cc = mx + (cc - mx) * t; b = my + (b - my) * t; d = my + (d - my) * t;
+          }
           c.save(); c.lineCap = 'round';
           if (o !== null) { c.strokeStyle = col(o); c.lineWidth = G.step * 0.09; c.shadowColor = col(o); c.shadowBlur = g.last && g.last.e === e ? 10 + 8 * pulse : 6; }
           else if (e === hover && env.myTurn()) { c.strokeStyle = env.hexA(col(env.you), 0.55); c.lineWidth = G.step * 0.08; }
@@ -116,6 +141,19 @@ window.Boards = function (env) {
         c.fillStyle = '#e8ecff';
         for (let r = 0; r <= N; r++) for (let k = 0; k <= N; k++) { c.beginPath(); c.arc(G.x + k * G.step, G.y + r * G.step, G.step * 0.075, 0, 7); c.fill(); }
       },
+      step(prev, g, B) {
+        const G = geo(B), L = g.last; lineAt = performance.now();
+        if (L && L.e != null) { const [a, b, cc, d] = lineEnds(L.e, G); FX.spark((a + cc) / 2, (b + d) / 2, { color: col(L.p), n: 6, speed: G.step * 1.6, size: G.step * 0.04, life: 300, grav: 0, delay: 120 }); }
+        if (!prev || !prev.boxes) return;
+        g.boxes.forEach((o, i) => {
+          if (o === null || prev.boxes[i] !== null) return;
+          boxAt[i] = performance.now() + 180;
+          const cx = G.x + (i % N + 0.5) * G.step, cy = G.y + (Math.floor(i / N) + 0.5) * G.step;
+          FX.spark(cx, cy, { colors: [col(o), '#fff', '#ffd34d'], n: 14, speed: G.step * 3, size: G.step * 0.05, life: 600, shape: 'star', grav: 0, delay: 200 });
+          FX.text(cx, cy - G.step * 0.2, '+1', { color: col(o), size: Math.max(14, G.step * 0.4), delay: 220 });
+        });
+      },
+      reset() { boxAt = {}; },
       move(x, y, g, B) { hover = nearest(x, y, g, B); },
       down(x, y, g, B) { const e = nearest(x, y, g, B); if (e >= 0) env.act({ t: 'move', e }); },
       thumb(c, now) {
@@ -176,12 +214,19 @@ window.Boards = function (env) {
       else { gun(L * 0.14); gun(L * 0.3); bridge(L * 0.46, H * 0.8); c.fillStyle = '#3a4466'; c.fillRect(L * 0.62, top + H * 0.12, H * 0.16, H * 0.2); gun(L * 0.78); }
       c.restore();
     };
-    const marks = (c, G, shots, now, lastK) => {
+    let shot = null; // the shell in the air: { grid: 'E' | 'M', k, at, life }
+    const SHOT = 420;
+    const marks = (c, G, shots, now, lastK, skip = -1) => {
       for (let k = 0; k < N * N; k++) {
-        if (!shots[k]) continue;
+        if (!shots[k] || k === skip) continue;
         const cx = G.x + (k % N + 0.5) * G.cs, cy = G.y + (Math.floor(k / N) + 0.5) * G.cs;
         if (shots[k] === 1) { c.fillStyle = 'rgba(160,190,255,.6)'; c.beginPath(); c.arc(cx, cy, G.cs * 0.12, 0, 7); c.fill(); }
-        else { c.save(); c.strokeStyle = '#ff4d5e'; c.shadowColor = '#ff4d5e'; c.shadowBlur = k === lastK ? 14 : 6; c.lineWidth = G.cs * 0.14; c.lineCap = 'round';
+        else {
+          // a small fire keeps burning on every hit
+          c.save(); const fl = 0.5 + 0.5 * Math.sin(now / 90 + k * 1.7), fr = G.cs * (0.32 + 0.06 * fl);
+          const fg = c.createRadialGradient(cx, cy - G.cs * 0.05, 0, cx, cy, fr); fg.addColorStop(0, `rgba(255,220,90,${0.5 + 0.3 * fl})`); fg.addColorStop(0.6, 'rgba(255,90,30,.35)'); fg.addColorStop(1, 'rgba(255,60,20,0)');
+          c.fillStyle = fg; c.beginPath(); c.arc(cx, cy, fr, 0, 7); c.fill(); c.restore();
+          c.save(); c.strokeStyle = '#ff4d5e'; c.shadowColor = '#ff4d5e'; c.shadowBlur = k === lastK ? 14 : 6; c.lineWidth = G.cs * 0.14; c.lineCap = 'round';
           const r = G.cs * 0.28; c.beginPath(); c.moveTo(cx - r, cy - r); c.lineTo(cx + r, cy + r); c.moveTo(cx + r, cy - r); c.lineTo(cx - r, cy + r); c.stroke(); c.restore(); }
       }
     };
@@ -216,11 +261,44 @@ window.Boards = function (env) {
         // enemy ships stay hidden until sunk (in bot games the app holds the whole fleet)
         (g.ships[opp] || []).forEach((s, i) => s && (g.winner !== null || g.sunk[opp].includes(i)) && ship(c, E, s, '#5c6488', 0.9, palOf('dengiz', opp)));
         const lk = g.last && g.last.cap != null ? g.last.cap : g.last ? g.last.r * N + g.last.c : -1;
-        marks(c, E, g.shots[env.you], now, g.last && g.last.p === env.you ? lk : -1);
+        const flying = shot && now - shot.at < shot.life ? shot : null;
+        marks(c, E, g.shots[env.you], now, g.last && g.last.p === env.you ? lk : -1, flying && flying.grid === 'E' ? flying.k : -1);
         (g.ships[env.you] || []).forEach(s => s && ship(c, Me, s, col(env.you), 1, palOf('dengiz', env.you)));
-        marks(c, Me, g.shots[opp], now, g.last && g.last.p === opp ? lk : -1);
+        marks(c, Me, g.shots[opp], now, g.last && g.last.p === opp ? lk : -1, flying && flying.grid === 'M' ? flying.k : -1);
         if (env.myTurn()) { c.save(); c.strokeStyle = env.hexA(col(env.you), 0.5 + 0.3 * Math.sin(now / 250)); c.lineWidth = 2; rr(c, E.x - 2, E.y - 2, E.s + 4, E.s + 4, 8); c.stroke(); c.restore(); }
       },
+      step(prev, g, B) {
+        const L = g.last; if (!L || L.t !== 'shot' || g.phase !== 'battle' && !(g.winner !== null)) return;
+        const mine = L.p === env.you, G = mine ? enemyGeo(B) : mineGeo(B, false), k = L.r * N + L.c;
+        const tx = G.x + (L.c + 0.5) * G.cs, ty = G.y + (L.r + 0.5) * G.cs;
+        // my shells come up from my fleet, the enemy's fall in from the top
+        const sx = B.x0 + B.S / 2, sy = mine ? B.y0 + B.S * 0.84 : B.y0 - B.S * 0.05;
+        const life = SHOT; shot = { grid: mine ? 'E' : 'M', k, at: performance.now(), life };
+        FX.fly(sx, sy, tx, ty, (c, x, y, t) => {
+          c.save(); c.shadowColor = '#ffb020'; c.shadowBlur = 12; c.fillStyle = '#ffe9a0'; c.beginPath(); c.arc(x, y, Math.max(2.5, G.cs * (0.16 - t * 0.06)), 0, 7); c.fill(); c.restore();
+        }, { life, arc: B.S * 0.18, ease: FX.ease.inOut });
+        for (let i = 1; i <= 5; i++) FX.custom((c, t) => { // a short smoky trail behind the shell
+          const q = Math.max(0, t * (1 + i * 0.08) - i * 0.08), e = FX.ease.inOut(Math.min(1, q)), x = sx + (tx - sx) * e, y = sy + (ty - sy) * e - Math.sin(Math.PI * Math.min(1, q)) * B.S * 0.18;
+          c.globalAlpha = 0.35 * (1 - t); c.fillStyle = '#c8d0e8'; c.beginPath(); c.arc(x, y, G.cs * 0.1 * (1 + i * 0.12), 0, 7); c.fill();
+        }, { life });
+        const sz = G.cs;
+        if (L.res === 'miss') {
+          FX.ring(tx, ty, { color: '#9fd4ff', r0: sz * 0.1, r1: sz * 0.7, life: 520, width: 2, delay: life });
+          FX.ring(tx, ty, { color: '#9fd4ff', r0: sz * 0.05, r1: sz * 0.45, life: 520, width: 1.5, delay: life + 120 });
+          FX.spark(tx, ty, { colors: ['#bfe6ff', '#6fb8ff', '#fff'], n: 12, speed: sz * 4, size: sz * 0.07, life: 520, grav: sz * 14, spread: Math.PI * 0.8, dir: -Math.PI / 2, shape: 'drop', delay: life });
+        } else {
+          FX.boom(tx, ty, sz * 0.8);
+          FX.shake(Math.max(3, sz * 0.25), 300, life);
+          if (L.res === 'sunk') {
+            const ships = g.ships[1 - L.p] || [], si = ships.findIndex(sh => sh && M.cellsOf(sh).includes(k));
+            const cells = si >= 0 ? M.cellsOf(ships[si]) : [k];
+            cells.forEach((q, j) => { const x = G.x + (q % N + 0.5) * G.cs, y = G.y + (Math.floor(q / N) + 0.5) * G.cs; setTimeout(() => FX.boom(x, y, sz * 0.9), life + 120 + j * 110); });
+            FX.shake(Math.max(5, sz * 0.4), 420, life + 150);
+            FX.text(tx, ty - sz * 0.6, mine ? "Cho'kdi! 💥" : "Kemangiz cho'kdi", { color: mine ? '#ffd34d' : '#ff5a72', size: Math.max(15, sz * 0.75), life: 1300, delay: life + 150 });
+          } else FX.text(tx, ty - sz * 0.5, mine ? 'Tegdi!' : '', { color: '#ff8a5a', size: Math.max(13, sz * 0.6), delay: life });
+        }
+      },
+      busy: () => !!shot && performance.now() - shot.at < shot.life + 250,
       down(x, y, g, B) {
         if (g.phase === 'place') {
           if (!placing(g)) return;
@@ -287,6 +365,8 @@ window.Boards = function (env) {
   {
     const M = window.Domino;
     let pick = null; // a tile that fits both ends: which side?
+    let place = null; // the tile being laid: { side, p, at }
+    const LAY = 420;
     const pipsAt = { 0: [], 1: [[0.5, 0.5]], 2: [[0.25, 0.25], [0.75, 0.75]], 3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]], 4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
       5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]], 6: [[0.25, 0.22], [0.75, 0.22], [0.25, 0.5], [0.75, 0.5], [0.25, 0.78], [0.75, 0.78]] };
     // a tile: halves a|b laid out horizontally (or vertically) at x, y with the short side `u`
@@ -325,7 +405,19 @@ window.Boards = function (env) {
           const pos = ltr ? k : perRow - 1 - k, tx = B.x0 + B.S / 2 - (perRow * u * 2.15) / 2 + pos * u * 2.15, ty = top + row * rowH;
           const a = x.flip ? x.t[1] : x.t[0], b = x.flip ? x.t[0] : x.t[1];
           const isLast = g.last && g.last.t === 'move' && g.last.tile && x.t[0] === g.last.tile[0] && x.t[1] === g.last.tile[1];
-          tile(c, tx, ty, u, ltr ? a : b, ltr ? b : a, false, isLast ? col(g.last.p) : null, false, x.p != null ? palOf('domino', x.p) : null);
+          const pal = x.p != null ? palOf('domino', x.p) : null;
+          const animIdx = place ? (place.side === 'L' ? 0 : L.length - 1) : -1, at = place ? (now - place.at) / LAY : 1;
+          if (i === animIdx && at < 1) { // flies in from its owner's side, turning as it comes
+            const e = FX.ease.out(Math.max(0, at)), sx = B.x0 + B.S / 2 - u, sy = place.p === env.you ? B.y0 + B.S + u : B.y0 - u;
+            const fx = sx + (tx - sx) * e, fy = sy + (ty - sy) * e - Math.sin(Math.PI * e) * u * 1.5;
+            c.save(); c.translate(fx + u, fy + u / 2); c.rotate((1 - e) * (place.p === env.you ? -1.2 : 1.2)); c.scale(1 + 0.25 * (1 - e), 1 + 0.25 * (1 - e));
+            tile(c, -u, -u / 2, u, ltr ? a : b, ltr ? b : a, false, col(place.p), false, pal); c.restore();
+            return;
+          }
+          tile(c, tx, ty, u, ltr ? a : b, ltr ? b : a, false, isLast ? col(g.last.p) : null, false, pal);
+          if (i === animIdx && at < 1.6) { // a click of dust where it lands
+            if (!place.dust) { place.dust = 1; FX.spark(tx + u, ty + u / 2, { colors: ['#fff', col(place.p)], n: 10, speed: u * 4, size: u * 0.08, life: 380, grav: 0 }); FX.shake(2, 140); }
+          }
         });
         if (!L.length) { c.fillStyle = 'rgba(200,210,255,.6)'; c.font = `700 ${u * 0.7}px system-ui`; c.textAlign = 'center'; c.fillText(T(g.turn === env.you ? "Birinchi toshni qo'ying" : 'Raqib boshlaydi'), B.x0 + B.S / 2, B.y0 + B.S / 2); }
         // the opponent's hand (face down) and the bozor
@@ -336,6 +428,16 @@ window.Boards = function (env) {
         if (g.ends) { c.textAlign = 'right'; c.fillText(T(`Uchlari: ${g.ends[0]} · ${g.ends[1]}`), B.x0 + B.S - 4, B.y0 + B.S - 2); }
       },
       down() {},
+      step(prev, g, B) {
+        const L = g.last; if (!L) return;
+        if (L.t === 'move') place = { side: !prev || !prev.line.length ? 'R' : L.side, p: L.p, at: performance.now() };
+        else if (L.t === 'draw') { // a tile slides out of the bozor to whoever drew it
+          const u = B.S / 17, tx = B.x0 + B.S / 2, ty = L.p === env.you ? B.y0 + B.S + u : B.y0 + u;
+          FX.fly(B.x0 + u * 2, B.y0 + B.S - u, tx, ty, (c, x, y, t) => { c.globalAlpha = 1 - t * 0.3; tile(c, x - u * 0.6, y - u * 0.6, u * 0.62, 0, 0, true, null, true); }, { life: 380, arc: u * 2 });
+        } else if (L.t === 'pass') FX.text(B.x0 + B.S / 2, L.p === env.you ? B.y0 + B.S * 0.8 : B.y0 + B.S * 0.2, "O'tkazdi", { color: '#c8d0ff', size: B.S * 0.05 });
+      },
+      busy: () => !!place && performance.now() - place.at < LAY,
+      reset() { place = null; pick = null; },
       ui(g, tray) {
         tray.innerHTML = '';
         const my = handOf(g), mine = env.myTurn();
@@ -382,6 +484,8 @@ window.Boards = function (env) {
   {
     const M = window.Nardi;
     let sel = null; // own index of the picked checker
+    let slideN = null, rollAt = -1e9; // the checker in flight { from, to, at, p }, when the dice were last thrown
+    const SLIDE = 380, ROLL = 650;
     // board layout: absolute point -> its slot (0..11 bottom row right to left, 12..23 top row left to right),
     // turned for player 1 so that their head is at the bottom right too
     const geo = (B) => { const bar = B.S * 0.06, w = (B.S - bar - B.S * 0.1) / 12; return { bar, w, x: B.x0, y: B.y0 + B.S * 0.08, h: B.S * 0.84, off: B.S * 0.1 }; };
@@ -410,16 +514,27 @@ window.Boards = function (env) {
           if (targets.some(m => m.to < 24 && M.abs(env.you, m.to) === a)) {
             c.save(); c.fillStyle = env.hexA(col(env.you), 0.35 + 0.25 * pulse); c.beginPath(); c.arc(x, top ? base + h * 0.85 : base - h * 0.85, G.w * 0.22, 0, 7); c.fill(); c.restore();
           }
-          const pt = g.pts[a]; if (!pt.n) continue;
-          const r = Math.min(G.w * 0.45, G.h * 0.042), show = Math.min(pt.n, 5);
+          const pt = g.pts[a];
+          const flying = slideN && slideN.to === a && now - slideN.at < SLIDE ? 1 : 0; // the arriving checker is drawn in the air
+          if (pt.n - flying <= 0) continue;
+          const r = Math.min(G.w * 0.45, G.h * 0.042), show = Math.min(pt.n - flying, 5);
           for (let i = 0; i < show; i++) {
             const cy = top ? base + r + i * r * 1.9 : base - r - i * r * 1.9;
             const isSel = sel !== null && M.abs(env.you, sel) === a && i === show - 1;
             glowDisc(c, x, cy, r * 0.95, col(pt.p), 1, palOf('nardi', pt.p));
             if (isSel) { c.save(); c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.beginPath(); c.arc(x, cy, r, 0, 7); c.stroke(); c.restore(); }
           }
-          if (pt.n > 5) { const cy = top ? base + r + 4 * r * 1.9 : base - r - 4 * r * 1.9; c.fillStyle = '#fff'; c.font = `900 ${r}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(pt.n, x, cy); }
+          if (pt.n - flying > 5) { const cy = top ? base + r + 4 * r * 1.9 : base - r - 4 * r * 1.9; c.fillStyle = '#fff'; c.font = `900 ${r}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(pt.n, x, cy); }
           if (fromSet.has(a) && sel === null) { c.save(); c.strokeStyle = env.hexA(col(env.you), 0.5 + 0.4 * pulse); c.lineWidth = 2; const cy = top ? base + r : base - r; c.beginPath(); c.arc(x, cy, r * 1.15, 0, 7); c.stroke(); c.restore(); }
+        }
+        // the moving checker: lifted along an arc from its old point to the new one
+        if (slideN && now - slideN.at < SLIDE) {
+          const t = Math.max(0, (now - slideN.at) / SLIDE), e = FX.ease.inOut(t), r = Math.min(G.w * 0.45, G.h * 0.042);
+          const end = (a, n) => { if (a === 'off') { const Z = offZone(G); return [Z.x + Z.w / 2, Z.y + Z.h * 0.8]; } const q = pointXY(a, G), k = Math.min(Math.max(n, 1), 5) - 1; return [q.x, q.top ? q.base + r + k * r * 1.9 : q.base - r - k * r * 1.9]; };
+          const [ax, ay] = end(slideN.from, slideN.fromN), [bx, by] = end(slideN.to, slideN.toN);
+          const x = ax + (bx - ax) * e, y = ay + (by - ay) * e - Math.sin(Math.PI * e) * G.h * 0.12;
+          c.save(); c.globalAlpha = 0.3; c.fillStyle = '#000'; c.beginPath(); c.ellipse(x, y + r * 1.3, r, r * 0.35, 0, 0, 7); c.fill(); c.restore();
+          glowDisc(c, x, y, r * 0.95 * (1 + 0.2 * Math.sin(Math.PI * e)), col(slideN.p), 1, palOf('nardi', slideN.p));
         }
         // borne-off checkers and the bear-off target
         const Z = offZone(G);
@@ -429,13 +544,22 @@ window.Boards = function (env) {
         // dice
         if (g.dice) {
           const ds = B.S * 0.07, cx = G.x + 3 * G.w, cy = G.y + G.h / 2 - ds / 2;
-          g.dice.forEach((d, i) => {
-            const used = g.left.filter(v => v === d).length < (g.dice[0] === g.dice[1] ? 4 - i * 2 : 1) && g.turn === g.dice.owner;
-            const x = cx + (i ? ds * 1.3 : -ds * 1.3) - ds / 2;
-            c.fillStyle = g.left.includes(d) ? '#fff' : 'rgba(255,255,255,.35)'; rr(c, x, cy, ds, ds, ds * 0.2); c.fill();
-            c.fillStyle = '#1b1f33';
+          const rt = Math.min(1, Math.max(0, (now - rollAt) / ROLL));
+          g.dice.forEach((d0, i) => {
+            // while rolling: tumbling in from the side with random faces, then a small bounce
+            const d = rt < 0.8 ? 1 + Math.floor((now / 70 + i * 3) % 6) : d0;
+            let x = cx + (i ? ds * 1.3 : -ds * 1.3) - ds / 2, y = cy;
+            c.save();
+            if (rt < 1) {
+              const e = FX.ease.bounce(rt); x += (1 - e) * (i ? 1 : -1) * ds * 2.5; y -= (1 - e) * ds * 1.2;
+              c.translate(x + ds / 2, y + ds / 2); c.rotate((1 - rt) * (i ? 6 : -6)); c.translate(-(x + ds / 2), -(y + ds / 2));
+            }
+            c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = 6; c.shadowOffsetY = 2;
+            c.fillStyle = rt < 1 || g.left.includes(d0) ? '#fff' : 'rgba(255,255,255,.35)'; rr(c, x, y, ds, ds, ds * 0.2); c.fill();
+            c.shadowBlur = 0; c.shadowOffsetY = 0; c.fillStyle = '#1b1f33';
             const dots = { 1: [[.5, .5]], 2: [[.25, .25], [.75, .75]], 3: [[.25, .25], [.5, .5], [.75, .75]], 4: [[.25, .25], [.75, .25], [.25, .75], [.75, .75]], 5: [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]], 6: [[.25, .22], [.75, .22], [.25, .5], [.75, .5], [.25, .78], [.75, .78]] }[d];
-            for (const [px, py] of dots) { c.beginPath(); c.arc(x + px * ds, cy + py * ds, ds * 0.09, 0, 7); c.fill(); }
+            for (const [px, py] of dots) { c.beginPath(); c.arc(x + px * ds, y + py * ds, ds * 0.09, 0, 7); c.fill(); }
+            c.restore();
           });
           c.fillStyle = col(g.turn); c.beginPath(); c.arc(cx, cy + ds * 1.6, 4, 0, 7); c.fill();
         }
@@ -462,7 +586,17 @@ window.Boards = function (env) {
         sel = null;
         if (g.pts[best].p === env.you) env.flash("Bu tosh bilan yurib bo'lmaydi", 900);
       },
-      reset() { sel = null; },
+      reset() { sel = null; slideN = null; rollAt = -1e9; },
+      step(prev, g, B) {
+        const L = g.last, t = performance.now();
+        if (L && L.t === 'move' && prev && prev.pts) {
+          slideN = { from: L.from, to: L.to, p: L.p, at: t, fromN: prev.pts[L.from] ? prev.pts[L.from].n : 1, toN: L.to === 'off' ? 1 : g.pts[L.to].n };
+          if (L.to === 'off') { const G = geo(B), Z = offZone(G); FX.spark(Z.x + Z.w / 2, Z.y + Z.h * 0.8, { colors: [col(L.p), '#ffd34d'], n: 10, speed: B.S * 0.3, size: 2.5, life: 500, shape: 'star', grav: 0, delay: SLIDE }); }
+        }
+        // a new throw (the turn changed, or the same player got fresh dice)
+        if (g.dice && (!prev || !prev.dice || prev.turn !== g.turn || (prev.left && !prev.left.length))) rollAt = t + (L && L.t === 'move' ? SLIDE : 0);
+      },
+      busy: () => (slideN && performance.now() - slideN.at < SLIDE) || performance.now() - rollAt < ROLL,
       thumb(c, now) {
         c.fillStyle = '#3b2716'; rr(c, 4, 10, 84, 72, 8); c.fill();
         for (let k = 0; k < 6; k++) { const x = 10 + k * 13; c.fillStyle = k % 2 ? '#c9a36b' : '#7a4a22';
@@ -481,6 +615,8 @@ window.Boards = function (env) {
   {
     const M = window.Durak;
     let sel = null; // the card picked to cover with, when it can cover more than one
+    let hidden = []; // table cards still flying in: { slot, part: 'a' | 'd', until }
+    const FLY = 360;
     const SUIT = { s: '♠', c: '♣', h: '♥', d: '♦' }, RED = { h: 1, d: 1 }, RN = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
     // a playing card at x, y (w x h); back = face down; pal = the owner's skin (the back and the face rim)
     function card(c, x, y, w, h, cd, back, pal, glow) {
@@ -563,10 +699,11 @@ window.Boards = function (env) {
         }
         // the table
         const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+        const hid = (i, part) => hidden.some(h => h.slot === i && h.part === part && now < h.until);
         g.table.forEach((x, i) => {
           const P2 = slotXY(B, i), canHit = sel && !x.d && M.beats(g, x.a, sel);
-          card(c, P2.x, P2.y, P2.w, P2.h, x.a, false, palOf('durak', g.att), canHit ? env.hexA('#ffd34d', 0.6 + 0.4 * pulse) : null);
-          if (x.d) { c.save(); c.translate(P2.x + P2.w * 0.55, P2.y + P2.h * 0.5); c.rotate(0.22); card(c, -P2.w / 2 + P2.w * 0.05, -P2.h / 2 + P2.w * 0.1, P2.w, P2.h, x.d, false, palOf('durak', 1 - g.att)); c.restore(); }
+          if (!hid(i, 'a')) card(c, P2.x, P2.y, P2.w, P2.h, x.a, false, palOf('durak', g.att), canHit ? env.hexA('#ffd34d', 0.6 + 0.4 * pulse) : null);
+          if (x.d && !hid(i, 'd')) { c.save(); c.translate(P2.x + P2.w * 0.55, P2.y + P2.h * 0.5); c.rotate(0.22); card(c, -P2.w / 2 + P2.w * 0.05, -P2.h / 2 + P2.w * 0.1, P2.w, P2.h, x.d, false, palOf('durak', 1 - g.att)); c.restore(); }
         });
         if (!g.table.length && g.winner === null) {
           c.fillStyle = 'rgba(255,255,255,.45)'; c.font = `700 ${S * 0.04}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -586,7 +723,55 @@ window.Boards = function (env) {
           }
         }
       },
-      reset() { sel = null; },
+      reset() { sel = null; hidden = []; },
+      step(prev, g, B) {
+        const L = g.last; if (!L || !prev) return;
+        const S = B.S, cw = S * 0.13, ch = cw * 1.42, t0 = performance.now();
+        const handY = (p) => (p === env.you ? B.y0 + S + ch * 0.8 : B.y0 + S * 0.03 + ch / 2), handX = B.x0 + S / 2;
+        const deckX = B.x0 + S * 0.05 + cw / 2, deckY = B.y0 + S * 0.36 + ch / 2;
+        const flyCard = (ax, ay, bx, by, cd, back, pal, o = {}) => {
+          const w = o.w || cw, h = w * 1.42, r0 = o.r0 || 0, r1 = o.r1 || 0;
+          FX.fly(ax, ay, bx, by, (c, x, y, t, e) => {
+            c.translate(x, y); c.rotate(r0 + (r1 - r0) * e); const sc = o.s1 ? 1 + (o.s1 - 1) * e : 1 + 0.15 * Math.sin(Math.PI * t); c.scale(sc, sc);
+            if (o.fade) c.globalAlpha = 1 - Math.max(0, t - 0.7) / 0.3;
+            card(c, -w / 2, -h / 2, w, h, o.flip && t > 0.5 ? null : cd, back || (o.flip && t > 0.5), pal);
+          }, { life: o.life || FLY, arc: o.arc != null ? o.arc : S * 0.08, delay: o.delay, ease: FX.ease.out });
+        };
+        if (L.t === 'attack' || L.t === 'defend') {
+          const slot = L.t === 'attack' ? g.table.length - 1 : g.table.findIndex(x => x.d === L.card);
+          if (slot < 0) return;
+          const P2 = slotXY(B, slot), pal = palOf('durak', L.p);
+          hidden.push({ slot, part: L.t === 'attack' ? 'a' : 'd', until: t0 + FLY });
+          const bx = P2.x + P2.w / 2 + (L.t === 'defend' ? P2.w * 0.05 : 0), by = P2.y + P2.h / 2 + (L.t === 'defend' ? P2.w * 0.1 : 0);
+          flyCard(handX + (Math.random() - 0.5) * cw, handY(L.p), bx, by, L.card, false, pal, { w: P2.w, r0: L.p === env.you ? -0.4 : 0.4, r1: L.t === 'defend' ? 0.22 : 0 });
+          FX.ring(bx, by, { color: col(L.p), r0: P2.w * 0.3, r1: P2.w * 0.9, life: 360, width: 2, delay: FLY - 40 });
+          if (L.t === 'defend') FX.spark(bx, by, { colors: [col(L.p), '#fff'], n: 8, speed: P2.w * 3, size: 2, life: 380, grav: 0, delay: FLY - 40 });
+        }
+        let after = 0;
+        if (L.t === 'take' || L.t === 'bito') {
+          const cards = []; prev.table.forEach((x, i) => { cards.push([i, x.a, 0]); if (x.d) cards.push([i, x.d, 1]); });
+          cards.forEach(([i, cd, isD], j) => {
+            const P2 = slotXY(B, i), ax = P2.x + P2.w / 2 + (isD ? P2.w * 0.05 : 0), ay = P2.y + P2.h / 2 + (isD ? P2.w * 0.1 : 0);
+            if (L.t === 'take') flyCard(ax, ay, handX + (j - cards.length / 2) * cw * 0.25, handY(L.p), cd, false, null, { w: P2.w, r0: isD ? 0.22 : 0, r1: 0, delay: j * 50, life: 420, fade: L.p !== env.you });
+            else flyCard(ax, ay, B.x0 + S * 0.86, B.y0 + S * 0.8, cd, false, null, { flip: true, w: P2.w, r0: isD ? 0.22 : 0, r1: -0.3 + (j % 3) * 0.25, s1: 0.9, delay: j * 45, life: 440, arc: S * 0.12 });
+          });
+          after = cards.length * 50 + 380;
+          FX.text(B.x0 + S * 0.58, B.y0 + S * 0.36, L.t === 'take' ? (L.p === env.you ? 'Oldingiz' : 'Raqib oldi') : 'Bito!', { color: L.t === 'take' ? '#ff8a5a' : '#7dffb0', size: S * 0.06, life: 900 });
+        }
+        // cards dealt from the deck after the bout
+        const dealt = (p) => {
+          const was = prev.handCount ? prev.handCount[p] : prev.hands[p].length, now2 = g.handCount ? g.handCount[p] : g.hands[p].length;
+          const took = L.t === 'take' && L.p === p ? prev.table.reduce((n, x) => n + 1 + (x.d ? 1 : 0), 0) : 0;
+          return Math.max(0, now2 - was - took);
+        };
+        let k = 0;
+        const first = L.t === 'bito' ? L.p : g.att; // the attacker of that bout draws first
+        for (const p of [first, 1 - first]) {
+          for (let i = 0; i < dealt(p); i++, k++) flyCard(deckX, deckY, handX + (i - 2) * cw * 0.3, handY(p), null, true, null, { w: cw * 0.9, r0: 0, r1: p === env.you ? 0 : Math.PI, life: 300, delay: after + k * 70, arc: S * 0.05 });
+        }
+        if (g.winner !== null && g.reason === 'cards') FX.shake(4, 300, after + k * 70);
+      },
+      busy: () => FX.busy(),
       ui(g, tray) {
         tray.innerHTML = '';
         if (sel && !handOf(g).includes(sel)) sel = null;
@@ -623,6 +808,8 @@ window.Boards = function (env) {
   {
     const M = window.Qumaloq;
     let lastN = -1, flashAt = 0;
+    let sow = null; // the stones being sown one by one: { holes, store, tuz, i, targets, at, dt, p }
+    const sowEnd = () => (sow ? sow.at + sow.targets.length * sow.dt + 120 : 0);
     // my row at the bottom (left to right = my holes 1..9), the opponent's row on top running right to left,
     // so the stones travel round the board anticlockwise for both players
     const geo = (B) => { const m = B.S * 0.03, w = (B.S - 2 * m) / 9, h = B.S * 0.3; return { m, w, h, x: B.x0 + m, top: B.y0 + B.S * 0.08, bot: B.y0 + B.S * 0.62 }; };
@@ -646,8 +833,17 @@ window.Boards = function (env) {
       badge: (g, p) => `🪨 ${g.store[p]}<small>/81</small>${g.tuz[p] >= 0 ? ' ★' : ''}`,
       draw(c, g, now, B) {
         const G = geo(B), S = B.S;
-        if (g.n !== lastN) { lastN = g.n; flashAt = now; }
-        const fresh = Math.max(0, 1 - (now - flashAt) / 900);
+        if (g.n !== lastN) { lastN = g.n; flashAt = sow ? sowEnd() : now; }
+        // while the stones are being sown, show the board as it was with the first k stones dropped
+        let view = g, k = -1;
+        if (sow && now < sowEnd()) {
+          k = Math.min(sow.targets.length, Math.floor(Math.max(0, now - sow.at) / sow.dt));
+          const holes = sow.holes.slice(); holes[sow.i] = 0;
+          for (let j = 0; j < k; j++) holes[sow.targets[j]]++;
+          view = { holes, store: sow.store, tuz: sow.tuz, last: g.last };
+        }
+        g = Object.assign({}, g, { holes: view.holes, store: view.store, tuz: view.tuz });
+        const fresh = now < flashAt ? 0 : Math.max(0, 1 - (now - flashAt) / 900);
         // wooden board
         const wg = c.createLinearGradient(B.x0, B.y0, B.x0, B.y0 + S);
         wg.addColorStop(0, '#6b4223'); wg.addColorStop(0.5, '#8a5a30'); wg.addColorStop(1, '#5a361b');
@@ -685,12 +881,43 @@ window.Boards = function (env) {
           c.fillStyle = 'rgba(255,230,190,.45)'; c.font = `700 ${G.w * 0.2}px system-ui`;
           c.fillText(H.k + 1, cx, own ? H.y - G.w * 0.12 : H.y + G.h + G.w * 0.14);
         }
+        // the stone in the air, from the hole it left to the next one
+        if (k >= 0 && k < sow.targets.length) {
+          const from = k === 0 ? sow.i : sow.targets[k - 1], to = sow.targets[k], q = Math.max(0, Math.min(1, ((now - sow.at) % sow.dt) / sow.dt));
+          const A = holeAt(G, from), Bh = holeAt(G, to), e = FX.ease.inOut(q);
+          const x = A.x + G.w / 2 + (Bh.x - A.x) * e, y = A.y + G.h / 2 + (Bh.y - A.y) * e - Math.sin(Math.PI * q) * G.w * 0.5;
+          const pal = palOf('qumaloq', sow.p), pr = G.w * 0.11;
+          const gr = c.createRadialGradient(x - pr * 0.4, y - pr * 0.4, pr * 0.1, x, y, pr);
+          gr.addColorStop(0, pal ? env.shade(pal[0], 0.4) : '#fff2d6'); gr.addColorStop(1, pal ? pal[1] : '#8c6a3c');
+          c.save(); c.shadowColor = col(sow.p); c.shadowBlur = 8; c.fillStyle = gr; c.beginPath(); c.arc(x, y, pr, 0, 7); c.fill(); c.restore();
+          // the hole that is receiving glows
+          c.save(); c.strokeStyle = env.hexA(col(sow.p), 0.6); c.lineWidth = 2; c.beginPath(); c.ellipse(Bh.x + G.w / 2, Bh.y + G.h / 2, G.w * 0.42, G.h * 0.44, 0, 0, 7); c.stroke(); c.restore();
+          return;
+        }
         if (g.last && g.last.got && fresh > 0) {
           const H = holeAt(G, g.last.end);
           c.fillStyle = `rgba(255,230,120,${fresh})`; c.font = `900 ${G.w * 0.45}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
           c.fillText(g.last.tuz ? '★ ' + T('Tuzdik!') : '+' + g.last.got, H.x + G.w / 2, H.y + G.h / 2 - (1 - fresh) * G.w * 0.6);
         }
       },
+      step(prev, g, B) {
+        const L = g.last; if (!L || L.t !== 'move' || !prev || !prev.holes) return;
+        const n = prev.holes[L.i]; if (!n) return;
+        const targets = []; if (n === 1) targets.push((L.i + 1) % 18); else for (let j = 0; j < n; j++) targets.push((L.i + j) % 18);
+        const dt = Math.max(55, Math.min(150, 1500 / n)), t = performance.now();
+        sow = { holes: prev.holes.slice(), store: prev.store.slice(), tuz: prev.tuz.slice(), i: L.i, targets, at: t, dt, p: L.p };
+        const end = targets.length * dt + 120, G = geo(B);
+        flashAt = t + end;
+        if (L.got) { // the catch flies to the player's store
+          const H = holeAt(G, L.end), sx = H.x + G.w / 2, sy = H.y + G.h / 2, tx = B.x0 + B.S * (L.p === env.you ? 0.73 : 0.27), ty = B.y0 + B.S * 0.5;
+          for (let j = 0; j < Math.min(L.got, 10); j++) FX.fly(sx, sy, tx - B.S * 0.12, ty, (c, x, y) => pebbles(c, x, y, 1, 1, 1, palOf('qumaloq', L.p), j), { life: 420, arc: B.S * 0.08, delay: end + j * 40 });
+          FX.ring(sx, sy, { color: L.tuz ? '#ffd34d' : col(L.p), r0: G.w * 0.2, r1: G.w * 0.9, life: 500, width: 3, delay: end });
+          FX.spark(sx, sy, { colors: [col(L.p), '#ffd34d', '#fff'], n: L.tuz ? 22 : 12, speed: G.w * 3, size: G.w * 0.05, life: 700, shape: L.tuz ? 'star' : 'dot', grav: 0, delay: end });
+          if (L.tuz) FX.shake(4, 260, end);
+        }
+      },
+      busy: () => performance.now() < sowEnd(),
+      reset() { sow = null; },
       down(x, y, g, B) {
         if (!env.myTurn()) return env.flash('Hozir sizning navbatingiz emas', 900);
         const G = geo(B);

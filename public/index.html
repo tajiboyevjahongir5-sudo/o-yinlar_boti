@@ -916,6 +916,7 @@
 <script src="nardi.js"></script>
 <script src="durak.js"></script>
 <script src="qumaloq.js"></script>
+<script src="fx.js"></script>
 <script src="boards.js"></script>
 <script>
 (() => {
@@ -1166,11 +1167,65 @@
     }
   }
 
+  // ---------- move effects for the boards drawn here (8x8, X va O, To'siq) ----------
+  const SLIDE8 = 240;
+  const sqXY = (i) => { const v = view8(i), S = sq8(); return [offX + (v % 8 + 0.5) * S, offY + (Math.floor(v / 8) + 0.5) * S]; };
+  function fx8(prev, g, L, slide) {
+    const S = sq8(), moves = [{ from: L.from, to: L.to }];
+    if (L.castle) { const k = String(L.castle).toUpperCase() === 'K'; moves.push({ from: L.from + (k ? 3 : -4), to: L.from + (k ? 1 : -1) }); }
+    if (slide) anim8 = { moves, at: performance.now() };
+    const d = slide ? SLIDE8 : 0, [tx, ty] = sqXY(L.to), mc = COLORS[L.p];
+    FX.ring(tx, ty, { color: mc, r0: S * 0.2, r1: S * 0.62, life: 360, width: 3, delay: d });
+    // captured pieces: whatever of the other side is gone (or replaced) except where the mover came from
+    if (prev && prev.board) for (let i = 0; i < 64; i++) {
+      const x = prev.board[i];
+      if (!x || i === L.from || ownerOf8(prev, x) === L.p) continue;
+      const now = g.board[i];
+      if (now && ownerOf8(g, now) !== L.p) continue;
+      const [cx, cy] = sqXY(i), white = x.toLowerCase() === 'w' || (g.kind === 'shaxmat' && x === x.toUpperCase());
+      // the victim stays until the attacker lands on it, then it jumps up, spins and shatters
+      FX.custom((c, t) => drawPiece8(c, g, cx, cy, S, x, 1), { life: d || 1 });
+      FX.fly(cx, cy, cx + (cx > offX + 4 * S ? 1 : -1) * S * 0.5, cy - S * 0.2, (c, x2, y2, t) => {
+        c.globalAlpha = 1 - t; c.translate(x2, y2); c.rotate(t * 2.4); c.scale(1 - t * 0.4, 1 - t * 0.4); drawPiece8(c, g, 0, 0, S, x, 1);
+      }, { life: 420, arc: S * 0.7, delay: d, ease: (t) => t });
+      FX.spark(cx, cy, { colors: [white ? '#f4f1e8' : '#3a3f58', mc, '#ffd34d'], n: 18, speed: S * 4, size: Math.max(2, S * 0.06), life: 600, grav: S * 6, delay: d, shape: 'square' });
+      FX.shake(Math.max(3, S * 0.08), 240, d);
+    }
+    if (L.promo || L.crowned) {
+      FX.spark(tx, ty, { colors: ['#ffd34d', '#fff3b0', '#ffb020'], n: 16, speed: S * 3.2, size: S * 0.07, life: 900, grav: -S * 0.8, shape: 'star', delay: d });
+      FX.ring(tx, ty, { color: '#ffd34d', r0: S * 0.3, r1: S * 1.1, life: 600, width: 4, delay: d });
+      FX.text(tx, ty - S * 0.4, L.crowned ? 'Damka!' : '♛', { color: '#ffd34d', size: Math.max(14, S * 0.38), delay: d });
+    }
+    if (L.check && g.winner === null) {
+      const king = g.board.findIndex(x => x === (g.turn === g.starter ? 'K' : 'k'));
+      if (king >= 0) { const [kx, ky] = sqXY(king); FX.ring(kx, ky, { color: '#ff2d46', r0: S * 0.3, r1: S * 0.9, life: 650, width: 4, delay: d + 60 });
+        FX.text(kx, ky - S * 0.45 < offY + S * 0.3 ? ky + S * 0.6 : ky - S * 0.45, 'Shoh!', { color: '#ff5a72', size: Math.max(14, S * 0.36), delay: d + 60 }); }
+    }
+  }
+  function fxXO(g, L) {
+    const cs = cell * COLS / 3, cx = offX + (L.i % 3 + 0.5) * cs, cy = offY + (Math.floor(L.i / 3) + 0.5) * cs;
+    FX.ring(cx, cy, { color: COLORS[L.p], r0: cs * 0.15, r1: cs * 0.55, life: 420, width: 4, delay: 120 });
+    FX.spark(cx, cy, { color: COLORS[L.p], n: 10, speed: cs * 2.2, size: Math.max(2, cs * 0.03), life: 480, grav: 0, delay: 150 });
+    if (g.line) setTimeout(() => {
+      const ctr = (k) => [offX + (k % 3 + 0.5) * cs, offY + (Math.floor(k / 3) + 0.5) * cs];
+      g.line.forEach((k, j) => { const [x, y] = ctr(k); FX.spark(x, y, { colors: [COLORS[g.winner], '#fff', '#ffd34d'], n: 14, speed: cs * 2.6, size: cs * 0.03, life: 800, shape: 'star', delay: j * 110 }); });
+    }, 300);
+  }
+  function fxFence(f) {
+    if (!f) return;
+    const [x, y, w, h] = fenceRect(fenceView(f)), col = COLORS[f.p], horiz = w > h;
+    for (let k = 0; k <= 4; k++) {
+      const px = horiz ? x + w * k / 4 : x + w / 2, py = horiz ? y + h / 2 : y + h * k / 4;
+      FX.spark(px, py, { colors: ['rgba(200,190,170,.85)', col], n: 4, speed: cell * 1.6, size: Math.max(1.5, cell * 0.06), life: 520, grav: cell * 3, delay: 140, glow: false });
+    }
+    FX.flash(x - 3, y - 3, w + 6, h + 6, { color: col, life: 420, delay: 120, r: Math.min(w, h) / 2 });
+    FX.shake(3, 200, 140);
+  }
   function setState(g) {
     const prev = game;
     game = g;
     const fresh = !prev || (prev.winner !== null && g.winner === null) || g.log.length < prev.log.length;
-    if (fresh) { round++; if (g.pawns) anim = g.pawns.map(newAnim); shownWinner = false; resultHero = null; xoPlaced = {}; xoEndAt = 0; }
+    if (fresh) { round++; if (g.pawns) anim = g.pawns.map(newAnim); shownWinner = false; resultHero = null; xoPlaced = {}; xoEndAt = 0; FX.clear(); }
     if (g.kind === 'xo') { // remember when each mark appeared so it can be drawn in
       g.board.forEach((v, i) => { if (v !== null && !(i in xoPlaced)) xoPlaced[i] = fresh && prev ? 0 : performance.now(); });
       if (g.winner !== null && !xoEndAt) xoEndAt = performance.now();
@@ -1181,12 +1236,14 @@
       const L = g.last;
       if (L.p !== you) haptic(L.t === 'fence' || L.cap != null ? 'heavy' : 'light');
       Snd.play(L.t === 'fence' ? 'fence' : L.check ? 'check' : L.crowned || L.promo ? 'crown' : L.cap != null ? 'capture' : 'move');
-      if (is8(g.kind) && L.from !== undefined && !(L.p === you && dropped8)) anim8 = { from: L.from, to: L.to, at: performance.now() };
+      if (is8(g.kind) && L.from !== undefined) fx8(prev, g, L, !(L.p === you && dropped8));
+      else if (g.kind === 'xo' && L.i != null) fxXO(g, L);
+      else if (PLUG[g.kind] && PLUG[g.kind].step) PLUG[g.kind].step(prev, g, { x0: offX, y0: offY, S: cell * COLS });
     }
     if (fresh && prev && g.winner === null) Snd.play('start');
     dropped8 = false;
     if (is8(g.kind)) { sel8 = null; targets8 = []; if (g.turn === you && g.chain != null && g.winner === null) select8(g.chain); }
-    if (g.fences && g.fences.length > (prev && !fresh && prev.fences ? prev.fences.length : g.fences.length)) popAt = performance.now();
+    if (g.fences && g.fences.length > (prev && !fresh && prev.fences ? prev.fences.length : g.fences.length)) { popAt = performance.now(); fxFence(g.fences[g.fences.length - 1]); }
     ghost = null;
     render();
     updateRematch();
@@ -1210,6 +1267,9 @@
   }
   function botTurn() {
     if (mode !== 'bot' || game.winner !== null || game.turn === you) return;
+    // let the last move finish animating before the bot answers
+    const P1 = PLUG[game.kind];
+    if ((P1 && P1.busy && P1.busy()) || (is8(game.kind) && anim8 && performance.now() - anim8.at < SLIDE8)) return setTimeout(botTurn, 120);
     const g = JSON.parse(JSON.stringify(game)), a = R().botAction(g, 1 - you, botLevel);
     if (!a) return;
     R().apply(g, 1 - you, a, Date.now());
@@ -1726,7 +1786,7 @@
     const prev = game;
     game = g;
     if (g.pawns) anim = g.pawns.map(newAnim);
-    if (is8(g.kind) && g.last && g.last.from !== undefined && d !== 0 && Math.abs(d) === 1) anim8 = { from: g.last.from, to: g.last.to, at: performance.now() };
+    if (is8(g.kind) && g.last && g.last.from !== undefined && d !== 0 && Math.abs(d) === 1) anim8 = { moves: [{ from: g.last.from, to: g.last.to }], at: performance.now() };
     if (g.kind === 'xo') { xoPlaced = {}; g.board.forEach((v, i) => { if (v !== null) xoPlaced[i] = 0; }); xoEndAt = 0; }
     $('rpPos').textContent = `${replay.i} / ${replay.list.length - 1}`;
     if (prev !== g && d) Snd.play(g.last && g.last.cap != null ? 'capture' : 'move');
@@ -3888,9 +3948,15 @@
     ctx.restore();
   }
 
+  // the board, then the shared effects (sparks, rings, flying pieces) on top; a hit shakes the whole board a little
   function draw(now) {
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(-30, -30, W + 60, H + 60);
     if (!game) return;
+    const [sx, sy] = FX.offset(now);
+    ctx.save(); ctx.translate(sx, sy);
+    try { drawBoard(now); FX.draw(ctx, now); } finally { ctx.restore(); }
+  }
+  function drawBoard(now) {
     if (is8(game.kind)) { paint8(now); drawConfetti(); drawResultHero(now); drawClocks(); return; }
     if (PLUG[game.kind]) { PLUG[game.kind].draw(ctx, game, now, { x0: offX, y0: offY, S: cell * COLS }); drawConfetti(); drawResultHero(now); drawClocks(); return; }
     if (game.kind === 'xo') {
@@ -3947,7 +4013,12 @@
         a.walk += step * Math.PI * 2;
         a.moving = Math.min(1, a.moving + dt / 80);
         a.movedAt = now;
-        if (d - step <= 1e-3) { a.r = a.tr; a.c = a.tc; a.landAt = now; if (i === you) haptic('soft'); }
+        if (d - step <= 1e-3) {
+          a.r = a.tr; a.c = a.tc; a.landAt = now; if (i === you) haptic('soft');
+          const v = cellView(a.r, a.c), fx = offX + v.c * cell + cell / 2, fy = offY + v.r * cell + cell * 0.82;
+          FX.spark(fx, fy, { colors: ['rgba(210,215,240,.7)', 'rgba(160,170,210,.6)'], n: jump ? 12 : 6, speed: cell * (jump ? 2.4 : 1.4), size: cell * 0.05, life: 420, grav: -cell * 0.6, spread: Math.PI * 0.9, dir: -Math.PI / 2, glow: false });
+          if (jump) FX.ring(fx, fy, { color: COLORS[i], r0: cell * 0.1, r1: cell * 0.6, life: 380, width: 2 });
+        }
       } else a.moving = Math.max(0, a.moving - dt / 150);
       if (now - a.movedAt > 1100) a.dir = 'down'; // turn back to face the camera when idle
       const rem = Math.hypot(a.tr - a.r, a.tc - a.c), prog = a.segD ? 1 - rem / a.segD : 1;
@@ -4224,20 +4295,23 @@
     // pieces that can move this turn get a soft hint when nothing is selected (shashka: shows forced captures)
     const movable = new Set();
     if (myTurn() && sel8 === null && g.kind === 'shashka') for (const s of Shashka.legalSteps(g, you)) movable.add(s.from);
-    const a = anim8, at = a ? Math.min(1, (now - a.at) / 190) : 1;
+    const a = anim8, at = a ? Math.min(1, Math.max(0, (now - a.at) / SLIDE8)) : 1;
     for (let v = 0; v < 64; v++) {
       const i = view8(v), x = g.board[i];
       if (!x || (drag8 && drag8.moved && drag8.i === i)) continue;
-      let cx = offX + (v % 8 + 0.5) * S, cy = offY + (Math.floor(v / 8) + 0.5) * S;
-      if (a && at < 1 && a.to === i) { // slide in from where it came from
-        const fv = view8(a.from), e = 1 - Math.pow(1 - at, 3);
-        cx = lerp(offX + (fv % 8 + 0.5) * S, cx, e); cy = lerp(offY + (Math.floor(fv / 8) + 0.5) * S, cy, e);
+      let cx = offX + (v % 8 + 0.5) * S, cy = offY + (Math.floor(v / 8) + 0.5) * S, lift = 1;
+      const sm = a && at < 1 && a.moves && a.moves.find(m => m.to === i);
+      if (sm) { // slide in from where it came from, lifted a little on the way
+        const fv = view8(sm.from), e = FX.ease.inOut(at);
+        cx = lerp(offX + (fv % 8 + 0.5) * S, cx, e); cy = lerp(offY + (Math.floor(fv / 8) + 0.5) * S, cy, e) - Math.sin(at * Math.PI) * S * 0.12;
+        lift = 1 + Math.sin(at * Math.PI) * 0.14;
+        ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(cx, cy + S * 0.3 + Math.sin(at * Math.PI) * S * 0.12, S * 0.28, S * 0.08, 0, 0, 7); ctx.fill(); ctx.restore();
       }
       if (movable.has(i)) {
         ctx.save(); ctx.strokeStyle = hexA(COLORS[you], 0.5 + 0.4 * pulse); ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.arc(cx, cy, S * 0.45, 0, 7); ctx.stroke(); ctx.restore();
       }
-      drawPiece8(ctx, g, cx, cy, S, x, g.taken && g.taken.includes(i) ? 0.35 : 1);
+      drawPiece8(ctx, g, cx, cy, S * lift, x, g.taken && g.taken.includes(i) ? 0.35 : 1);
     }
     for (const t of targets8) {
       const v = view8(t.to), x = offX + (v % 8 + 0.5) * S, y = offY + (Math.floor(v / 8) + 0.5) * S;
