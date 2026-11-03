@@ -870,7 +870,7 @@
   const skinOf = (p) => (mode === 'bot' ? (p === you ? (myInfo.equip.skin || {})[kind] || null : null) : (looks[p] || {}).skin || null);
   const frameOf = (p) => (mode === 'bot' ? (p === you ? myInfo.equip.frame : null) : (looks[p] || {}).frame || null);
 
-  fetch('config.json').then(r => r.json()).then(c => config = c).catch(() => {});
+  fetch('config.json').then(r => r.json()).then(c => { config = c; config.bot = String(c.bot || '').replace(/^@+/, ''); }).catch(() => {});
 
   // player 1 sees the board rotated so their own pawn starts at the bottom
   const flip = () => you === 1;
@@ -1661,7 +1661,7 @@
     const p = openPanel('addfriend');
     addText(p, 'h1', "{invite} Do'st qo'shish");
     addText(p, 'p', "Havolani do'stingizga yuboring — u ochishi bilan ikkalangiz bir-biringizning ro'yxatingizda bo'lasiz.");
-    p.appendChild(bigBtn("{send} Do'stlik havolasini yuborish", shareFriendLink, 'pri'));
+    p.appendChild(bigBtn("{send} Do'stlik havolasini yuborish", showFriendInvite, 'pri'));
     addText(p, 'div', 'yoki').className = 'or-line';
     const inp = document.createElement('input');
     Object.assign(inp, { className: 'search-in', placeholder: 'Ism yoki @username (kamida 2 harf)', autocomplete: 'off', spellcheck: false });
@@ -1707,13 +1707,44 @@
     };
     setTimeout(() => inp.focus(), 50);
   }
+  // the same wording as the server's friendText(); shown as a preview before sending
+  function friendHtml(best) {
+    return `🤝 <b>${escHtml(myName)}</b> sizni do'stlar ro'yxatiga taklif qilyapti!\n\n`
+      + `<blockquote>🎮 RAQIB — Telegram ichidagi o'yinlar markazi<br>♟️ Shaxmat • ⚫ Shashka • 🧱 To'siq Jangi • ❌⭕ X va O</blockquote>\n`
+      + (best ? `🏆 Uning eng yaxshi natijasi: <b>${GAME_NAMES[best.kind]} — ${best.elo} ELO</b>\n\n` : '')
+      + `✨ <b>Do'st bo'lsangiz:</b>\n⚔️ bir-biringizni bir bosishda o'yinga chaqirasiz\n👀 do'stingizning o'yinlarini jonli tomosha qilasiz\n`
+      + `🔔 kim onlayn ekanini ko'rib turasiz\n🏆 reytingda kim kuchliroq — bilib olasiz\n\n👇 <b>Do'st bo'lish</b> tugmasini bosing`;
+  }
+  async function showFriendInvite() {
+    haptic('light');
+    const p = openPanel('invite');
+    addText(p, 'h1', "{invite} Do'stlik taklifi");
+    addText(p, 'div', "Do'stingizga shunday xabar boradi:").className = 'tgfrom';
+    const msg = document.createElement('div'); msg.className = 'tgmsg';
+    msg.innerHTML = '<img class="tgimg" src="img/invite.png" alt=""><div class="tgcap"></div>';
+    msg.querySelector('.tgcap').innerHTML = friendHtml(null);
+    const btn = addText(p, 'div', "🤝 Do'st bo'lish"); btn.className = 'tgbtn';
+    p.insertBefore(msg, btn);
+    // the inviter's best rated game, if any
+    Promise.all(Object.keys(GAME_NAMES).map(k => api('profile', k).then(d => d && d.games ? { kind: k, elo: d.elo } : null)))
+      .then(list => { const best = list.filter(Boolean).sort((a, b) => b.elo - a.elo)[0]; if (best) msg.querySelector('.tgcap').innerHTML = friendHtml(best); });
+    p.append(bigBtn('{send} Yuborish', shareFriendLink, 'pri'), bigBtn('Bekor qilish', hideOverlay));
+  }
   async function shareFriendLink() {
     haptic('light');
+    // Bot API 8.0: a prepared message with the banner and a "Do'st bo'lish" button
+    if (tg && tg.shareMessage && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0')) {
+      try {
+        const r = await fetch('api/invite', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData: tg.initData, friend: true }) }).then(x => x.json());
+        if (r.ok) { tg.shareMessage(r.id, (sent) => { if (sent) { hideOverlay(); toast("{check} Do'stlik taklifi yuborildi"); } }); return; }
+      } catch (e) {}
+    }
     if (!myInfo.invite) await loadMyInfo();
     if (!myInfo.invite) return toast("{offline} Serverga ulanib bo'lmadi");
     const link = config.bot && config.app ? `https://t.me/${config.bot}/${config.app}?startapp=${myInfo.invite}`
       : `${location.origin}${location.pathname}?friend=${myInfo.invite}`;
-    const text = `🤝 ${myName} sizni RAQIB o'yinlar markazida do'st bo'lishga taklif qilyapti! Havolani oching — Shaxmat, Shashka va boshqa o'yinlarda bellashamiz 🎮`;
+    const text = `🤝 ${myName} sizni RAQIB o'yinlar markazida do'st bo'lishga taklif qilyapti!\n\n♟️ Shaxmat • ⚫ Shashka • 🧱 To'siq Jangi • ❌⭕ X va O\n⚔️ Bir-birimizni o'yinga chaqiramiz, 👀 o'yinlarni tomosha qilamiz!\n\n👇 Havolani oching:`;
     if (tg && tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
     else if (navigator.share) navigator.share({ title: "RAQIB", text, url: link }).catch(() => {});
     else { try { navigator.clipboard.writeText(text + '\n' + link); } catch (e) {} toast('{copy} Havola nusxalandi'); }

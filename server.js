@@ -15,6 +15,8 @@ const Rewards = require('./public/rewards.js');
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
+// the bot's username without "@" (people often paste it as "@MyBot", which breaks t.me links)
+const BOT_NAME = String(process.env.BOT_USERNAME || '').trim().replace(/^@+/, '').replace(/^https?:\/\/t\.me\//, '');
 
 // ---------- players & ELO (persisted to a JSON file) ----------
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -336,9 +338,48 @@ function inviteText(name, kind, code, elo) {
     + `👇 <b>Tugmani bosing — o'yin boshlanadi!</b>`;
 }
 
+// "be my friend": the inviter's best result, what friends get, and a "Do'st bo'lish" button
+function bestOf(uid) {
+  const p = players[uid];
+  let best = null;
+  for (const [k, st] of Object.entries((p && p.stats) || {})) if (st.games && (!best || st.elo > best.elo)) best = { kind: k, elo: st.elo };
+  return best;
+}
+function friendText(name, best) {
+  return `🤝 <b>${esc(name)}</b> sizni do'stlar ro'yxatiga taklif qilyapti!\n\n`
+    + `<blockquote>🎮 RAQIB — Telegram ichidagi o'yinlar markazi\n♟️ Shaxmat • ⚫ Shashka • 🧱 To'siq Jangi • ❌⭕ X va O</blockquote>\n`
+    + (best ? `🏆 Uning eng yaxshi natijasi: <b>${GAME_INFO[best.kind].title} — ${best.elo} ELO</b>\n\n` : '')
+    + `✨ <b>Do'st bo'lsangiz:</b>\n`
+    + `⚔️ bir-biringizni bir bosishda o'yinga chaqirasiz\n`
+    + `👀 do'stingizning o'yinlarini jonli tomosha qilasiz\n`
+    + `🔔 kim onlayn ekanini ko'rib turasiz\n`
+    + `🏆 reytingda kim kuchliroq — bilib olasiz\n\n`
+    + `👇 <b>Do'st bo'lish</b> tugmasini bosing`;
+}
+async function prepareFriendInvite(v, bot, app) {
+  const link = `https://t.me/${bot}/${app}?startapp=${inviteOf(v.uid)}`;
+  const text = friendText(v.name, bestOf(v.uid));
+  const button = { text: "🤝 Do'st bo'lish", style: 'success', url: link };
+  const title = "Do'stlik taklifi — RAQIB", description = `${v.name} bilan do'st bo'ling va bellashing`;
+  const photo = APP_URL ? `${APP_URL}/img/invite.png` : null;
+  const result = photo
+    ? { type: 'photo', id: crypto.randomBytes(8).toString('hex'), photo_url: photo, thumbnail_url: photo, photo_width: 640, photo_height: 360,
+        title, description, caption: text, parse_mode: 'HTML', reply_markup: { inline_keyboard: [[button]] } }
+    : { type: 'article', id: crypto.randomBytes(8).toString('hex'), title, description,
+        input_message_content: { message_text: text, parse_mode: 'HTML', link_preview_options: { is_disabled: true } },
+        reply_markup: { inline_keyboard: [[button]] } };
+  const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/savePreparedInlineMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: Number(v.uid.slice(2)), result, allow_user_chats: true, allow_group_chats: true }),
+  });
+  const d = await r.json();
+  return d.ok ? { ok: true, id: d.result.id } : { ok: false, reason: d.description || 'telegram' };
+}
+
 async function prepareInvite(body) {
-  const v = verifyInitData(body.initData), bot = process.env.BOT_USERNAME, app = process.env.APP_NAME;
+  const v = verifyInitData(body.initData), bot = BOT_NAME, app = process.env.APP_NAME;
   if (!v || !bot || !app) return { ok: false, reason: 'unavailable' };
+  if (body.friend) return prepareFriendInvite(v, bot, app);
   const kind = kindOf(body.kind), code = clean(body.code);
   const link = `https://t.me/${bot}/${app}` + (code ? `?startapp=${code}` : '');
   const st = players[v.uid] && players[v.uid].stats[kind];
@@ -372,7 +413,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/config.json') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ bot: process.env.BOT_USERNAME || '', app: process.env.APP_NAME || '' }));
+    return res.end(JSON.stringify({ bot: BOT_NAME, app: process.env.APP_NAME || '' }));
   }
   if (url.pathname === '/healthz') return sendJson(res, { ok: true }); // Render's health check
   if (url.pathname === '/api/rooms') return sendJson(res, lobbyData()); // same data the lobby socket pushes
@@ -923,7 +964,7 @@ wss.on('connection', (ws) => {
 // ---------- the Telegram bot itself: /start message, menu button, description ----------
 // Uses long polling (getUpdates), so no webhook setup is needed. The Mini App address comes from
 // WEB_URL, or from Railway's RAILWAY_PUBLIC_DOMAIN when a domain has been generated.
-const BOT_USERNAME = process.env.BOT_USERNAME || '', APP_NAME = process.env.APP_NAME || '';
+const BOT_USERNAME = BOT_NAME, APP_NAME = process.env.APP_NAME || '';
 const APP_URL = (process.env.WEB_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN : ''))
   .replace(/\/+$/, '');
 const tgApi = (method, body) => fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
