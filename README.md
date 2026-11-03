@@ -79,6 +79,24 @@ ketayotgan o'yinni bosib tomosha qilish mumkin. Turnir o'yinlari ELO bermaydi; g
 - **Yurishni qaytarish** (↺, faqat botga qarshi, hamma o'yinda).
 - **Yurishlarni ko'rish**: o'yin tugagach ⏮ ◀ ▶ ⏭ bilan butun o'yinni qadamma-qadam ko'rish.
 
+## Yangi o'yinlar: Nardi, Domino, Dengiz jangi, 4 ta qatorga, Nuqtalar
+
+Hammasida xonalar, reytingli o'yin, turnir, tomosha, botga qarshi (3 daraja), vaqt nazorati ishlaydi.
+- **🎲 Nardi** (uzun nardi, `public/nardi.js`): 15 tadan tosh boshdan; urish yo'q — raqib turgan joyga qo'yib
+  bo'lmaydi; boshdan navbatiga bitta tosh (birinchi navbatda 6-6, 4-4, 3-3 bo'lsa ikkita); raqib o'tib ketmagan
+  bo'lsa 6 ta ketma-ket blok taqiqlangan; ikkala zarni ishlatish majburiy (bittasi bo'lsa — kattasi); hamma tosh
+  uyda bo'lgach chiqarish. Zarni server tashlaydi. Yurish bo'lmasa navbat o'zi o'tadi.
+- **🁫 Domino** (`public/domino.js`): 0–6, 7 tadan tosh, 14 tasi bozorda; eng katta dubl boshlaydi; mos tosh bo'lmasa
+  bozordan olinadi, bozor bo'sh bo'lsa o'tkaziladi; qo'lini birinchi bo'shatgan yutadi, hech kim yura olmasa — ochkosi
+  kam. Raqib qo'li va bozor yashirin (server har o'yinchiga faqat o'zinikini yuboradi).
+- **🚢 Dengiz jangi** (`public/battleship.js`): 10×10, 1×4, 2×3, 3×2, 4×1, kemalar tegmaydi; 1 daqiqada joylash
+  ("Boshqa joylash" / "Tayyor", kechiksa avtomatik); tekkizsangiz yana otasiz; cho'kkan kema atrofi ochiladi.
+  Raqib kemalari yashirin.
+- **🔴 4 ta qatorga** (`public/connect4.js`): 7×6, tosh pastga tushadi, 4 tasini qatorga tergan yutadi.
+- **▪️ Nuqtalar** (`public/dots.js`): 5×5 katak; katakni yopgan yana yuradi; ko'p katak yopgan yutadi.
+- Chizish va boshqaruv: `public/boards.js`. Bu o'yinlar uchun hozircha skinlar yo'q; Nardi, Domino va Dengiz jangida
+  "Yurishlarni ko'rish" o'chirilgan (tasodif va yashirin ma'lumot sababli).
+
 ## Tangalar, kunlik bonus, vazifalar, do'kon, VIP, referal
 
 - **Tangalar 🪙**: onlayn g'alaba +10 (reytingli +15), durrang +5, mag'lubiyat +2; botni yutish +3/+5/+8

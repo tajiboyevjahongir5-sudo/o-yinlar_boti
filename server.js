@@ -5,7 +5,9 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 // every game kind has the same rules API: newGame, start, apply, checkTimeout, resign
 const GAMES = { tosiq: require('./public/game.js'), xo: require('./public/xo.js'),
-  shashka: require('./public/checkers.js'), shaxmat: require('./public/chess.js') };
+  shashka: require('./public/checkers.js'), shaxmat: require('./public/chess.js'),
+  nardi: require('./public/nardi.js'), domino: require('./public/domino.js'), c4: require('./public/connect4.js'),
+  dengiz: require('./public/battleship.js'), dots: require('./public/dots.js') };
 const kindOf = (k) => (GAMES[k] ? k : 'tosiq');
 const rulesOf = (room) => GAMES[room.kind];
 
@@ -237,6 +239,11 @@ const QUEST_POOL = [
   { id: 'shashka1', name: "Shashka o'ynang", goal: 1, reward: 25, ev: 'play:shashka' },
   { id: 'tosiq1', name: "To'siq Jangi o'ynang", goal: 1, reward: 25, ev: 'play:tosiq' },
   { id: 'xo3', name: "X va O'ni 3 marta o'ynang", goal: 3, reward: 25, ev: 'play:xo' },
+  { id: 'nardi1', name: "Nardi o'ynang", goal: 1, reward: 30, ev: 'play:nardi' },
+  { id: 'domino1', name: "Domino o'ynang", goal: 1, reward: 25, ev: 'play:domino' },
+  { id: 'c42', name: "\"4 ta qatorga\"ni 2 marta o'ynang", goal: 2, reward: 25, ev: 'play:c4' },
+  { id: 'dengiz1', name: "Dengiz jangi o'ynang", goal: 1, reward: 30, ev: 'play:dengiz' },
+  { id: 'dots1', name: "Nuqtalar o'ynang", goal: 1, reward: 25, ev: 'play:dots' },
   { id: 'bot2', name: "Botni 2 marta yuting", goal: 2, reward: 30, ev: 'botWin' },
   { id: 'bothard', name: "\"Qiyin\" botni yuting", goal: 1, reward: 60, ev: 'botWinHard' },
   { id: 'friend1', name: "Do'stingiz bilan o'ynang", goal: 1, reward: 40, ev: 'friendGame' },
@@ -392,7 +399,7 @@ function cardOf(uid, me) {
 }
 
 const MINUTES = [1, 3, 5, 10];
-const DEFAULT_MIN = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10 };
+const DEFAULT_MIN = { tosiq: 5, xo: 1, shashka: 5, shaxmat: 10, nardi: 10, domino: 5, c4: 3, dengiz: 5, dots: 3 };
 const minutesOf = (kind, m) => (MINUTES.includes(Number(m)) ? Number(m) : DEFAULT_MIN[kind]);
 
 const readJson = (req, limit = 20000) => new Promise((res) => {
@@ -899,6 +906,11 @@ const GAME_INFO = {
   xo: { title: 'X va O', emoji: '❌⭕', line: "Uchta belgini bir qatorga birinchi bo'lib tering!" },
   shashka: { title: 'Shashka', emoji: '⚫⚪', line: "Raqibning barcha donalarini urib oling yoki uni yurolmaydigan qiling!" },
   shaxmat: { title: 'Shaxmat', emoji: '♟️', line: "Raqib shohiga mot qo'ying!" },
+  nardi: { title: 'Nardi', emoji: '🎲', line: "Barcha 15 toshni birinchi bo'lib chiqaring!" },
+  domino: { title: 'Domino', emoji: '🁫', line: "Toshlaringizni birinchi bo'lib qo'yib tugating!" },
+  c4: { title: '4 ta qatorga', emoji: '🔴', line: "4 ta toshni bir qatorga birinchi tering!" },
+  dengiz: { title: 'Dengiz jangi', emoji: '🚢', line: "Raqib flotini birinchi cho'ktiring!" },
+  dots: { title: 'Nuqtalar', emoji: '▪️', line: "Ko'proq katakni yopib oling!" },
 };
 // the emoji players can send each other during a game
 const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
@@ -1276,7 +1288,7 @@ function broadcast(room) {
   if (!room.hold && room.players.every(p => p && p.ws)) G.start(g, Date.now());
   clearTimeout(room.clockTimer);
   if (g.winner === null && g.turnStart !== null) {
-    const left = g.clock[g.turn] - (Date.now() - g.turnStart);
+    const left = G.deadline ? G.deadline(g, Date.now()) : g.clock[g.turn] - (Date.now() - g.turnStart);
     room.clockTimer = setTimeout(() => { if (G.checkTimeout(room.game, Date.now())) broadcast(room); }, Math.max(0, left) + 50);
   }
   rateGame(room);
@@ -1297,10 +1309,10 @@ function broadcast(room) {
   };
   room.players.forEach((pl, i) => {
     if (!pl || !pl.ws) return;
-    pl.ws.send(JSON.stringify(Object.assign({}, base, { you: i, code: room.code })));
+    pl.ws.send(JSON.stringify(Object.assign({}, base, { you: i, code: room.code }, G.view ? { game: G.view(g, i) } : {})));
   });
   if (room.watchers && room.watchers.size) {
-    const msg = JSON.stringify(Object.assign({}, base, { you: -1 }));
+    const msg = JSON.stringify(Object.assign({}, base, { you: -1 }, G.view ? { game: G.view(g, -1) } : {}));
     for (const w of room.watchers) if (w.readyState === 1) w.send(msg);
   }
   lobbyChanged();
@@ -1558,7 +1570,7 @@ wss.on('connection', (ws) => {
     if (!room) return;
     const G = rulesOf(room);
 
-    if (m.t === 'move' || m.t === 'fence') {
+    if (['move', 'fence', 'shot', 'place', 'draw', 'pass'].includes(m.t)) {
       if (!room.players[1 - slot]) return send({ t: 'err', msg: 'Raqib hali qo\'shilmadi' });
       const err = G.apply(room.game, slot, m, Date.now());
       if (err) { send({ t: 'err', msg: err }); if (room.game.winner !== null) broadcast(room); return; }
@@ -1703,6 +1715,7 @@ const keyboard = (...rows) => ({ inline_keyboard: rows.map(r => r.filter(Boolean
 function welcomeText(firstName) {
   return `🎮 <b>Assalomu alaykum, ${esc(firstName || "do'stim")}!</b>\n\n`
     + `Bu yerda do'stlaring va butun O'zbekiston bilan <b>aql o'yinlari</b>da kuch sinashasan:\n\n`
+    + `🎲 <b>Nardi</b>, 🁫 <b>Domino</b>, 🚢 <b>Dengiz jangi</b>, 🔴 <b>4 ta qatorga</b>, ▪️ <b>Nuqtalar</b>\n`
     + `🧱 <b>To'siq Jangi</b> — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet\n`
     + `❌⭕ <b>X va O</b> — uchta belgini bir qatorga birinchi bo'lib ter\n`
     + `⚫ <b>Shashka</b> — raqib donalarini urib ol, damka bilan g'alaba qil\n`
@@ -1772,20 +1785,16 @@ async function onMessage(msg) {
 const BOT_ABOUT = "🎮 Raqib — o'yinlar markazi: do'stlar bilan onlayn o'yinlar, reyting va ELO. Yangi o'yinlar qo'shilib boradi!";
 const BOT_DESCRIPTION = [
   "🎮 RAQIB — o'yinlar markazi Telegram'da!",
-  "Bir botda — ko'plab o'yinlar:",
   "",
-  "🧱 To'siq Jangi — raqib yo'lini to'siqlar bilan to'sib, birinchi bo'lib marraga yet",
-  "❌⭕ X va O — uchta belgini bir qatorga ter",
-  "⚫ Shashka — donalarni urib ol, damka qil",
-  "♟️ Shaxmat — raqib shohiga mot qo'y",
+  "♟️ Shaxmat • ⚫ Shashka • 🎲 Nardi • 🁫 Domino",
+  "🚢 Dengiz jangi • 🔴 4 ta qatorga • ▪️ Nuqtalar",
+  "🧱 To'siq Jangi • ❌⭕ X va O",
   "",
-  "⭐ Reytingli o'yin — kuchi teng raqib topiladi",
-  "🏆 ELO reyting va g'oliblar jadvali",
-  "👥 Do'stlar bilan ochiq va maxfiy xonalar",
-  "🤖 Botga qarshi mashq",
-  "✨ Yangi o'yinlar qo'shilib boradi",
+  "⭐ Reyting va ELO • 🏆 Turnirlar",
+  "👥 Do'stlar bilan o'yin • 🤖 Botga qarshi",
+  "🎁 Kunlik bonus • 🛍 Skinlar",
   "",
-  "Kim kuchliroq? Boshlash uchun START ni bosing 👇",
+  "Kim kuchliroq? START ni bosing 👇",
 ].join('\n');
 
 // ---------- Telegram Stars payments ----------

@@ -33,6 +33,7 @@
       { id: 'kosmik', name: 'Kosmik', elo: 1500, desc: 'Yulduzli belgilar' },
       { id: 'muz', name: 'Muz', price: 400, desc: 'Muzdek belgilar' },
     ],
+    nardi: [], domino: [], c4: [], dengiz: [], dots: [],
   };
   const FRAMES = [
     { id: 'bronza', name: 'Bronza', elo: 1100, desc: "Istalgan o'yinda 1100 ELO" },
@@ -63,7 +64,7 @@
     { id: 'damka', icon: '👑', name: 'Damka ustasi', desc: 'Shashkada taxtada damkangiz bilan yuting' },
     { id: 'wall', icon: '🧱', name: 'Devor quruvchi', desc: "To'siq Jangida 10 ta to'siqning hammasini qo'yib yuting" },
     { id: 'xo3', icon: '❌', name: 'Uchtalik', desc: "X va O'da uchta belgini qatorga terib yuting" },
-    { id: 'all4', icon: '🎮', name: "Hamma o'yin", desc: "To'rtala o'yinning har birida kamida bir marta yuting" },
+    { id: 'all4', icon: '🎮', name: "Hamma o'yin", desc: "Barcha o'yinlarning har birida kamida bir marta yuting" },
     { id: 'elo1200', icon: '⚡', name: "Kuchli o'yinchi", desc: "Istalgan o'yinda 1200 ELO'ga chiqing" },
     { id: 'elo1500', icon: '🏅', name: 'Usta', desc: "Istalgan o'yinda 1500 ELO'ga chiqing" },
     { id: 'blitz', icon: '⏱️', name: 'Chaqmoq', desc: "1 daqiqalik onlayn o'yinda yuting" },
