@@ -674,7 +674,11 @@
   .eco-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
   .eco-row .eco { flex-direction:column; align-items:flex-start; gap:4px; padding:9px 10px; }
   .eco-row .eco .e { font-size:22px; } .eco-row .eco b { font-size:12.5px; line-height:1.2; } .eco-row .eco small { font-size:10.5px; }
-  .eco.wheel { --c:#2ee66b; } .eco.wheel.ready { animation:rkGlow 1.6s ease-in-out infinite; }
+  .eco.wheel { --c:#2ee66b; } .eco.puzzle { --c:#2fd0ff; } .eco.season { --c:#ff7a1a; }
+  .slv { display:grid; grid-template-columns:repeat(5, 1fr); gap:5px; width:100%; max-height:42vh; overflow-y:auto; touch-action:pan-y; }
+  .slv div { border-radius:10px; padding:5px 2px; text-align:center; font-size:10.5px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:var(--mute); }
+  .slv div b { display:block; color:#fff; font-size:12px; } .slv div.on { border-color:var(--green); color:#d8ffe6; } .slv div.got { opacity:.45; }
+  .slv div i { display:block; font-style:normal; color:#ffd76a; } .eco.wheel.ready { animation:rkGlow 1.6s ease-in-out infinite; }
   .rbub.phrase { font-size:16px; font-weight:800; max-width:62vw; text-align:center; white-space:normal; }
   .phr { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; padding:4px 2px 0; width:100%; }
   .phr button { border:1px solid rgba(120,140,255,.4); background:rgba(255,255,255,.06); color:#fff; border-radius:12px; padding:6px 9px; font-size:12.5px; font-weight:700; }
@@ -838,6 +842,7 @@
   <div class="hub-title"><i data-ic="games"></i> O'yinlar</div>
   <div class="hub-online"><span class="dot"></span><span id="hubOnline">Onlayn o'yinchilar yuklanmoqda...</span></div>
   <div class="eco-row" id="ecoRow"></div>
+  <div class="eco-row" id="ecoRow2" style="grid-template-columns:1fr 1fr"></div>
   <div id="adSlot"></div>
   <div id="announce" class="hide"><span class="ic3">📢</span><span id="announceTx" style="flex:1"></span><button id="announceX" aria-label="Yopish">✕</button></div>
   <div id="games"></div>
@@ -1188,6 +1193,7 @@
     const placing = a.t === 'place' && game && game.phase === 'place' && !watching && !replay;
     if (!placing && !myTurn()) return flash(watching ? "Siz tomosha qilyapsiz" : 'Hozir sizning navbatingiz emas', 1200);
     if (mode === 'online') { ws.send(JSON.stringify(a)); ghost = null; return; }
+    if (mode === 'puzzle') return puzzleMove(a);
     // keep the position before each of my moves, so "undo" can go back (bot games only)
     if (game.chain == null && !placing) { botHist.push(JSON.stringify(game)); if (botHist.length > 200) botHist.shift(); }
     const g = JSON.parse(JSON.stringify(game));
@@ -1517,6 +1523,7 @@
   }
   function showResult(won, draw) {
     if (watching) return showWatchResult();
+    if (mode === 'puzzle') { const p = openPanel('result'); addText(p, 'h1', '🧩 MOT!'); addText(p, 'p', "Masala yechildi. Ertaga yangi masala!"); p.append(bigBtn('{back} Bosh sahifa', showHub, 'pri')); burst(); return; }
     const g = game, starter = g.starter || 0;
     const mine = g.log.filter((_, i) => (i % 2 === 0) === (starter === you));
     const walls = mine.filter(m => /[hv]$/.test(m)).length, steps = mine.length - walls;
@@ -2617,6 +2624,14 @@
     w.querySelector('small').textContent = wallet.freeSpin ? 'Bepul aylantiring!' : `${wallet.spinPrice} 🪙 ga`;
     w.onclick = () => { haptic('light'); showWheel(); };
     row.append(d, q, w);
+    const row2 = $('ecoRow2'); row2.innerHTML = '';
+    const pz = document.createElement('button'); pz.className = 'eco puzzle' + (puzzleSolved ? ' done' : ' ready');
+    pz.innerHTML = `<span class="e">🧩</span><span><b>Kunlik masala</b><small>${puzzleSolved ? 'Yechildi ✓' : 'Bir yurishda mot · 100 🪙'}</small></span>`;
+    pz.onclick = () => { haptic('light'); startPuzzle(); };
+    const se = document.createElement('button'); se.className = 'eco season';
+    se.innerHTML = `<span class="e">🏅</span><span><b>Mavsum</b><small>${seasonInfo ? `${seasonInfo.level}/${seasonInfo.max} daraja` : "Darajalar va mukofotlar"}</small></span>`;
+    se.onclick = () => { haptic('light'); showSeason(); };
+    row2.append(pz, se);
   }
   $('coinChip').onclick = () => { haptic('light'); showTabs('shop'); };
   function onCoins(m) {
@@ -3009,6 +3024,67 @@
     if (mine) p.appendChild(bigBtn('{exit} Klandan chiqish', async () => { if (!await ask('Klandan chiqasizmi?')) return; const x = await postApi('clanLeave', {}); if (x && x.ok) { hideOverlay(); toast('Klandan chiqdingiz'); } }, 'danger'));
     else p.appendChild(bigBtn("{plus} Qo'shilish", async () => { const x = await postApi('clanJoin', { id }); if (x && x.ok) { Snd.play('crown'); toast(`🛡 ${c.name} klaniga xush kelibsiz!`); showClan(id); } else toast('{alert} ' + ((x && x.msg) || 'Xato')); }, 'pri'));
     p.appendChild(bigBtn('Yopish', hideOverlay));
+  }
+
+
+  // ---------- season ----------
+  let seasonInfo = null, puzzleSolved = false, puzzleData = null;
+  const rewardTxt = (r) => r.frame ? '🖼 Ramka' : r.vipDays ? `👑 VIP ${r.vipDays}k` : `${r.coins} 🪙`;
+  async function showSeason() {
+    const d = await postApi('season', {});
+    if (!d || !d.ok) return toast('{alert} Xato');
+    seasonInfo = d; paintWallet();
+    const p = openPanel('season');
+    addText(p, 'h1', `🏅 Mavsum ${d.id}`);
+    const left = Math.max(0, d.ends - Date.now());
+    addText(p, 'div', `${d.level}/${d.max} daraja · ${d.xp % d.perLevel}/${d.perLevel} XP · tugashiga ${Math.floor(left / 86400000)} kun`).className = 'note';
+    const pr = document.createElement('div'); pr.className = 'prog-big'; pr.innerHTML = `<i style="width:${Math.min(100, d.level >= d.max ? 100 : (d.xp % d.perLevel) / d.perLevel * 100)}%"></i>`; p.appendChild(pr);
+    addText(p, 'div', "XP: onlayn o'yin +30 (g'alaba +50), bot +10/+15, vazifa +50, kunlik bonus +20, masala +50").className = 'note';
+    const grid = document.createElement('div'); grid.className = 'slv';
+    for (const r of d.rewards) {
+      const c = document.createElement('div'), reached = r.lv <= d.level;
+      c.className = reached ? (d.free.includes(r.lv) && (!d.premium || d.prem.includes(r.lv)) ? 'on got' : 'on') : '';
+      c.innerHTML = `<b>${r.lv}</b>${rewardTxt(r.free)}<i>${d.premium ? '' : '🔒'}${rewardTxt(r.prem)}</i>`;
+      grid.appendChild(c);
+    }
+    p.appendChild(grid);
+    const ready = d.rewards.filter(r => r.lv <= d.level && (!d.free.includes(r.lv) || (d.premium && !d.prem.includes(r.lv)))).length;
+    if (ready) p.appendChild(bigBtn(`🎁 Mukofotlarni olish (${ready})`, async () => {
+      const x = await postApi('seasonClaim', {});
+      if (x && x.ok) { Snd.play('win'); burst(); toast(`🎁 +${x.coins} 🪙` + (x.got.length ? ' · ' + x.got.join(', ') : '')); refreshWallet(); loadMyInfo(); showSeason(); }
+    }, 'pri'));
+    if (!d.premium) { const it = Rewards.STARS_ITEMS.find(x => x.type === 'season'); p.appendChild(bigBtn(`⭐ Premium yo'lak — ${it.stars} Stars`, () => buyItem(it.id, it))); }
+    p.appendChild(bigBtn('Yopish', hideOverlay));
+  }
+
+  // ---------- daily puzzle: mate in one ----------
+  async function startPuzzle() {
+    const d = await postApi('puzzle', {});
+    if (!d || !d.ok) return toast('{alert} ' + ((d && d.msg) || 'Masala tayyor emas'));
+    puzzleData = d; puzzleSolved = d.solved;
+    leaveOnline(); hideOverlay(); hideHub(); hideLobby();
+    kind = 'shaxmat'; viewKind = 'shaxmat';
+    const g = Chess.newGame(0, 60);
+    g.board = d.board.slice(); g.castle = Object.assign({}, d.castle); g.ep = d.ep;
+    you = d.side === 'w' ? 0 : 1; g.turn = you;
+    Chess.start(g, Date.now());
+    mode = 'puzzle'; names = [myName, '🧩 Masala']; if (you === 1) names = ['🧩 Masala', myName]; online = [true, true]; clockOffset = 0;
+    watching = false; looks = [{}, {}]; botHist = []; sel8 = null; targets8 = []; anim8 = null;
+    game = null; setState(g);
+    flash(`🧩 ${d.side === 'w' ? 'Oq' : 'Qora'} yuradi va bir yurishda mot qo'yadi!`, 0);
+    if (d.solved) toast('✓ Bugungi masala yechilgan — mashq uchun yana urinib ko\'ring');
+  }
+  async function puzzleMove(a) {
+    const g = JSON.parse(JSON.stringify(game)), err = Chess.apply(g, you, a, Date.now());
+    if (err) { haptic('warning'); return flash(err, 1200); }
+    setState(g);
+    if (g.reason !== 'mate') {
+      Snd.play('error'); haptic('warning'); flash("Bu mot emas — yana urinib ko'ring", 0);
+      return setTimeout(() => { if (mode === 'puzzle') startPuzzle(); }, 900);
+    }
+    const r = await postApi('puzzleSolve', { from: a.from, to: a.to });
+    puzzleSolved = true;
+    if (r && r.ok && !r.already) toast(`🧩 To'g'ri! +${r.coins} 🪙 · 🔥 ${r.streak} kun ketma-ket`);
   }
 
   // ---------- emoji reactions (online games) ----------
@@ -3452,7 +3528,7 @@
     if ($('overlay').dataset.kind === 'search') return showLobby(); // cancels the search
     if ($('overlay').dataset.kind === 'vs') return;
     // still waiting for an opponent, or the game is over: just leave (an unstarted room closes)
-    const running = game && game.winner === null && game.turnStart !== null && mode && !watching;
+    const running = game && game.winner === null && game.turnStart !== null && mode && !watching && mode !== 'puzzle';
     if (!running) return showLobby();
     const p = openPanel('confirm');
     addText(p, 'h1', '{exit} Chiqish');
@@ -4336,6 +4412,8 @@
   openPresence();
   loadMyInfo().then(() => setFrame($('hubAv'), myInfo.equip.frame));
   refreshWallet();
+  postApi('season', {}).then(d => { if (d && d.ok) { seasonInfo = d; paintWallet(); } });
+  postApi('puzzle', {}).then(d => { if (d && d.ok) { puzzleSolved = d.solved; paintWallet(); } });
   if (friendCode && /^fr[0-9a-f]{12}$/.test(friendCode)) setTimeout(() => acceptFriendInvite(friendCode), 400);
   if (pendingInline) { setTimeout(connect, 300); }
   else if (startRoom) { roomId = null; roomCode = null; joinCode = startRoom.toUpperCase().replace(/[^A-Z0-9]/g, ''); connect(); } else showHub();

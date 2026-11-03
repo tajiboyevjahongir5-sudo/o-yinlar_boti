@@ -45,6 +45,7 @@
     { id: 'neon', name: 'Neon', price: 2500, desc: "Rang o'zgartiruvchi neon" },
     { id: 'olovli', name: 'Olovli', price: 4000, desc: 'Alangali halqa' },
     { id: 'afsona', name: 'Afsona', stars: 300, desc: 'Aylanuvchi kamalak halqa' },
+    { id: 'mavsum', name: 'Mavsum', special: 'season', desc: 'Mavsum 30-darajasi (premium)' },
   ];
   // ---------- shop skins: 10+ per game ----------
   // To'siq Jangi: characters (drawn by hero.js), each one different
@@ -88,6 +89,7 @@
     { id: 'coins1500', type: 'coins', amount: 1500, stars: 65, name: '1500 tanga', tag: '+15%' },
     { id: 'coins4000', type: 'coins', amount: 4000, stars: 150, name: '4000 tanga', tag: '+33%' },
     { id: 'vip30', type: 'vip', days: 30, stars: 120, name: 'VIP · 30 kun' },
+    { id: 'season', type: 'season', stars: 199, name: 'Mavsum · Premium' },
   ];
   // daily bonus by streak day (day 7 and on: the top prize)
   const DAILY = [20, 30, 40, 50, 60, 80, 150];
@@ -125,6 +127,7 @@
     if (f.price || f.stars) return owns(p, 'frame', null, id);
     if (f.special === 'weekly') return !!(p.ach && p.ach.weekly);
     if (f.special === 'tour') return !!(p.ach && p.ach.tour);
+    if (f.special === 'season') return owns(p, 'frame', null, id);
     return bestPeak(p.stats) >= f.elo;
   }
   function skinUnlocked(p, kind, id) {

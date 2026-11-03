@@ -246,6 +246,7 @@ function recordOnline(room) {
   room.players.forEach((pl, i) => {
     const won = g.winner === i, draw = g.winner === -1;
     addCoins(pl.uid, won ? (room.ranked ? 15 : 10) : draw ? 5 : 2, 'game');
+    addXp(pl.uid, won ? 50 : 30);
     progress(pl.uid, 'online'); progress(pl.uid, 'play:' + kind);
     if (won) progress(pl.uid, 'onlineWin');
     if (room.ranked) progress(pl.uid, 'rated');
@@ -353,6 +354,7 @@ function grant(uid, it) { // give a bought thing
   else if (it.type === 'skin') { const l = p.owned.skins[it.kind] = p.owned.skins[it.kind] || []; if (!l.includes(it.id)) l.push(it.id); }
   else if (it.type === 'coins') addCoins(uid, it.item.amount, 'stars');
   else if (it.type === 'vip') p.vip = Math.max(Date.now(), p.vip || 0) + it.item.days * 86400000;
+  else if (it.type === 'season') seasonOf(p).premium = true;
   if (it.type === 'frame' || it.type === 'skin') award(uid, 'shopper');
   savePlayers();
 }
@@ -403,7 +405,7 @@ const ECON_ACTIONS = {
     const reward = Rewards.DAILY[Math.min(streak, 7) - 1] * (isVip(p) ? 2 : 1);
     p.daily = { claimed: day, streak };
     if (streak >= 7) award(me.uid, 'streak7');
-    addCoins(me.uid, reward, 'daily');
+    addCoins(me.uid, reward, 'daily'); addXp(me.uid, 20);
     return Object.assign({ ok: true, reward }, walletOf(me.uid));
   },
   claimQuest(me, m) {
@@ -411,7 +413,7 @@ const ECON_ACTIONS = {
     if (!q || !q.done) return { ok: false, msg: 'Vazifa hali bajarilmagan' };
     if (q.claimed) return { ok: false, msg: 'Mukofot olingan' };
     q.claimed = true;
-    addCoins(me.uid, QUEST_POOL.find(x => x.id === q.id).reward, 'quest');
+    addCoins(me.uid, QUEST_POOL.find(x => x.id === q.id).reward, 'quest'); addXp(me.uid, 50);
     return Object.assign({ ok: true }, walletOf(me.uid));
   },
   buy(me, m) { // spend coins on a shop item
@@ -438,6 +440,7 @@ const ECON_ACTIONS = {
   botresult(me, m) {
     const p = playerRec(me.uid, me.name, me.photo), kind = kindOf(m.kind), level = Number(m.level) || 0;
     progress(me.uid, 'play:' + kind); progress(me.uid, 'bot');
+    addXp(me.uid, m.result === 'win' ? 15 : 10);
     if (m.result === 'win') {
       progress(me.uid, 'botWin'); if (level === 2) { progress(me.uid, 'botWinHard'); award(me.uid, 'bothard'); }
       const day = dayKey(); p.botDay = p.botDay && p.botDay.day === day ? p.botDay : { day, n: 0 };
@@ -727,6 +730,92 @@ Object.assign(ECON_ACTIONS, {
     c.members = c.members.filter(u => u !== uid); delete players[uid].clan; savePlayers(); saveMeta();
     notify(uid, { t: 'toast', msg: `Siz "${c.name}" klanidan chiqarildingiz` });
     return { ok: true, clan: clanCard(c, true) };
+  },
+});
+
+// ---------- season (a calendar month, 30 levels) and the daily chess puzzle ----------
+const SEASON_LEVELS = 30, XP_PER_LEVEL = 150;
+const seasonId = () => dayKey().slice(0, 7);
+function seasonOf(p) {
+  if (!p.season || p.season.id !== seasonId()) p.season = { id: seasonId(), xp: 0, premium: false, free: [], prem: [] };
+  return p.season;
+}
+// what each level gives on the free and the premium track
+const seasonReward = (lv, prem) => prem
+  ? (lv === 30 ? { frame: 'mavsum', coins: 500 } : lv === 15 ? { vipDays: 3, coins: 150 } : { coins: lv % 5 === 0 ? 400 : 120 })
+  : { coins: lv % 5 === 0 ? 300 : 50 };
+function addXp(uid, n) {
+  const p = players[uid]; if (!p) return;
+  const s = seasonOf(p), before = Math.floor(s.xp / XP_PER_LEVEL);
+  s.xp += n;
+  const after = Math.floor(s.xp / XP_PER_LEVEL);
+  if (after > before && before < SEASON_LEVELS) notify(uid, { t: 'toast', msg: `🏅 Mavsum: ${Math.min(after, SEASON_LEVELS)}-daraja! Mukofotni oling` });
+  savePlayers();
+}
+function seasonView(uid) {
+  const p = playerRec(uid), s = seasonOf(p), lvl = Math.min(SEASON_LEVELS, Math.floor(s.xp / XP_PER_LEVEL));
+  const [y, mo] = s.id.split('-').map(Number), end = Date.UTC(y, mo, 1) - 5 * 3600000;
+  return { id: s.id, xp: s.xp, level: lvl, perLevel: XP_PER_LEVEL, max: SEASON_LEVELS, premium: s.premium, free: s.free, prem: s.prem, ends: end,
+    rewards: Array.from({ length: SEASON_LEVELS }, (_, i) => ({ lv: i + 1, free: seasonReward(i + 1, false), prem: seasonReward(i + 1, true) })) };
+}
+// daily puzzle: bots play until white or black has a mate in one; the same puzzle for everyone that day
+function makePuzzle() {
+  const C = GAMES.shaxmat;
+  for (let tries = 0; tries < 200; tries++) {
+    const g = C.newGame(0, 60); C.start(g, 0);
+    for (let ply = 0; ply < 160 && g.winner === null; ply++) {
+      const side = C.colorOf(g, g.turn);
+      if (ply >= 16) {
+        const mates = C.legalMoves(g, side).filter(m => { const h = JSON.parse(JSON.stringify(g)); h.clock = [1e9, 1e9]; C.apply(h, h.turn, { t: 'move', from: m.from, to: m.to, promo: m.promo }, 0); return h.reason === 'mate'; });
+        // a real puzzle: exactly one or two mating moves, and not a capture of the queen giving it away
+        if (mates.length >= 1 && mates.length <= 2) return { day: dayKey(), board: g.board.slice(), castle: Object.assign({}, g.castle), ep: g.ep, side, solutions: mates.map(m => [m.from, m.to]), moves: ply };
+      }
+      const a = C.botAction(g, g.turn, 0); if (!a) break; // the quick (easy) bot keeps generation fast
+      g.clock = [1e9, 1e9]; C.apply(g, g.turn, a, 0);
+    }
+  }
+  return null;
+}
+// made ahead of time (on start and soon after midnight), so nobody waits for it
+setTimeout(() => { try { puzzleToday(); } catch (e) {} }, 5000);
+setInterval(() => { try { puzzleToday(); } catch (e) {} }, 10 * 60 * 1000);
+function puzzleToday() {
+  if (!meta.puzzle || meta.puzzle.day !== dayKey()) { meta.puzzle = makePuzzle(); saveMeta(); }
+  return meta.puzzle;
+}
+Object.assign(ECON_ACTIONS, {
+  season(me) { return Object.assign({ ok: true }, seasonView(me.uid)); },
+  seasonClaim(me) { // collect every reward reached so far on both tracks
+    const p = playerRec(me.uid), s = seasonOf(p), lvl = Math.min(SEASON_LEVELS, Math.floor(s.xp / XP_PER_LEVEL));
+    let coins = 0, got = [];
+    for (let lv = 1; lv <= lvl; lv++) {
+      for (const prem of [false, true]) {
+        const list = prem ? s.prem : s.free;
+        if (list.includes(lv) || (prem && !s.premium)) continue;
+        list.push(lv);
+        const r = seasonReward(lv, prem);
+        if (r.coins) coins += r.coins;
+        if (r.vipDays) { p.vip = Math.max(Date.now(), p.vip || 0) + r.vipDays * 86400000; got.push(`VIP ${r.vipDays} kun`); }
+        if (r.frame) { grant(me.uid, { type: 'frame', id: r.frame }); got.push('Mavsum ramkasi'); }
+      }
+    }
+    if (coins) addCoins(me.uid, coins, 'season');
+    savePlayers();
+    return Object.assign({ ok: true, coins, got }, seasonView(me.uid));
+  },
+  puzzle(me) {
+    const z = puzzleToday(), p = playerRec(me.uid);
+    if (!z) return { ok: false, msg: "Bugungi masala tayyor emas" };
+    return { ok: true, day: z.day, board: z.board, castle: z.castle, ep: z.ep, side: z.side, solved: (p.puzzle || {}).day === z.day };
+  },
+  puzzleSolve(me, m) {
+    const z = puzzleToday(), p = playerRec(me.uid);
+    if (!z) return { ok: false };
+    if (!z.solutions.some(([f, t]) => f === (m.from | 0) && t === (m.to | 0))) return { ok: false, msg: "Bu mot emas — yana urinib ko'ring" };
+    if ((p.puzzle || {}).day === z.day) return { ok: true, already: true };
+    p.puzzle = { day: z.day, streak: (p.puzzle && p.puzzle.day === dayKey(Date.now() - 86400000) ? (p.puzzle.streak || 0) : 0) + 1 };
+    addCoins(me.uid, 100, 'puzzle'); addXp(me.uid, 50);
+    return { ok: true, coins: 100, streak: p.puzzle.streak };
   },
 });
 
@@ -1340,7 +1429,7 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings|spin|story|region|clanCreate|clanJoin|clanLeave|clanKick)$/);
+  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings|spin|story|region|clanCreate|clanJoin|clanLeave|clanKick|season|seasonClaim|puzzle|puzzleSolve)$/);
   if (act && req.method === 'POST') {
     readJson(req, act[1] === 'story' ? 4 * 1024 * 1024 : 20000).then(async (body) => {
       const me = whoIs(body);
