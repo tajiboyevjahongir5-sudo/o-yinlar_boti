@@ -555,10 +555,16 @@ function adminPulse() {
 
 // ---------- the advertising banner on the games page ----------
 const AD_FILE = path.join(DATA_DIR, 'ad-image');
+const AD_PENDING = path.join(DATA_DIR, 'ad-upload');
+const AD_TYPES = { 'image/png': 'image', 'image/jpeg': 'image', 'image/webp': 'image', 'image/gif': 'image',
+  'video/mp4': 'video', 'video/webm': 'video', 'video/quicktime': 'video' };
+let adPending = null; // the last uploaded file, waiting for "Saqlash"
 function publicAd() {
   const a = meta.ad;
   if (!a || !a.on || (!a.img && !a.title && !a.text)) return null;
-  return { v: a.v, title: a.title || '', text: a.text || '', button: a.button || '', link: a.link || '', img: a.img ? `ad.img?v=${a.v}` : null };
+  const media = a.img ? { type: AD_TYPES[a.imgType] || 'image', src: `ad.media?v=${a.v}` } : null;
+  return { v: a.v, title: a.title || '', text: a.text || '', button: a.button || '', link: a.link || '',
+    img: media && media.type === 'image' ? media.src : null, media };
 }
 function pushAd() {
   const msg = JSON.stringify({ t: 'ad', ad: publicAd() });
@@ -576,6 +582,10 @@ ADMIN.ad = function (m) {
     if (buf.length > 2.5 * 1024 * 1024) return { ok: false, msg: 'Rasm 2.5 MB dan katta' };
     fs.writeFileSync(AD_FILE, buf); a.img = true; a.imgType = mm[1]; changed = true;
   }
+  if (m.usePending) { // the file sent to /api/adupload becomes the banner's picture / video
+    if (!adPending || !fs.existsSync(AD_PENDING)) return { ok: false, msg: 'Fayl topilmadi, qayta yuklang' };
+    fs.renameSync(AD_PENDING, AD_FILE); a.img = true; a.imgType = adPending.type; adPending = null; changed = true;
+  }
   if (m.removeImage) { a.img = false; try { fs.unlinkSync(AD_FILE); } catch (e) {} changed = true; }
   const fields = { title: 80, text: 200, button: 30 };
   for (const [k, max] of Object.entries(fields)) if (k in m) { const v = String(m[k] || '').trim().slice(0, max); if (v !== a[k]) { a[k] = v; changed = true; } }
@@ -587,7 +597,7 @@ ADMIN.ad = function (m) {
   saveMeta(); pushAd();
   return { ok: true, ad: Object.assign({}, a) };
 };
-ADMIN.adGet = () => ({ ok: true, ad: meta.ad || null });
+ADMIN.adGet = () => ({ ok: true, ad: meta.ad ? Object.assign({}, meta.ad, { mediaType: meta.ad.img ? AD_TYPES[meta.ad.imgType] || 'image' : null }) : null });
 
 // end a room for everyone in it (players and spectators are sent back to the lobby)
 function closeRoom(r, msg) {
@@ -724,13 +734,40 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ bot: BOT_NAME, app: process.env.APP_NAME || '' }));
   }
   if (url.pathname === '/healthz') return sendJson(res, { ok: true }); // Render's health check
-  if (url.pathname === '/ad.img') { // the banner picture uploaded in the admin panel
+  if (url.pathname === '/ad.img' || url.pathname === '/ad.media') { // the banner picture or video from the admin panel
     if (!meta.ad || !meta.ad.img) { res.writeHead(404); return res.end(); }
-    return fs.readFile(AD_FILE, (err, data) => {
+    return fs.stat(AD_FILE, (err, st) => {
       if (err) { res.writeHead(404); return res.end(); }
-      res.writeHead(200, { 'Content-Type': meta.ad.imgType || 'image/jpeg', 'Cache-Control': 'public, max-age=86400' });
-      res.end(data);
+      const type = meta.ad.imgType || 'image/jpeg', range = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+      const head = { 'Content-Type': type, 'Cache-Control': 'public, max-age=86400', 'Accept-Ranges': 'bytes' };
+      if (range) { // partial content: video players ask for pieces
+        let start = range[1] === '' ? Math.max(0, st.size - Number(range[2])) : Number(range[1]);
+        let end = range[1] !== '' && range[2] !== '' ? Number(range[2]) : st.size - 1;
+        if (start >= st.size || start > end) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return res.end(); }
+        end = Math.min(end, st.size - 1);
+        res.writeHead(206, Object.assign(head, { 'Content-Range': `bytes ${start}-${end}/${st.size}`, 'Content-Length': end - start + 1 }));
+        return fs.createReadStream(AD_FILE, { start, end }).pipe(res);
+      }
+      res.writeHead(200, Object.assign(head, { 'Content-Length': st.size }));
+      fs.createReadStream(AD_FILE).pipe(res);
     });
+  }
+  if (url.pathname === '/api/adupload' && req.method === 'POST') { // raw file upload (image or video) for the banner, admin only
+    const me = whoIs({ initData: req.headers['x-init-data'] || '', uid: url.searchParams.get('uid') || '' });
+    const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    if (!me || !isAdmin(me.uid)) { req.resume(); return sendJson(res, { ok: false, msg: "Ruxsat yo'q" }); }
+    if (!AD_TYPES[type]) { req.resume(); return sendJson(res, { ok: false, msg: "Faqat rasm (PNG, JPG, WEBP, GIF) yoki video (MP4, WEBM, MOV)" }); }
+    const max = AD_TYPES[type] === 'video' ? 20 * 1024 * 1024 : 3 * 1024 * 1024;
+    const out = fs.createWriteStream(AD_PENDING);
+    let size = 0, failed = false;
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > max && !failed) { failed = true; out.destroy(); req.destroy(); sendJson(res, { ok: false, msg: `Fayl ${max / 1048576} MB dan katta` }); }
+    });
+    req.pipe(out);
+    out.on('finish', () => { if (!failed) { adPending = { type, size }; sendJson(res, { ok: true, kind: AD_TYPES[type], size }); } });
+    out.on('error', () => { if (!failed) { failed = true; sendJson(res, { ok: false, msg: 'Saqlab bo\'lmadi' }); } });
+    return;
   }
   if (url.pathname === '/api/adstat' && req.method === 'POST') { // banner seen / tapped
     readJson(req, 500).then((b) => {

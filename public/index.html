@@ -651,7 +651,9 @@
   .adban { position:relative; display:block; width:100%; border-radius:18px; overflow:hidden; cursor:pointer; text-align:left; color:#fff; padding:0;
     border:1.5px solid rgba(255,255,255,.18); background:linear-gradient(120deg, #1b2a6b, #3a1452); box-shadow:0 0 14px rgba(120,140,255,.35); animation:cardIn .4s ease-out; }
   .adban:active { transform:scale(.99); }
-  .adban img { display:block; width:100%; max-height:200px; object-fit:cover; }
+  .adban img, .adban video { display:block; width:100%; max-height:220px; object-fit:cover; background:#000; }
+  .adban .admute { position:absolute; top:8px; left:8px; width:32px; height:32px; border-radius:50%; border:0; background:rgba(0,0,0,.55); color:#fff;
+    display:grid; place-items:center; padding:0; } .adban .admute .i { width:16px; height:16px; margin:0 !important; }
   .adban .adtx { display:flex; align-items:center; gap:10px; padding:10px 12px; }
   .adban .adtx div { flex:1; min-width:0; } .adban .adtx b { display:block; font-size:15px; }
   .adban .adtx small { display:block; font-size:12.5px; color:#d8ddff; line-height:1.35; }
@@ -2307,8 +2309,19 @@
     if (adSeen !== a.v && !$('hub').classList.contains('hide')) { adSeen = a.v; fetch('api/adstat', { method: 'POST', body: JSON.stringify({ kind: 'view', v: a.v }) }).catch(() => {}); }
   }
   function adBanner(a, preview) {
-    const b = document.createElement('button'); b.className = 'adban' + (preview ? ' ad-prev' : '');
-    if (a.img) { const im = new Image(); im.alt = ''; im.src = a.img; b.appendChild(im); }
+    const b = document.createElement('div'); b.className = 'adban' + (preview ? ' ad-prev' : ''); b.setAttribute('role', 'button');
+    const media = a.media || (a.img ? { type: 'image', src: a.img } : null);
+    if (media && media.type === 'video') {
+      // plays muted and on a loop (phones only autoplay silent video); a corner button turns the sound on
+      const v = document.createElement('video');
+      Object.assign(v, { src: media.src, muted: true, loop: true, autoplay: true, playsInline: true, preload: 'auto' });
+      v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.setAttribute('muted', '');
+      b.appendChild(v);
+      v.play && v.play().catch(() => {});
+      const mb = document.createElement('button'); mb.className = 'admute'; mb.innerHTML = ic('mute'); mb.setAttribute('aria-label', 'Ovoz');
+      mb.onclick = (e) => { e.stopPropagation(); v.muted = !v.muted; if (!v.muted) v.play().catch(() => {}); mb.innerHTML = ic(v.muted ? 'mute' : 'volume'); };
+      b.appendChild(mb);
+    } else if (media) { const im = new Image(); im.alt = ''; im.src = media.src; b.appendChild(im); }
     if (a.title || a.text || a.button) {
       const tx = document.createElement('div'); tx.className = 'adtx';
       const t = document.createElement('div');
@@ -2336,7 +2349,7 @@
     box.innerHTML = '';
     const a = (d && d.ad) || { on: false };
     addText(box, 'div', '📣 Reklama banneri').className = 'sec';
-    addText(box, 'div', "O'yinlar sahifasida, ro'yxat tepasida ko'rinadi. Rasm tavsiya: 1280×400 (keng), 2.5 MB gacha. Rasm, matn yoki ikkalasi bo'lishi mumkin.").className = 'note';
+    addText(box, 'div', "O'yinlar sahifasida, ro'yxat tepasida ko'rinadi. Keng format tavsiya qilinadi (masalan 1280×400 yoki 16:9). Rasm/video, matn yoki ikkalasi bo'lishi mumkin.").className = 'note';
     const s2 = st && st.ad;
     if (s2) {
       const g = document.createElement('div'); g.className = 'adm-grid';
@@ -2345,18 +2358,38 @@
       box.appendChild(g);
     }
     const on = document.createElement('label'); on.className = 'chk'; on.innerHTML = `<input type="checkbox" ${a.on ? 'checked' : ''}> Bannerni ko'rsatish`; box.appendChild(on);
-    // picture
-    addText(box, 'div', 'Rasm').className = 'lbl2';
-    let image = null, removeImage = false;
-    const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/png,image/jpeg,image/webp,image/gif'; file.style.display = 'none';
-    const pick = bigBtn(a.img ? '{again} Rasmni almashtirish' : '{plus} Rasm yuklash', () => file.click());
-    const rm = bigBtn("{close} Rasmni olib tashlash", () => { removeImage = true; image = null; paint(); });
+    // picture or video: uploaded right away (with progress), applied on "Saqlash"
+    addText(box, 'div', 'Rasm yoki video').className = 'lbl2';
+    let uploaded = null, removeImage = false; // uploaded = { url, kind } — a local preview of the file on the server
+    const file = document.createElement('input'); file.type = 'file'; file.style.display = 'none';
+    file.accept = 'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime';
+    const pick = bigBtn(a.img ? '{again} Almashtirish' : '{plus} Rasm / video yuklash', () => file.click());
+    const rm = bigBtn("{close} Olib tashlash", () => { removeImage = true; uploaded = null; paint(); });
     const row = document.createElement('div'); row.className = 'btn-row'; row.append(pick, rm);
-    box.append(file, row);
+    const bar = document.createElement('div'); bar.className = 'prog-big'; bar.style.display = 'none'; bar.innerHTML = '<i style="width:0%"></i>';
+    const barTx = addText(document.createElement('div'), 'div', ''); barTx.className = 'note';
+    box.append(file, row, bar, barTx);
+    addText(box, 'div', "Rasm: PNG/JPG/WEBP/GIF, 3 MB gacha. Video: MP4/WEBM/MOV, 20 MB gacha — ovozsiz, takrorlanib o'ynaydi (qisqa, 5–15 soniyalik video eng yaxshisi).").className = 'note';
     file.onchange = () => {
       const f = file.files[0]; if (!f) return;
-      if (f.size > 2.5 * 1024 * 1024) return toast('{alert} Rasm 2.5 MB dan katta');
-      const rd = new FileReader(); rd.onload = () => { image = rd.result; removeImage = false; paint(); }; rd.readAsDataURL(f);
+      const isVideo = /^video\//.test(f.type), max = isVideo ? 20 : 3;
+      if (f.size > max * 1048576) return toast(`{alert} Fayl ${max} MB dan katta`);
+      const x = new XMLHttpRequest();
+      x.open('POST', 'api/adupload?uid=' + encodeURIComponent(uid));
+      x.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
+      x.setRequestHeader('X-Init-Data', tg ? tg.initData : '');
+      bar.style.display = ''; pick.disabled = true;
+      x.upload.onprogress = (e) => { if (e.lengthComputable) { const pc = Math.round(e.loaded / e.total * 100); bar.firstChild.style.width = pc + '%'; barTx.textContent = `Yuklanmoqda: ${pc}% (${(f.size / 1048576).toFixed(1)} MB)`; } };
+      x.onload = () => {
+        pick.disabled = false;
+        let r = null; try { r = JSON.parse(x.responseText); } catch (e) {}
+        if (!r || !r.ok) { bar.style.display = 'none'; barTx.textContent = ''; return toast('{alert} ' + ((r && r.msg) || 'Yuklab bo\'lmadi')); }
+        uploaded = { url: URL.createObjectURL(f), kind: r.kind }; removeImage = false;
+        barTx.textContent = `{check} Yuklandi. Endi "Saqlash"ni bosing.`.replace('{check} ', '✓ ');
+        paint();
+      };
+      x.onerror = () => { pick.disabled = false; toast("{offline} Yuklashda xato — internetni tekshiring"); };
+      x.send(f);
     };
     const inp = (ph, val, max) => { const i = document.createElement('input'); i.className = 'adm-in'; i.placeholder = ph; i.value = val || ''; i.maxLength = max; i.oninput = paint; box.appendChild(i); return i; };
     addText(box, 'div', 'Matn (ixtiyoriy)').className = 'lbl2';
@@ -2369,14 +2402,15 @@
     const prev = document.createElement('div'); box.appendChild(prev);
     function paint() {
       prev.innerHTML = '';
-      const img = removeImage ? null : image || (a.img ? `ad.img?v=${a.v}` : null);
-      if (!img && !title.value && !text.value) return addText(prev, 'div', "Rasm yoki matn qo'shing").className = 'note';
-      prev.appendChild(adBanner({ img, title: title.value, text: text.value, button: btn.value }, true));
+      const media = removeImage ? null : uploaded ? { type: uploaded.kind, src: uploaded.url }
+        : a.img ? { type: a.mediaType || 'image', src: `ad.media?v=${a.v}` } : null;
+      if (!media && !title.value && !text.value) return addText(prev, 'div', "Rasm, video yoki matn qo'shing").className = 'note';
+      prev.appendChild(adBanner({ media, title: title.value, text: text.value, button: btn.value }, true));
     }
     paint();
     const save = async (newCampaign) => {
       const body = { on: on.querySelector('input').checked, title: title.value, text: text.value, button: btn.value, link: link.value, newCampaign };
-      if (image) body.image = image; if (removeImage) body.removeImage = true;
+      if (uploaded) body.usePending = true; if (removeImage) body.removeImage = true;
       const x = await adminApi('ad', body);
       if (x && x.ok) { toast('{check} Saqlandi — hammada darhol yangilandi'); admAd(box); } else toast('{alert} ' + ((x && x.msg) || 'Xato'));
     };

@@ -96,7 +96,7 @@ boshqalar API'ni ham ishlata olmaydi).
 - **Xabarlar**: ilovada hammaga ko'rinadigan **e'lon** (o'yinlar ro'yxati tepasida, darhol) va **bot orqali hammaga
   xabar** (ilovani ochgan yoki botga /start bosganlarga; HTML; "O'ynash" tugmasi; avval "Menga sinov"; jarayon
   ko'rsatiladi, ~20 xabar/soniya).
-- **Reklama**: o'yinlar sahifasida banner — rasm (telefondan yuklanadi, 1280×400 tavsiya), sarlavha, matn, tugma va
+- **Reklama**: o'yinlar sahifasida banner — rasm (3 MB gacha) yoki video (MP4/WEBM/MOV, 20 MB gacha; ovozsiz takrorlanadi, 🔇 tugmasi bilan ovoz), telefondan foiz ko'rsatkichi bilan yuklanadi, sarlavha, matn, tugma va
   havola (https:// yoki tg://). Yoqish/o'chirish, oldindan ko'rish, ko'rishlar / bosishlar / CTR. Saqlash bilan
   hammada darhol yangilanadi. Banner bo'lmasa, joyini faqat admin ko'radi. Rasm: `data/ad-image`.
 - Ma'lumot: `data/meta.json` (kunlik o'yinlar, e'lon, bot foydalanuvchilari), `data/players.json` (blok, sanalar).
