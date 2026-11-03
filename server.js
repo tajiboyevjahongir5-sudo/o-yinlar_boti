@@ -111,6 +111,12 @@ function whoIs(m) {
 // other players never see a uid (it carries the Telegram id), only this short hash of it
 const pidOf = (uid) => crypto.createHash('sha256').update('pid:' + uid).digest('base64url').slice(0, 12);
 const pidIndex = new Map();
+// a private friend-invite code (only its owner sees it): whoever opens the link becomes a friend both ways
+const inviteOf = (uid) => 'fr' + crypto.createHash('sha256').update('inv:' + uid + (BOT_TOKEN || '')).digest('hex').slice(0, 12);
+function uidOfInvite(code) {
+  for (const u of Object.keys(players)) if (inviteOf(u) === code) return u;
+  return null;
+}
 function uidOfPid(pid) {
   if (!pidIndex.has(pid)) for (const u of Object.keys(players)) pidIndex.set(pidOf(u), u);
   return pidIndex.get(pid) || null;
@@ -235,6 +241,18 @@ const readJson = (req) => new Promise((res) => {
 const ACTIONS = {
   // add or remove a friend (by public id)
   friend(me, m) {
+    if (m.invite) { // opened a friend's invite link: both become friends
+      const uid = uidOfInvite(String(m.invite));
+      if (!uid) return { ok: false, msg: 'Havola eskirgan' };
+      if (uid === me.uid) return { ok: false, msg: "Bu o'zingizning havolangiz" };
+      const p = playerRec(me.uid, me.name, me.photo), o = playerRec(uid);
+      if (!p.friends.includes(uid)) p.friends.unshift(uid);
+      if (!o.friends.includes(me.uid)) o.friends.unshift(me.uid);
+      award(me.uid, 'friend'); award(uid, 'friend');
+      notify(uid, { t: 'toast', msg: `${me.name} do'stlaringiz ro'yxatiga qo'shildi` });
+      savePlayers();
+      return { ok: true, friend: true, name: o.name };
+    }
     const uid = uidOfPid(String(m.pid || ''));
     if (!uid || uid === me.uid || !players[uid]) return { ok: false, msg: "O'yinchi topilmadi" };
     const p = playerRec(me.uid, me.name, me.photo);
@@ -393,7 +411,7 @@ const server = http.createServer((req, res) => {
     const skins = {};
     for (const k of Object.keys(GAMES)) skins[k] = Rewards.SKINS[k].filter(x => Rewards.skinUnlocked(p, k, x.id)).map(x => x.id);
     const w = p.week && p.week.key === weekKey() ? p.week : { gain: {}, games: {} };
-    return sendJson(res, Object.assign({}, st, { rank: rank >= 0 ? rank + 1 : null, pid: pidOf(id || ''),
+    return sendJson(res, Object.assign({}, st, { rank: rank >= 0 ? rank + 1 : null, pid: pidOf(id || ''), invite: id ? inviteOf(id) : null,
       ach: p.ach || {}, equip: p.equip || { frame: null, skin: {} }, skins,
       frames: Rewards.FRAMES.filter(f => Rewards.frameUnlocked(p, f.id)).map(f => f.id),
       counters: p.counters || null, week: { gain: w.gain[kind] || 0, games: w.games[kind] || 0 }, champ: champOf(id),
@@ -403,6 +421,15 @@ const server = http.createServer((req, res) => {
     const uid = uidOfPid(String(url.searchParams.get('pid') || ''));
     if (!uid || !players[uid]) return sendJson(res, { ok: false });
     return sendJson(res, Object.assign({ ok: true }, cardOf(uid, url.searchParams.get('uid'))));
+  }
+  if (url.pathname === '/api/search') { // find players by name to add as friends
+    const me = url.searchParams.get('uid'), q = String(url.searchParams.get('q') || '').trim().replace(/^@/, '').toLowerCase();
+    if (q.length < 2) return sendJson(res, { list: [] });
+    const total = (p) => Object.values(p.stats || {}).reduce((n, st) => n + (st.games || 0), 0);
+    const list = Object.entries(players).filter(([u, p]) => u !== me && p.name && p.name.toLowerCase().includes(q))
+      .sort((a, b) => (b[1].name.toLowerCase().startsWith(q) - a[1].name.toLowerCase().startsWith(q)) || total(b[1]) - total(a[1]))
+      .slice(0, 15).map(([u]) => cardOf(u, me));
+    return sendJson(res, { list });
   }
   if (url.pathname === '/api/friends') {
     const p = players[url.searchParams.get('uid')];

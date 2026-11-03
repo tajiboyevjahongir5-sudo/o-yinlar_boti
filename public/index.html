@@ -581,6 +581,16 @@
   .gcard.g-shaxmat { --c:#2f7bff; } .gcard.g-shashka { --c:#ff2d46; } .gcard.g-tosiq { --c:#ffc531; } .gcard.g-xo { --c:#c084fc; }
   .hub-online { display:flex; align-items:center; gap:6px; margin-top:-8px; font-size:12.5px; font-weight:700; color:var(--mute); }
   .hub-online b { color:var(--green); }
+  .add-friend { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:16px; color:#fff;
+    font-weight:800; font-size:15px; border:2px solid var(--green); background:rgba(46,230,107,.13);
+    box-shadow:0 0 12px var(--green), inset 0 0 12px rgba(46,230,107,.2); }
+  .add-friend:active { transform:scale(.98); }
+  .search-in { width:100%; padding:12px 14px; border-radius:14px; border:2px solid var(--blue); background:#070b1f; color:#fff; font-size:15px;
+    outline:none; font-family:inherit; box-shadow:0 0 10px rgba(47,123,255,.4); user-select:text; -webkit-user-select:text; touch-action:auto; }
+  .sres { width:100%; display:flex; flex-direction:column; gap:8px; max-height:42vh; overflow-y:auto; touch-action:pan-y; }
+  .sres .frow { text-align:left; } .sres .frow button.done { border-color:#3a4270; background:transparent; box-shadow:none; color:var(--mute); }
+  .or-line { width:100%; display:flex; align-items:center; gap:10px; color:var(--mute); font-size:12px; font-weight:700; }
+  .or-line::before, .or-line::after { content:""; flex:1; height:1px; background:rgba(120,140,255,.3); }
   .hello .who3 b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   @media (max-width:360px) { .hello .who3 small { display:none; } .hello .who3 b { font-size:15px; } .hello { gap:8px; } }
 
@@ -1443,7 +1453,7 @@
   // my equipped frame / skins and what is unlocked (any kind returns all of it)
   async function loadMyInfo() {
     const d = await api('profile', kind);
-    if (d) myInfo = { pid: d.pid, equip: d.equip || { frame: null, skin: {} }, skins: d.skins || {}, frames: d.frames || [], ach: d.ach || {} };
+    if (d) myInfo = { pid: d.pid, invite: d.invite, equip: d.equip || { frame: null, skin: {} }, skins: d.skins || {}, frames: d.frames || [], ach: d.ach || {} };
     return d;
   }
   // after a rated game: did a new skin or frame open up?
@@ -1646,16 +1656,88 @@
     p.appendChild(bigBtn('Yopish', hideOverlay));
   }
 
+  // add a friend: send a personal link (opening it makes you friends both ways) or search by name
+  function showAddFriend() {
+    const p = openPanel('addfriend');
+    addText(p, 'h1', "{invite} Do'st qo'shish");
+    addText(p, 'p', "Havolani do'stingizga yuboring — u ochishi bilan ikkalangiz bir-biringizning ro'yxatingizda bo'lasiz.");
+    p.appendChild(bigBtn("{send} Do'stlik havolasini yuborish", shareFriendLink, 'pri'));
+    addText(p, 'div', 'yoki').className = 'or-line';
+    const inp = document.createElement('input');
+    Object.assign(inp, { className: 'search-in', placeholder: 'Ism yoki @username (kamida 2 harf)', autocomplete: 'off', spellcheck: false });
+    const res = document.createElement('div'); res.className = 'sres';
+    p.append(inp, res, bigBtn('Yopish', hideOverlay));
+    let t = null, ver = 0;
+    inp.oninput = () => {
+      clearTimeout(t);
+      const q = inp.value.trim();
+      if (q.replace(/^@/, '').length < 2) { res.innerHTML = ''; return; }
+      t = setTimeout(async () => {
+        const v = ++ver, d = await api('search', null, '&q=' + encodeURIComponent(q));
+        if (v !== ver || $('overlay').dataset.kind !== 'addfriend') return;
+        res.innerHTML = '';
+        if (!d || !d.list.length) return addText(res, 'div', "Hech kim topilmadi. O'yinchi kamida bir marta ilovani ochgan bo'lishi kerak — yoki unga havola yuboring.").className = 'note';
+        for (const f of d.list) {
+          const row = document.createElement('div'); row.className = 'frow';
+          const av = document.createElement('div'); av.className = 'ini ' + frameCls(f.frame);
+          if (isPhoto(f.photo)) setAvatar(av, f.photo, initial(f.name)); else av.textContent = initial(f.name);
+          const who = document.createElement('div'); who.className = 'who2';
+          addText(who, 'b', f.name);
+          const best = Object.entries(f.elo).sort((a, b) => b[1].elo - a[1].elo)[0];
+          const sm = document.createElement('small'), stt = f.status.state;
+          sm.innerHTML = `<span class="st-dot ${stt}"></span>`;
+          sm.append(best ? `${SHORT_NAMES[best[0]]} ${best[1].elo} ELO` : stt === 'offline' ? 'Oflayn' : 'Onlayn');
+          who.appendChild(sm); who.onclick = () => showPlayer(f.pid);
+          const b = document.createElement('button');
+          const done = () => { b.className = 'done'; b.innerHTML = lbl('{check} Do\'st'); b.disabled = true; };
+          if (f.friend) done();
+          else {
+            b.innerHTML = lbl("{plus} Qo'shish");
+            b.onclick = async () => {
+              b.disabled = true;
+              const r = await postApi('friend', { pid: f.pid });
+              if (r && r.ok) { done(); Snd.play('notify'); haptic('success'); toast(`{check} ${f.name} do'stlarga qo'shildi`); loadFriends(); }
+              else { b.disabled = false; toast('{alert} ' + ((r && r.msg) || 'Xato')); }
+            };
+          }
+          row.append(av, who, b);
+          res.appendChild(row);
+        }
+      }, 300);
+    };
+    setTimeout(() => inp.focus(), 50);
+  }
+  async function shareFriendLink() {
+    haptic('light');
+    if (!myInfo.invite) await loadMyInfo();
+    if (!myInfo.invite) return toast("{offline} Serverga ulanib bo'lmadi");
+    const link = config.bot && config.app ? `https://t.me/${config.bot}/${config.app}?startapp=${myInfo.invite}`
+      : `${location.origin}${location.pathname}?friend=${myInfo.invite}`;
+    const text = `🤝 ${myName} sizni RAQIB o'yinlar markazida do'st bo'lishga taklif qilyapti! Havolani oching — Shaxmat, Shashka va boshqa o'yinlarda bellashamiz 🎮`;
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+    else if (navigator.share) navigator.share({ title: "RAQIB", text, url: link }).catch(() => {});
+    else { try { navigator.clipboard.writeText(text + '\n' + link); } catch (e) {} toast('{copy} Havola nusxalandi'); }
+  }
+  // opened someone's friend link
+  async function acceptFriendInvite(code) {
+    const r = await postApi('friend', { invite: code });
+    if (r && r.ok) { Snd.play('crown'); haptic('success'); toast(`{check} ${r.name} bilan do'st bo'ldingiz!`); showTabs('friends'); }
+    else if (r && r.msg) toast('{alert} ' + r.msg);
+  }
+
   async function loadFriends() {
     const box = $('friendsIn'), ver = loadFriends.v = (loadFriends.v || 0) + 1;
     if (!box.children.length) box.innerHTML = '<div class="note">Yuklanmoqda...</div>';
     const d = await api('friends');
     if ($('friends').classList.contains('hide') || ver !== loadFriends.v) return;
     box.innerHTML = '';
-    addText(box, 'div', "{users} Do'stlar").className = 'hub-title';
+    addText(box, 'div', "{users} Do'stlar" + ((d && d.friends && d.friends.length) ? ` · ${d.friends.length}` : '')).className = 'hub-title';
+    const add = document.createElement('button'); add.className = 'add-friend'; add.innerHTML = lbl("{invite} Do'st qo'shish");
+    add.onclick = () => { haptic('light'); showAddFriend(); };
+    box.appendChild(add);
     const list = (d && d.friends) || [];
     if (!list.length) {
-      addText(box, 'div', "Hali do'stlaringiz yo'q.\n\nO'yin tugagach natija oynasidagi \"Do'stlarga qo'shish\" tugmasini bosing yoki Reyting ro'yxatidan o'yinchini tanlang.").className = 'empty2';
+      addText(box, 'div', "Hali do'stlaringiz yo'q.\n\nYuqoridagi tugma orqali do'stingizni ismi bo'yicha toping yoki unga do'stlik havolasini yuboring. O'yin tugagach natija oynasidan ham qo'shsa bo'ladi.").className = 'empty2';
       box.lastChild.style.whiteSpace = 'pre-line';
     }
     for (const f of list) {
@@ -2153,7 +2235,7 @@
   // Telegram's Back button and the "Chiqish" button: game -> rooms -> games
   function goBack() {
     if (replay) return closeReplay();
-    if (['player', 'pick', 'tour', 'tcreate', 'challenge'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
+    if (['player', 'pick', 'tour', 'tcreate', 'challenge', 'addfriend'].includes($('overlay').dataset.kind)) { tourOpen = null; return hideOverlay(); }
     if (!$('rating').classList.contains('hide') || !$('profile').classList.contains('hide')) return showHub();
     if (!$('hub').classList.contains('hide')) return;
     if (!$('lobby').classList.contains('hide')) { if ($('overlay').dataset.kind) return hideOverlay(); return showHub(); }
@@ -2998,9 +3080,13 @@
   resize(); requestAnimationFrame(loop);
 
   // join a room straight from an invite (Telegram startapp param or ?room=)
-  const startRoom = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || new URLSearchParams(location.search).get('room');
+  let startRoom = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || new URLSearchParams(location.search).get('room');
+  // a friend link: startapp=fr<code> (or ?friend=fr<code> outside Telegram)
+  const friendCode = startRoom && /^fr[0-9a-f]{12}$/.test(startRoom) ? startRoom : new URLSearchParams(location.search).get('friend');
+  if (friendCode) startRoom = null;
   openPresence();
   loadMyInfo().then(() => setFrame($('hubAv'), myInfo.equip.frame));
+  if (friendCode && /^fr[0-9a-f]{12}$/.test(friendCode)) setTimeout(() => acceptFriendInvite(friendCode), 400);
   if (startRoom) { roomId = null; roomCode = null; joinCode = startRoom.toUpperCase().replace(/[^A-Z0-9]/g, ''); connect(); } else showHub();
 })();
 </script>
