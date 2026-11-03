@@ -235,6 +235,12 @@ bot tavsifini ham o'rnatadi. Tugma ilova manzilini `WEB_URL` dan yoki Railway'ni
 **Ma'lumotlar (muhim):** server `DATA_DIR`, yo'q bo'lsa Railway Volume'ning `RAILWAY_VOLUME_MOUNT_PATH` papkasini
 ishlatadi (Volume ulansa avtomatik). Server ishga tushganda logda `Ma'lumotlar papkasi: /data (N o'yinchi)` chiqadi.
 
+**Baza va zaxiralar:** o'yinchilar `DATA_DIR/raqib.db` (SQLite, Node 22.13+ ichidagi `node:sqlite`) da saqlanadi —
+faqat o'zgargan o'yinchilar yoziladi; birinchi ishga tushishda eski `players.json` avtomatik ko'chiriladi (Node eski
+bo'lsa JSON faylda qoladi). Har kuni 04:00 da `DATA_DIR/backups/` ga gzip zaxira (14 tasi saqlanadi) olinadi va
+adminlarga bot orqali fayl bo'lib keladi; Admin panel → Statistika → Zaxiralar: "Hozir zaxira olish" va "Tiklash".
+Deploy paytida (SIGTERM) hamma narsa diskka yozib olinadi.
+
 **Bepul tarif haqida:** 15 daqiqa hech kim kirmasa server "uxlaydi" va keyingi ochilishda ~1 daqiqa uyg'onadi.
 Bepul tarifda doimiy disk yo'q, shuning uchun ELO ma'lumotlari (`data/players.json`) har qayta ishga tushishda
 o'chadi. Reytingni saqlash uchun pullik tarif + disk kerak (`render.yaml` dagi izohga qarang).

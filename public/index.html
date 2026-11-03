@@ -2232,6 +2232,22 @@
     lg.innerHTML = Object.keys(GAME_NAMES).map(k => `<span><i style="background:${GAME_COL[k]}"></i>${SHORT_NAMES[k]}</span>`).join('');
     box.appendChild(lg);
     addText(box, 'div', "LIVE raqamlar darhol yangilanadi, qolganlari har 30 soniyada. Bot o'yinlari grafikda hisobga olinmaydi.").className = 'note';
+    // backups
+    const bk = await adminApi('backups');
+    if (!admAlive() || admTab !== 'stats') return;
+    addText(box, 'div', `💾 Zaxiralar · ${bk && bk.storage}`).className = 'sec';
+    addText(box, 'div', `Har kuni 04:00 da avtomatik (14 tasi saqlanadi) va sizga bot orqali fayl bo'lib keladi. Papka: ${bk && bk.dir}`).className = 'note';
+    box.appendChild(bigBtn('💾 Hozir zaxira olish', async () => { const x = await adminApi('backupNow'); toast(x && x.ok ? '{check} ' + x.name : '{alert} Xato'); admStats(box); }));
+    for (const f of (bk && bk.list) || []) {
+      const row = document.createElement('div'); row.className = 'adm-room';
+      const who = document.createElement('div'); who.className = 'who2'; addText(who, 'b', f.name); addText(who, 'small', `${(f.size / 1024).toFixed(1)} KB`);
+      const b = document.createElement('button'); b.textContent = 'Tiklash';
+      b.onclick = async () => {
+        if (!await ask(`"${f.name}" dan tiklansinmi? Hozirgi ma'lumotlar shu nusxa bilan almashtiriladi (oldin hozirgisining zaxirasi olinadi).`)) return;
+        const x = await adminApi('restore', { name: f.name }); toast(x && x.ok ? `{check} Tiklandi: ${x.players} o'yinchi` : '{alert} ' + ((x && x.msg) || 'Xato')); admStats(box);
+      };
+      row.append(who, b); box.appendChild(row);
+    }
     admTimer = setTimeout(() => { if (admAlive() && admTab === 'stats') admStats(box); }, 30000);
   }
 

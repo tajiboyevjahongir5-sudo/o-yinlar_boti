@@ -26,20 +26,51 @@ const BOT_NAME = String(process.env.BOT_USERNAME || '').trim().replace(/^@+/, ''
 const DATA_DIR = process.env.DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
 const PLAYERS_FILE = path.join(DATA_DIR, 'players.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
-let players = {};
-try { players = JSON.parse(fs.readFileSync(PLAYERS_FILE, 'utf8')); } catch (e) {}
+// Players live in SQLite (node:sqlite, one row per player, only changed rows are written); without it, in players.json.
+let players = {}, db = null;
+const rowCache = new Map(); // uid -> the JSON last written for that player
+try {
+  const _emit = process.emitWarning; process.emitWarning = () => {}; // node:sqlite prints an "experimental" warning
+  const { DatabaseSync } = require('node:sqlite');
+  process.emitWarning = _emit;
+  db = new DatabaseSync(path.join(DATA_DIR, 'raqib.db'));
+  db.exec('PRAGMA journal_mode = WAL; CREATE TABLE IF NOT EXISTS players (uid TEXT PRIMARY KEY, data TEXT NOT NULL)');
+  for (const r of db.prepare('SELECT uid, data FROM players').all()) { try { players[r.uid] = JSON.parse(r.data); rowCache.set(r.uid, r.data); } catch (e) {} }
+} catch (e) { db = null; console.log('SQLite ishlamadi, JSON faylga yoziladi:', e.message); }
+// first start with the database: bring in the old players.json once
+if (!Object.keys(players).length) {
+  try { players = JSON.parse(fs.readFileSync(PLAYERS_FILE, 'utf8')); } catch (e) {}
+  if (db && Object.keys(players).length) console.log(`players.json dan ${Object.keys(players).length} o'yinchi bazaga ko'chirildi`);
+}
 for (const p of Object.values(players)) if (!p.stats) {
   p.stats = { tosiq: { elo: p.elo, peak: p.peak, games: p.games, wins: p.wins, losses: p.losses, draws: 0, history: p.history || [] } };
   for (const k of ['elo', 'peak', 'games', 'wins', 'losses', 'history']) delete p[k];
 }
 let saveTimer = null;
+function flushPlayers() {
+  if (db) {
+    const up = db.prepare('INSERT INTO players (uid, data) VALUES (?, ?) ON CONFLICT(uid) DO UPDATE SET data = excluded.data');
+    const del = db.prepare('DELETE FROM players WHERE uid = ?');
+    db.exec('BEGIN');
+    try {
+      for (const [uid, p] of Object.entries(players)) {
+        const j = JSON.stringify(p);
+        if (rowCache.get(uid) !== j) { up.run(uid, j); rowCache.set(uid, j); }
+      }
+      for (const uid of rowCache.keys()) if (!players[uid]) { del.run(uid); rowCache.delete(uid); }
+      db.exec('COMMIT');
+    } catch (e) { db.exec('ROLLBACK'); console.log('Bazaga yozishda xato:', e.message); }
+    return;
+  }
+  const tmp = PLAYERS_FILE + '.tmp';
+  fs.writeFile(tmp, JSON.stringify(players), (err) => { if (!err) fs.rename(tmp, PLAYERS_FILE, () => {}); });
+}
 function savePlayers() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    const tmp = PLAYERS_FILE + '.tmp';
-    fs.writeFile(tmp, JSON.stringify(players), (err) => { if (!err) fs.rename(tmp, PLAYERS_FILE, () => {}); });
-  }, 500);
+  saveTimer = setTimeout(flushPlayers, 800);
 }
+// write everything before the process stops (deploys send SIGTERM)
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { try { clearTimeout(saveTimer); flushPlayers(); fs.writeFileSync(META_FILE, JSON.stringify(meta)); } catch (e) {} process.exit(0); });
 const START_ELO = 1000, K = 32;
 // only Telegram's own avatar URLs are shown to other players
 const cleanPhoto = (u) => (typeof u === 'string' && /^https:\/\/t\.me\/i\/userpic\/[\w/.-]+$/.test(u) ? u : null);
@@ -599,6 +630,31 @@ setInterval(() => {
 
 Object.assign(ACTIONS, ECON_ACTIONS);
 
+// ---------- daily backup: a gzip snapshot of players + meta in DATA_DIR/backups (14 kept), also sent to the admins ----------
+const zlib = require('zlib');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+function makeBackup(reason) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  const name = `raqib-${dayKey()}-${new Date(Date.now() + 5 * 3600000).toISOString().slice(11, 16).replace(':', '')}.json.gz`;
+  const buf = zlib.gzipSync(JSON.stringify({ at: Date.now(), players, meta }));
+  fs.writeFileSync(path.join(BACKUP_DIR, name), buf);
+  const all = fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.json.gz')).sort();
+  while (all.length > 14) fs.unlinkSync(path.join(BACKUP_DIR, all.shift()));
+  if (BOT_TOKEN) for (const id of String(process.env.ADMIN_ID || '').split(/[\s,]+/).filter(Boolean)) {
+    const fd = new FormData();
+    fd.append('chat_id', id);
+    fd.append('caption', `💾 Zaxira nusxa (${reason}): ${Object.keys(players).length} o'yinchi. Tiklash: Admin panel → Statistika → Zaxiralar.`);
+    fd.append('document', new Blob([buf], { type: 'application/gzip' }), name);
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd }).catch(() => {});
+  }
+  return name;
+}
+// once a day at 04:00 Tashkent (and never twice the same day)
+setInterval(() => {
+  const hour = new Date(Date.now() + 5 * 3600000).getUTCHours();
+  if (hour === 4 && meta.backupDay !== dayKey()) { meta.backupDay = dayKey(); saveMeta(); try { makeBackup('kunlik'); } catch (e) { console.log('Zaxira xatosi:', e.message); } }
+}, 10 * 60 * 1000);
+
 // ---------- admin panel (only for ADMIN_ID; with BOT_TOKEN the Telegram signature must check out) ----------
 const isAdmin = (uid) => typeof uid === 'string' && uid.startsWith('tg') && String(process.env.ADMIN_ID || '').split(/[\s,]+/).includes(uid.slice(2));
 function bannedMsg(uid) {
@@ -869,6 +925,26 @@ ADMIN.resolveReport = function (m) {
   return { ok: true };
 };
 
+ADMIN.backups = function () {
+  let list = [];
+  try { list = fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.json.gz')).sort().reverse().map(f => ({ name: f, size: fs.statSync(path.join(BACKUP_DIR, f)).size })); } catch (e) {}
+  return { ok: true, list, storage: db ? 'SQLite' : 'JSON', dir: DATA_DIR };
+};
+ADMIN.backupNow = function () { return { ok: true, name: makeBackup("qo'lda") }; };
+ADMIN.restore = function (m) { // replaces everything with a snapshot (a fresh backup of the current state is made first)
+  const name = path.basename(String(m.name || ''));
+  const file = path.join(BACKUP_DIR, name);
+  if (!name.endsWith('.json.gz') || !fs.existsSync(file)) return { ok: false, msg: 'Zaxira topilmadi' };
+  const snap = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)));
+  if (!snap.players) return { ok: false, msg: 'Fayl buzilgan' };
+  makeBackup('tiklashdan oldin');
+  for (const k of Object.keys(players)) delete players[k];
+  Object.assign(players, snap.players);
+  pidIndex.clear();
+  Object.assign(meta, snap.meta || {});
+  flushPlayers(); saveMeta();
+  return { ok: true, players: Object.keys(players).length };
+};
 ADMIN.giveCoins = function (m) { // add (or take, with a minus) coins
   const uid = uidOfPid(String(m.pid || '')), n = Math.round(Number(m.amount));
   if (!uid || !Number.isFinite(n) || !n || Math.abs(n) > 1000000) return { ok: false, msg: "Miqdor noto'g'ri" };
@@ -1857,5 +1933,5 @@ async function runBot() {
 
 server.listen(PORT, () => {
   rollWeek();
-  console.log(`Ma'lumotlar papkasi: ${DATA_DIR} (${Object.keys(players).length} o'yinchi)` + (DATA_DIR.startsWith(__dirname) ? " — DIQQAT: doimiy disk emas, deployda o'chadi!" : ''));
+  console.log(`Ma'lumotlar papkasi: ${DATA_DIR} (${Object.keys(players).length} o'yinchi, ${db ? 'SQLite' : 'JSON'})` + (DATA_DIR.startsWith(__dirname) ? " — DIQQAT: doimiy disk emas, deployda o'chadi!" : ''));
   console.log(`O'yinlar serveri: http://localhost:${PORT}`); runBot(); });
