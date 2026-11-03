@@ -9,29 +9,29 @@
       { id: 'ritsar', name: 'Ritsar', elo: 1200, desc: "Kumush dubulg'a" },
       { id: 'qirol', name: 'Qirol', elo: 1300, desc: 'Oltin toj va plash' },
       { id: 'kosmik', name: 'Kosmik', elo: 1500, desc: 'Skafandr va yulduzlar' },
-      { id: 'pirat', name: 'Pirat', price: 600, desc: "Bandana va ko'z bog'ichi" },
+      { id: 'pirat', name: 'Pirat', price: 1500, desc: "Bandana va ko'z bog'ichi" },
     ],
     shaxmat: [
       { id: 'oltin', name: 'Oltin', elo: 1100, desc: 'Oltin donalar' },
       { id: 'neon', name: 'Neon', elo: 1200, desc: 'Yonib turgan konturlar' },
       { id: 'kristall', name: 'Kristall', elo: 1300, desc: 'Muzdek shaffof donalar' },
       { id: 'olov', name: 'Olov', elo: 1500, desc: 'Alangali donalar' },
-      { id: 'yogoch', name: "Yog'och", price: 600, desc: "Klassik yog'och donalar" },
-      { id: 'qirollik', name: 'Qirollik', stars: 100, desc: 'Marvarid va oltin' },
+      { id: 'yogoch', name: "Yog'och", price: 2000, desc: "Klassik yog'och donalar" },
+      { id: 'qirollik', name: 'Qirollik', stars: 300, desc: 'Marvarid va oltin' },
     ],
     shashka: [
       { id: 'oltin', name: 'Oltin', elo: 1100, desc: 'Oltin tangalar' },
       { id: 'neon', name: 'Neon', elo: 1200, desc: 'Yonib turgan halqalar' },
       { id: 'olov', name: 'Olov', elo: 1300, desc: 'Alangali donalar' },
       { id: 'olmos', name: 'Olmos', elo: 1500, desc: 'Yaltiroq olmos donalar' },
-      { id: 'yogoch', name: "Yog'och", price: 500, desc: "Klassik yog'och donalar" },
+      { id: 'yogoch', name: "Yog'och", price: 1500, desc: "Klassik yog'och donalar" },
     ],
     xo: [
       { id: 'oltin', name: 'Oltin', elo: 1100, desc: 'Oltin belgilar' },
       { id: 'kamalak', name: 'Kamalak', elo: 1200, desc: "Kamalak rangli belgilar" },
       { id: 'olov', name: 'Olov', elo: 1300, desc: 'Alangali belgilar' },
       { id: 'kosmik', name: 'Kosmik', elo: 1500, desc: 'Yulduzli belgilar' },
-      { id: 'muz', name: 'Muz', price: 400, desc: 'Muzdek belgilar' },
+      { id: 'muz', name: 'Muz', price: 1500, desc: 'Muzdek belgilar' },
     ],
     nardi: [], domino: [], c4: [], dengiz: [], dots: [],
   };
@@ -42,10 +42,46 @@
     { id: 'olmos', name: 'Olmos', elo: 1500, desc: "Istalgan o'yinda 1500 ELO" },
     { id: 'hafta', name: 'Hafta qiroli', special: 'weekly', desc: "Haftalik reytingda 1-o'rin" },
     { id: 'chempion', name: 'Chempion', special: 'tour', desc: "Turnirda g'alaba" },
-    { id: 'neon', name: 'Neon', price: 500, desc: "Rang o'zgartiruvchi neon" },
-    { id: 'olovli', name: 'Olovli', price: 800, desc: 'Alangali halqa' },
-    { id: 'afsona', name: 'Afsona', stars: 150, desc: 'Aylanuvchi kamalak halqa' },
+    { id: 'neon', name: 'Neon', price: 2500, desc: "Rang o'zgartiruvchi neon" },
+    { id: 'olovli', name: 'Olovli', price: 4000, desc: 'Alangali halqa' },
+    { id: 'afsona', name: 'Afsona', stars: 300, desc: 'Aylanuvchi kamalak halqa' },
   ];
+  // ---------- shop skins: 10+ per game ----------
+  // To'siq Jangi: characters (drawn by hero.js), each one different
+  SKINS.tosiq.push(
+    { id: 'kovboy', name: 'Kovboy', price: 2000, desc: 'Shlyapa va bo\'yin ro\'mol' },
+    { id: 'oshpaz', name: 'Oshpaz', price: 2000, desc: 'Baland oq qalpoq va mo\'ylov' },
+    { id: 'mushuk', name: 'Mushuk', price: 2500, desc: 'Quloqlar va mo\'ylovlar' },
+    { id: 'dj', name: 'DJ', price: 3000, desc: 'Quloqchin va qora ko\'zoynak' },
+    { id: 'viking', name: 'Viking', price: 3500, desc: "Shoxli dubulg'a va soqol" },
+    { id: 'sehrgar', name: 'Sehrgar', price: 4000, desc: "Yulduzli qalpoq va oq soqol" },
+    { id: 'qorbobo', name: 'Qorbobo', price: 4500, desc: "Qizil qalpoq va momiq soqol" },
+    { id: 'zombi', name: 'Zombi', price: 5000, desc: 'Yashil teri va choklar' },
+    { id: 'farishta', name: 'Farishta', stars: 200, desc: 'Nur halqa va qanotlar' },
+    { id: 'super', name: 'Superqahramon', stars: 350, desc: 'Niqob, plash va belgi' },
+  );
+  // the other games: ten gem-coloured sets (each game draws them its own way)
+  const GEMS = [
+    { id: 'zumrad', name: 'Zumrad', pal: ['#7dffb0', '#0f8a4a'], price: 1500 },
+    { id: 'yoqut', name: 'Yoqut', pal: ['#ff9aa8', '#a3112a'], price: 1500 },
+    { id: 'safir', name: 'Safir', pal: ['#9cc8ff', '#123f9e'], price: 2000 },
+    { id: 'ametist', name: 'Ametist', pal: ['#e0b0ff', '#5b1f8f'], price: 2500 },
+    { id: 'bronza', name: 'Bronza', pal: ['#ffd0a0', '#8a4a1a'], price: 3000 },
+    { id: 'grafit', name: 'Grafit', pal: ['#c8ccd6', '#2a2e38'], price: 3500 },
+    { id: 'shokolad', name: 'Shokolad', pal: ['#e0b48a', '#4a2814'], price: 4000 },
+    { id: 'flamingo', name: 'Flamingo', pal: ['#ffc0e0', '#d6337a'], price: 5000 },
+    { id: 'okean', name: 'Okean', pal: ['#a0fff4', '#0a6f7a'], stars: 150 },
+    { id: 'marvarid', name: 'Marvarid', pal: ['#ffffff', '#b8b0dc'], stars: 250 },
+  ];
+  const WHAT = { shaxmat: 'donalar', shashka: 'donalar', xo: 'belgilar', nardi: 'toshlar', domino: 'toshlar', c4: 'toshlar', dengiz: 'kemalar' };
+  for (const k of Object.keys(WHAT)) for (const gm of GEMS) SKINS[k].push(Object.assign({ desc: `${gm.name} ${WHAT[k]}` }, gm));
+  // Nuqtalar: the mark drawn in your boxes
+  [['yulduz', 'Yulduz', '★', '#ffd34d', 1500], ['yurak', 'Yurak', '♥', '#ff4d6d', 1500], ['olmos', 'Olmos', '♦', '#7fe9ff', 2000], ['quyosh', 'Quyosh', '☀', '#ffb020', 2500],
+   ['chaqmoq', 'Chaqmoq', 'ϟ', '#ffe14d', 3000], ['gul', 'Gul', '✿', '#ff8ad8', 3500], ['beda', 'Beda', '☘', '#5cff8a', 4000], ['toj', 'Toj', '♛', '#ffc531', 5000],
+   ['langar', 'Langar', '⚓', '#4dc3ff', null, 150], ['kamalak', 'Kamalak', '◆', 'rainbow', null, 250]]
+    .forEach(([id, name, sym, color, price, stars]) => SKINS.dots.push({ id, name, sym, color, price: price || undefined, stars: stars || undefined, desc: `Kataklarda ${sym}` }));
+  const skinDef = (kind, id) => (SKINS[kind] || []).find(x => x.id === id) || null;
+
   // Telegram Stars packs: coins and VIP
   const STARS_ITEMS = [
     { id: 'coins500', type: 'coins', amount: 500, stars: 25, name: '500 tanga' },
@@ -103,7 +139,7 @@
     return s ? { item: s, need: s.elo - peak } : null;
   }
 
-  const api = { SKINS, FRAMES, ACHIEVEMENTS, STARS_ITEMS, DAILY, frameUnlocked, skinUnlocked, nextSkin, bestPeak };
+  const api = { SKINS, FRAMES, ACHIEVEMENTS, STARS_ITEMS, DAILY, skinDef, frameUnlocked, skinUnlocked, nextSkin, bestPeak };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else window.Rewards = api;
 })();

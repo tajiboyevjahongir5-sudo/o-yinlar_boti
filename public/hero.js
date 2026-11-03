@@ -76,6 +76,21 @@
     if (side <= 0) arm(bw / 2 - S * 0.02, aR);
 
     const skin = o.kind === 'bot' ? null : o.skin;
+    if (skin === 'farishta') { // white feathered wings behind the body
+      const flap = Math.sin(t / 220) * 0.15;
+      for (const sd of [-1, 1]) {
+        ctx.save(); ctx.translate(sd * bw * 0.35, bTop + bh * 0.45); ctx.rotate(sd * (0.35 + flap)); ctx.fillStyle = '#f4f6ff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(sd * S * 0.42, -S * 0.32, sd * S * 0.5, -S * 0.05);
+        ctx.quadraticCurveTo(sd * S * 0.36, S * 0.02, sd * S * 0.4, S * 0.1); ctx.quadraticCurveTo(sd * S * 0.2, S * 0.12, 0, S * 0.08); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
+    if (skin === 'super') { // golden cape fluttering behind
+      const fl = Math.sin(t / 200) * S * 0.05;
+      ctx.fillStyle = '#ffb300';
+      ctx.beginPath(); ctx.moveTo(bx + bw * 0.15, bTop + bh * 0.28); ctx.lineTo(bx + bw * 0.85, bTop + bh * 0.28);
+      ctx.lineTo(bx + bw + S * 0.12 + fl, -legH * 0.3); ctx.lineTo(bx - S * 0.12 - fl, -legH * 0.3); ctx.closePath(); ctx.fill();
+    }
     if (skin === 'qirol') { // red cape behind the body
       const fl = Math.sin(t / 260) * S * 0.03;
       ctx.fillStyle = '#c4122f';
@@ -91,6 +106,14 @@
     g.addColorStop(0, light); g.addColorStop(0.35, c); g.addColorStop(1, dark);
     ctx.fillStyle = g; rr(ctx, bx, bTop, bw, bh, bw * 0.48); ctx.fill();
     ctx.restore();
+    if (skin === 'zombi') { // greenish skin with patches and stitches
+      ctx.save(); ctx.fillStyle = 'rgba(90,200,90,.5)'; rr(ctx, bx, bTop, bw, bh, bw * 0.48); ctx.fill();
+      ctx.fillStyle = 'rgba(40,90,40,.45)'; ctx.beginPath(); ctx.ellipse(bx + bw * 0.72, bTop + bh * 0.7, bw * 0.12, bh * 0.08, 0.4, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#2b3a2b'; ctx.lineWidth = Math.max(1, S * 0.015);
+      ctx.beginPath(); ctx.moveTo(bx + bw * 0.2, bTop + bh * 0.82); ctx.lineTo(bx + bw * 0.45, bTop + bh * 0.76); ctx.stroke();
+      for (let k = 0; k < 4; k++) { const x = bx + bw * (0.24 + k * 0.06), y = bTop + bh * (0.81 - k * 0.012); ctx.beginPath(); ctx.moveTo(x, y - S * 0.02); ctx.lineTo(x, y + S * 0.02); ctx.stroke(); }
+      ctx.restore();
+    }
     // rim light
     ctx.fillStyle = 'rgba(255,255,255,.28)';
     ctx.beginPath(); ctx.ellipse(bx + bw * 0.3, bTop + bh * 0.2, bw * 0.13, bh * 0.08, -0.6, 0, 7); ctx.fill();
@@ -137,9 +160,82 @@
       } else { // visor
         ctx.fillStyle = '#0c1430'; rr(ctx, fx - bw * 0.36, faceY - bh * 0.17, bw * 0.72, bh * 0.32, bh * 0.13); ctx.fill();
       }
+      if (skin === 'super') { ctx.fillStyle = '#1b1f3a'; rr(ctx, fx - bw * 0.34, faceY - bh * 0.1, bw * 0.68, bh * 0.2, bh * 0.1); ctx.fill(); }
       drawFace(ctx, fx, faceY, S, o, bw, bh);
+      if (skin === 'super') { // chest emblem
+        ctx.save(); ctx.fillStyle = '#ffb300'; ctx.translate(fx, bTop + bh * 0.78); ctx.beginPath();
+        ctx.moveTo(0, -S * 0.07); ctx.lineTo(S * 0.07, 0); ctx.lineTo(0, S * 0.07); ctx.lineTo(-S * 0.07, 0); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#c4122f'; ctx.font = `900 ${S * 0.08}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('★', 0, S * 0.005); ctx.restore();
+      }
+      if (skin === 'oshpaz') { ctx.fillStyle = '#2b1d14'; for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(fx + sd * bw * 0.1, faceY + bh * 0.16, bw * 0.11, bh * 0.035, sd * 0.25, 0, 7); ctx.fill(); } }
+      if (skin === 'mushuk') { // whiskers and a pink nose
+        ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = Math.max(1, S * 0.012);
+        for (const sd of [-1, 1]) for (const k of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(fx + sd * bw * 0.16, faceY + bh * 0.16); ctx.lineTo(fx + sd * bw * 0.48, faceY + bh * (0.13 + k * 0.05)); ctx.stroke(); }
+        ctx.fillStyle = '#ff8ab0'; ctx.beginPath(); ctx.moveTo(fx - S * 0.025, faceY + bh * 0.1); ctx.lineTo(fx + S * 0.025, faceY + bh * 0.1); ctx.lineTo(fx, faceY + bh * 0.15); ctx.fill();
+      }
+      if (skin === 'dj') { // dark sunglasses over the eyes
+        ctx.fillStyle = '#0d0f1a'; for (const sd of [-1, 1]) { rr(ctx, fx + sd * bw * 0.17 - bw * 0.15, faceY - bh * 0.08, bw * 0.3, bh * 0.16, bh * 0.05); ctx.fill(); }
+        ctx.fillRect(fx - bw * 0.05, faceY - bh * 0.03, bw * 0.1, bh * 0.03);
+        ctx.fillStyle = 'rgba(255,255,255,.35)'; for (const sd of [-1, 1]) ctx.fillRect(fx + sd * bw * 0.17 - bw * 0.1, faceY - bh * 0.06, bw * 0.06, bh * 0.03);
+      }
+      if (skin === 'viking' || skin === 'sehrgar' || skin === 'qorbobo') { // beards
+        const col2 = skin === 'viking' ? '#e07a2b' : '#f4f6ff';
+        ctx.fillStyle = col2; ctx.beginPath(); ctx.moveTo(fx - bw * 0.34, faceY + bh * 0.12);
+        ctx.quadraticCurveTo(fx, faceY + bh * (skin === 'sehrgar' ? 0.75 : 0.55), fx + bw * 0.34, faceY + bh * 0.12);
+        ctx.quadraticCurveTo(fx, faceY + bh * 0.3, fx - bw * 0.34, faceY + bh * 0.12); ctx.fill();
+        if (skin === 'viking') { ctx.strokeStyle = '#a84f12'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(fx, faceY + bh * 0.25); ctx.lineTo(fx, faceY + bh * 0.45); ctx.stroke(); }
+      }
     }
 
+    if (skin === 'kovboy') { // brown hat and a red neck scarf
+      ctx.fillStyle = '#7a4a22'; ctx.beginPath(); ctx.ellipse(0, bTop + bh * 0.06, bw * 0.68, bh * 0.08, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#8f5a2b'; rr(ctx, -bw * 0.32, bTop - bh * 0.24, bw * 0.64, bh * 0.32, bw * 0.16); ctx.fill();
+      ctx.fillStyle = '#3a2210'; ctx.fillRect(-bw * 0.32, bTop - bh * 0.02, bw * 0.64, bh * 0.06);
+      if (!back) { ctx.fillStyle = '#d7263d'; ctx.beginPath(); ctx.moveTo(-bw * 0.3, bTop + bh * 0.66); ctx.lineTo(bw * 0.3, bTop + bh * 0.66); ctx.lineTo(0, bTop + bh * 0.86); ctx.fill(); }
+    }
+    if (skin === 'oshpaz') { // tall puffy chef's hat
+      ctx.fillStyle = '#ffffff'; ctx.shadowColor = 'rgba(0,0,0,.3)';
+      for (const [dx, dy, r] of [[-0.22, -0.2, 0.2], [0.22, -0.2, 0.2], [0, -0.32, 0.24]]) { ctx.beginPath(); ctx.arc(bw * dx, bTop + bh * dy, bw * r, 0, 7); ctx.fill(); }
+      rr(ctx, -bw * 0.34, bTop - bh * 0.18, bw * 0.68, bh * 0.26, bw * 0.06); ctx.fill();
+      ctx.strokeStyle = '#d9dde8'; ctx.lineWidth = 1; ctx.strokeRect(-bw * 0.34, bTop + bh * 0.0, bw * 0.68, bh * 0.08);
+    }
+    if (skin === 'mushuk') { // ears
+      for (const sd of [-1, 1]) {
+        ctx.fillStyle = shade(c, -0.15); ctx.beginPath(); ctx.moveTo(sd * bw * 0.1, bTop + bh * 0.06); ctx.lineTo(sd * bw * 0.42, bTop - bh * 0.22); ctx.lineTo(sd * bw * 0.44, bTop + bh * 0.16); ctx.fill();
+        ctx.fillStyle = '#ffb3cc'; ctx.beginPath(); ctx.moveTo(sd * bw * 0.2, bTop + bh * 0.06); ctx.lineTo(sd * bw * 0.39, bTop - bh * 0.12); ctx.lineTo(sd * bw * 0.39, bTop + bh * 0.1); ctx.fill();
+      }
+    }
+    if (skin === 'dj') { // headphones
+      ctx.strokeStyle = '#1b1f33'; ctx.lineWidth = Math.max(2, S * 0.05);
+      ctx.beginPath(); ctx.arc(0, bTop + bh * 0.3, bw * 0.5, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+      for (const sd of [-1, 1]) { ctx.fillStyle = '#1b1f33'; rr(ctx, sd * bw * 0.5 - bw * 0.09, bTop + bh * 0.22, bw * 0.18, bh * 0.28, bw * 0.08); ctx.fill();
+        ctx.fillStyle = '#ff2d9a'; ctx.beginPath(); ctx.arc(sd * bw * 0.5, bTop + bh * 0.36, bw * 0.045, 0, 7); ctx.fill(); }
+    }
+    if (skin === 'viking') { // helmet with horns
+      for (const sd of [-1, 1]) { ctx.fillStyle = '#f4ecd8'; ctx.beginPath(); ctx.moveTo(sd * bw * 0.36, bTop + bh * 0.12);
+        ctx.quadraticCurveTo(sd * bw * 0.7, bTop + bh * 0.05, sd * bw * 0.62, bTop - bh * 0.3); ctx.quadraticCurveTo(sd * bw * 0.52, bTop - bh * 0.02, sd * bw * 0.26, bTop + bh * 0.2); ctx.fill(); }
+      const hg = ctx.createLinearGradient(-bw * 0.4, 0, bw * 0.4, 0); hg.addColorStop(0, '#7c859c'); hg.addColorStop(0.5, '#d9dee9'); hg.addColorStop(1, '#6b7489');
+      ctx.fillStyle = hg; ctx.beginPath(); ctx.moveTo(bx, bTop + bh * 0.28); ctx.bezierCurveTo(bx, bTop - bh * 0.12, bx + bw, bTop - bh * 0.12, bx + bw, bTop + bh * 0.28); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8a6a2a'; ctx.fillRect(bx, bTop + bh * 0.22, bw, bh * 0.06);
+    }
+    if (skin === 'sehrgar') { // tall starry hat with a bent tip
+      const bend = Math.sin(t / 400) * S * 0.03;
+      ctx.fillStyle = '#3b3fbf'; ctx.beginPath(); ctx.moveTo(-bw * 0.55, bTop + bh * 0.12); ctx.lineTo(bw * 0.55, bTop + bh * 0.12);
+      ctx.quadraticCurveTo(bw * 0.15, bTop - bh * 0.3, bw * 0.3 + bend, bTop - bh * 0.62); ctx.quadraticCurveTo(-bw * 0.05, bTop - bh * 0.35, -bw * 0.55, bTop + bh * 0.12); ctx.fill();
+      ctx.fillStyle = '#ffd34d'; ctx.font = `900 ${S * 0.09}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('★', -bw * 0.1, bTop - bh * 0.05); ctx.fillText('✦', bw * 0.15, bTop - bh * 0.28);
+    }
+    if (skin === 'qorbobo') { // santa hat with a flopping pompom
+      const fl = Math.sin(t / 300) * S * 0.03;
+      ctx.fillStyle = '#d7263d'; ctx.beginPath(); ctx.moveTo(-bw * 0.48, bTop + bh * 0.12); ctx.lineTo(bw * 0.48, bTop + bh * 0.12);
+      ctx.quadraticCurveTo(bw * 0.35, bTop - bh * 0.3, bw * 0.62 + fl, bTop - bh * 0.18); ctx.quadraticCurveTo(0, bTop - bh * 0.45, -bw * 0.48, bTop + bh * 0.12); ctx.fill();
+      ctx.fillStyle = '#ffffff'; rr(ctx, -bw * 0.52, bTop + bh * 0.04, bw * 1.04, bh * 0.14, bh * 0.07); ctx.fill();
+      ctx.beginPath(); ctx.arc(bw * 0.64 + fl, bTop - bh * 0.18, bw * 0.12, 0, 7); ctx.fill();
+    }
+    if (skin === 'farishta') { // golden halo
+      ctx.save(); ctx.strokeStyle = '#ffd34d'; ctx.shadowColor = '#ffd34d'; ctx.shadowBlur = 12; ctx.lineWidth = Math.max(2, S * 0.04);
+      ctx.beginPath(); ctx.ellipse(0, bTop - bh * 0.16 + Math.sin(t / 300) * S * 0.015, bw * 0.34, bh * 0.07, 0, 0, 7); ctx.stroke(); ctx.restore();
+    }
     if (skin === 'pirat') { // red bandana with a knot and an eye patch
       ctx.fillStyle = '#d7263d';
       ctx.beginPath(); ctx.moveTo(bx - 1, bTop + bh * 0.26);

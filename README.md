@@ -108,6 +108,11 @@ Hammasida xonalar, reytingli o'yin, turnir, tomosha, botga qarshi (3 daraja), va
   (Pirat, Yog'och, Qirollik⭐, Muz); Stars bilan tanga paketlari va **VIP 30 kun** (reklamasiz, bonus ×2, +50% tanga).
   Stars to'lovi: bot `createInvoiceLink` (XTR) → ilova `openInvoice` → bot `successful_payment`da beradi
   (`data/meta.json` → `payments`, takror hisoblanmaydi). Provider token kerak emas.
+- **Do'kondagi skinlar** (har o'yinda 10+): To'siq Jangi — 11 ta personaj (Pirat, Kovboy, Oshpaz, Mushuk, DJ, Viking,
+  Sehrgar, Qorbobo, Zombi, Farishta⭐, Superqahramon⭐); boshqa o'yinlarda 10 ta "qimmatbaho tosh" to'plami (Zumrad,
+  Yoqut, Safir, Ametist, Bronza, Grafit, Shokolad, Flamingo, Okean⭐, Marvarid⭐) — har o'yin o'zicha chizadi
+  (donalar, toshlar, kemalar, domino yuzi); Nuqtalar — kataklardagi 10 xil belgi. Narxlar 1500–5000 tanga yoki
+  150–350⭐. Do'konda o'yin bo'yicha filtr.
 - **Referal**: do'stlik havolasi orqali kirgan **yangi** o'yinchi 5 ta o'yin o'ynasa, ikkalasi 200 tanga oladi.
 - Admin: o'yinchiga tanga berish/olish; statistikada Stars daromadi, VIP soni, jami tangalar.
 

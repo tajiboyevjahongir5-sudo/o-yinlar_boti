@@ -58,9 +58,9 @@
     const side = sides.includes(a.side) ? a.side : sides.length === 1 ? sides[0] : null;
     if (!side) return sides.length ? 'Qaysi tomonga?' : "Bu tosh mos kelmaydi";
     hand.splice(i, 1);
-    if (!g.ends) { g.line.push({ t: t.slice(), flip: false }); g.ends = [t[0], t[1]]; }
-    else if (side === 'L') { const flip = t[0] === g.ends[0]; g.line.unshift({ t: t.slice(), flip }); g.ends[0] = flip ? t[1] : t[0]; }
-    else { const flip = t[1] === g.ends[1]; g.line.push({ t: t.slice(), flip }); g.ends[1] = flip ? t[0] : t[1]; }
+    if (!g.ends) { g.line.push({ t: t.slice(), flip: false, p }); g.ends = [t[0], t[1]]; }
+    else if (side === 'L') { const flip = t[0] === g.ends[0]; g.line.unshift({ t: t.slice(), flip, p }); g.ends[0] = flip ? t[1] : t[0]; }
+    else { const flip = t[1] === g.ends[1]; g.line.push({ t: t.slice(), flip, p }); g.ends[1] = flip ? t[0] : t[1]; }
     g.passes = 0; g.n++;
     g.last = { p, t: 'move', tile: t.slice(), side };
     g.log.push(`${t[0]}|${t[1]}`); g.hist.push({ t: 'move', a: t[0], b: t[1], side });

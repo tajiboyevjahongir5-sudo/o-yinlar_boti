@@ -8,11 +8,17 @@ window.Boards = function (env) {
   const col = (p) => env.COLORS[p];
   const T = (t) => (window.I18N ? window.I18N.tr(t) : t); // canvas text in the chosen language
   const rr = (c, x, y, w, h, r) => { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); };
-  const glowDisc = (c, x, y, r, color, alpha = 1) => {
-    c.save(); c.globalAlpha = alpha; c.shadowColor = color; c.shadowBlur = 12;
+  // the skin of seat p in this game: its catalog entry (pal = [light, deep], sym, color) or null
+  const skinDef = (kind, p) => { const id = env.skinOf ? env.skinOf(p) : null; return id && env.skin ? env.skin(kind, id) : null; };
+  const palOf = (kind, p) => { const d = skinDef(kind, p); return d && d.pal ? d.pal : null; };
+  // a glossy disc; with a gem palette the owner's colour stays as a ring so both sides are easy to tell apart
+  const glowDisc = (c, x, y, r, color, alpha = 1, pal) => {
+    c.save(); c.globalAlpha = alpha; c.shadowColor = pal ? pal[0] : color; c.shadowBlur = 12;
     const g = c.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
-    g.addColorStop(0, env.shade(color, 0.45)); g.addColorStop(1, env.shade(color, -0.2));
+    if (pal) { g.addColorStop(0, env.shade(pal[0], 0.5)); g.addColorStop(0.5, pal[0]); g.addColorStop(1, pal[1]); }
+    else { g.addColorStop(0, env.shade(color, 0.45)); g.addColorStop(1, env.shade(color, -0.2)); }
     c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
+    if (pal) { c.shadowBlur = 0; c.strokeStyle = color; c.lineWidth = Math.max(2, r * 0.2); c.beginPath(); c.arc(x, y, r - c.lineWidth / 2, 0, 7); c.stroke(); }
     c.shadowBlur = 0; c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = Math.max(1, r * 0.12);
     c.beginPath(); c.arc(x, y, r * 0.62, 0, 7); c.stroke(); c.restore();
   };
@@ -37,7 +43,7 @@ window.Boards = function (env) {
           if (v === null) continue;
           let yy = cy;
           if (g.last && g.last.r === r && g.last.c === k) { const t = Math.min(1, (now - dropAt) / 320); yy = y + cs * 0.5 + (cy - y - cs * 0.5) * t * t; }
-          glowDisc(c, cx, yy, cs * 0.36, col(v));
+          glowDisc(c, cx, yy, cs * 0.36, col(v), 1, palOf('c4', v));
         }
         if (g.line) {
           const pts = g.line.map(i => [x + (i % C + 0.5) * cs, y + (Math.floor(i / C) + 0.5) * cs]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -59,6 +65,7 @@ window.Boards = function (env) {
         const h = [0, 0, 0, 0, 0, 0];
         seq.slice(0, n).forEach((k, i) => { const r = 4 - h[k]++; glowDisc(c, 14 + k * 13, 21 + r * 13, 5, i % 2 ? C1 : C0); });
       },
+      preview(c, skin) { const d = env.skin('c4', skin); glowDisc(c, 22, 34, 13, C0, 1, d && d.pal); glowDisc(c, 44, 30, 11, C1, 1, d && d.pal); },
       why: (g, won, opp) => g.reason === 'line' ? (won ? "Siz 4 ta toshni bir qatorga terdingiz!" : opp + " 4 ta toshni bir qatorga terdi.") : "Taxta to'ldi — durrang!",
       stats: (g, you) => [[g.log.filter((_, i) => (i % 2 === 0) === (g.starter === you)).length, "{pen} Yurish"], ['●', '{mark} Rang'], [null, '{timer} Vaqt']],
     };
@@ -92,8 +99,11 @@ window.Boards = function (env) {
           const o = g.boxes[r * N + k];
           if (o === null) continue;
           c.fillStyle = env.hexA(col(o), 0.28); c.fillRect(G.x + k * G.step + 2, G.y + r * G.step + 2, G.step - 4, G.step - 4);
-          c.fillStyle = env.hexA(col(o), 0.9); c.font = `900 ${G.step * 0.32}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText(o === env.you ? '★' : '●', G.x + (k + 0.5) * G.step, G.y + (r + 0.5) * G.step);
+          const sd = skinDef('dots', o);
+          c.fillStyle = sd ? (sd.color === 'rainbow' ? `hsl(${(now / 12 + (r + k) * 40) % 360},90%,65%)` : sd.color) : env.hexA(col(o), 0.9);
+          c.font = `900 ${G.step * (sd ? 0.5 : 0.32)}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          if (sd) { c.shadowColor = c.fillStyle; c.shadowBlur = 8; }
+          c.fillText(sd ? sd.sym : o === env.you ? '★' : '●', G.x + (k + 0.5) * G.step, G.y + (r + 0.5) * G.step); c.shadowBlur = 0;
         }
         for (let e = 0; e < M.E; e++) {
           const [a, b, cc, d] = lineEnds(e, G), o = g.lines[e];
@@ -114,6 +124,12 @@ window.Boards = function (env) {
         if (t >= 4) { c.fillStyle = env.hexA(C1, 0.3); c.fillRect(x0 + 2, y0 + 2, s - 4, s - 4); }
         L.slice(0, t).forEach(([a, b, cc, d, k]) => { c.strokeStyle = k; c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(x0 + a * s, y0 + b * s); c.lineTo(x0 + cc * s, y0 + d * s); c.stroke(); });
         c.fillStyle = '#e8ecff'; for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(x0 + k * s, y0 + r * s, 2.5, 0, 7); c.fill(); }
+      },
+      preview(c, skin, now) {
+        const d = env.skin('dots', skin);
+        c.fillStyle = env.hexA(C0, 0.25); c.fillRect(14, 14, 36, 36); c.strokeStyle = C0; c.lineWidth = 3; c.strokeRect(14, 14, 36, 36);
+        c.fillStyle = d ? (d.color === 'rainbow' ? `hsl(${(now / 12) % 360},90%,65%)` : d.color) : C0; c.font = '900 26px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(d ? d.sym : '★', 32, 33);
       },
       why: (g, won, opp) => `Kataklar: ${g.score[env.you]} : ${g.score[1 - env.you]}. ` + (g.winner === -1 ? 'Teng!' : won ? "Siz ko'proq katak yopdingiz!" : opp + " ko'proq katak yopdi."),
       stats: (g, you) => [[g.score[you], '{grid} Katak'], [g.lines.filter(v => v === you).length, '{pen} Chiziq'], [null, '{timer} Vaqt']],
@@ -185,12 +201,12 @@ window.Boards = function (env) {
           const G = mineGeo(B, true); grid(c, G, placing(g) ? 'Sizning flotingiz' : 'Joylandi ✓');
           if (!fleet) fleet = M.randomFleet(); // a fresh fleet for every game (cleared once the battle starts)
           const mine = placing(g) ? fleet : (g.ships[env.you] || fleet);
-          (mine || []).forEach((s, i) => { if (!(drag && drag.moved && drag.i === i)) ship(c, G, s, col(env.you), 1, env.shipTint && env.shipTint()); });
+          (mine || []).forEach((s, i) => { if (!(drag && drag.moved && drag.i === i)) ship(c, G, s, col(env.you), 1, palOf('dengiz', env.you)); });
           if (drag && drag.moved) { // the dragged ship at its snapped spot
             const s = Object.assign({}, fleet[drag.i], { r: drag.r, c: drag.c }), ok = !M.fleetError(fleetWith(drag.i, { r: drag.r, c: drag.c }));
             const w = s.dir === 'h' ? s.len : 1, h = s.dir === 'v' ? s.len : 1;
             c.save(); c.fillStyle = ok ? 'rgba(46,230,107,.25)' : 'rgba(255,45,70,.3)'; c.fillRect(G.x + s.c * G.cs, G.y + s.r * G.cs, w * G.cs, h * G.cs); c.restore();
-            ship(c, G, s, ok ? col(env.you) : '#ff2d46', 0.85, env.shipTint && env.shipTint());
+            ship(c, G, s, ok ? col(env.you) : '#ff2d46', 0.85, palOf('dengiz', env.you));
           }
           return;
         }
@@ -198,10 +214,10 @@ window.Boards = function (env) {
         const E = enemyGeo(B), Me = mineGeo(B, false), opp = 1 - env.you;
         grid(c, E, 'Raqib maydoni'); grid(c, Me, 'Sizniki');
         // enemy ships stay hidden until sunk (in bot games the app holds the whole fleet)
-        (g.ships[opp] || []).forEach((s, i) => s && (g.winner !== null || g.sunk[opp].includes(i)) && ship(c, E, s, '#5c6488', 0.9));
+        (g.ships[opp] || []).forEach((s, i) => s && (g.winner !== null || g.sunk[opp].includes(i)) && ship(c, E, s, '#5c6488', 0.9, palOf('dengiz', opp)));
         const lk = g.last && g.last.cap != null ? g.last.cap : g.last ? g.last.r * N + g.last.c : -1;
         marks(c, E, g.shots[env.you], now, g.last && g.last.p === env.you ? lk : -1);
-        (g.ships[env.you] || []).forEach(s => s && ship(c, Me, s, col(env.you)));
+        (g.ships[env.you] || []).forEach(s => s && ship(c, Me, s, col(env.you), 1, palOf('dengiz', env.you)));
         marks(c, Me, g.shots[opp], now, g.last && g.last.p === opp ? lk : -1);
         if (env.myTurn()) { c.save(); c.strokeStyle = env.hexA(col(env.you), 0.5 + 0.3 * Math.sin(now / 250)); c.lineWidth = 2; rr(c, E.x - 2, E.y - 2, E.s + 4, E.s + 4, 8); c.stroke(); c.restore(); }
       },
@@ -262,6 +278,7 @@ window.Boards = function (env) {
       },
       why: (g, won, opp) => g.reason === 'fleet' ? (won ? "Siz raqib flotini butunlay cho'ktirdingiz!" : opp + " flotingizni cho'ktirdi.") : '',
       stats: (g, you) => [[g.shots[you].filter(v => v).length, "{target} O'q"], [g.shots[you].filter(v => v === 2).length, '{check} Tegdi'], [null, '{timer} Vaqt']],
+      preview(c, skin) { const d = env.skin('dengiz', skin); ship(c, { x: 4, y: 20, cs: 14 }, { r: 0, c: 0, len: 4, dir: 'h' }, C0, 1, d && d.pal); ship(c, { x: 18, y: 38, cs: 14 }, { r: 0, c: 0, len: 2, dir: 'h' }, C1, 1, d && d.pal); },
       placeClock: (g, now) => mmss(M.PLACE_MS - (now - g.phaseStart)),
     };
   }
@@ -273,17 +290,19 @@ window.Boards = function (env) {
     const pipsAt = { 0: [], 1: [[0.5, 0.5]], 2: [[0.25, 0.25], [0.75, 0.75]], 3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]], 4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
       5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]], 6: [[0.25, 0.22], [0.75, 0.22], [0.25, 0.5], [0.75, 0.5], [0.25, 0.78], [0.75, 0.78]] };
     // a tile: halves a|b laid out horizontally (or vertically) at x, y with the short side `u`
-    function tile(c, x, y, u, a, b, vert, glow, back) {
+    function tile(c, x, y, u, a, b, vert, glow, back, pal) {
       const w = vert ? u : u * 2, h = vert ? u * 2 : u;
       c.save();
       if (glow) { c.shadowColor = glow; c.shadowBlur = 12; }
-      c.fillStyle = back ? '#26306a' : '#f4f1e8'; rr(c, x, y, w, h, u * 0.18); c.fill();
+      if (pal && !back) { const gr = c.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, env.shade(pal[0], 0.55)); gr.addColorStop(1, pal[0]); c.fillStyle = gr; }
+      else c.fillStyle = back ? '#26306a' : '#f4f1e8';
+      rr(c, x, y, w, h, u * 0.18); c.fill();
       c.shadowBlur = 0; c.strokeStyle = back ? '#4b5aa8' : '#9a917a'; c.lineWidth = 1; c.stroke();
       if (!back) {
         c.strokeStyle = '#b8ad92'; c.beginPath();
         if (vert) { c.moveTo(x + u * 0.15, y + u); c.lineTo(x + u * 0.85, y + u); } else { c.moveTo(x + u, y + u * 0.15); c.lineTo(x + u, y + u * 0.85); }
         c.stroke();
-        c.fillStyle = '#1b1f33';
+        c.fillStyle = pal ? pal[1] : '#1b1f33';
         [[a, 0], [b, 1]].forEach(([n, half]) => {
           const ox = vert ? x : x + half * u, oy = vert ? y + half * u : y;
           for (const [px, py] of pipsAt[n]) { c.beginPath(); c.arc(ox + px * u, oy + py * u, u * 0.085, 0, 7); c.fill(); }
@@ -306,7 +325,7 @@ window.Boards = function (env) {
           const pos = ltr ? k : perRow - 1 - k, tx = B.x0 + B.S / 2 - (perRow * u * 2.15) / 2 + pos * u * 2.15, ty = top + row * rowH;
           const a = x.flip ? x.t[1] : x.t[0], b = x.flip ? x.t[0] : x.t[1];
           const isLast = g.last && g.last.t === 'move' && g.last.tile && x.t[0] === g.last.tile[0] && x.t[1] === g.last.tile[1];
-          tile(c, tx, ty, u, ltr ? a : b, ltr ? b : a, false, isLast ? col(g.last.p) : null);
+          tile(c, tx, ty, u, ltr ? a : b, ltr ? b : a, false, isLast ? col(g.last.p) : null, false, x.p != null ? palOf('domino', x.p) : null);
         });
         if (!L.length) { c.fillStyle = 'rgba(200,210,255,.6)'; c.font = `700 ${u * 0.7}px system-ui`; c.textAlign = 'center'; c.fillText(T(g.turn === env.you ? "Birinchi toshni qo'ying" : 'Raqib boshlaydi'), B.x0 + B.S / 2, B.y0 + B.S / 2); }
         // the opponent's hand (face down) and the bozor
@@ -325,7 +344,7 @@ window.Boards = function (env) {
           const can = mine && M.fits(g, t).length > 0;
           const cv = document.createElement('canvas'), d = window.devicePixelRatio || 1, u = 22;
           cv.width = u * d; cv.height = u * 2 * d; cv.style.width = u + 'px'; cv.style.height = u * 2 + 'px';
-          const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); tile(x, 0, 0, u, t[0], t[1], true);
+          const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); tile(x, 0, 0, u, t[0], t[1], true, null, false, palOf('domino', env.you));
           const b = document.createElement('button'); b.className = 'dtile' + (can ? ' can' : '') + (pick && pick[0] === t[0] && pick[1] === t[1] ? ' sel' : '');
           b.appendChild(cv);
           b.onclick = () => {
@@ -352,6 +371,7 @@ window.Boards = function (env) {
         tiles.slice(0, Math.max(1, t)).forEach((x, i) => tile(c, 6 + i * 21 - (i > 1 ? 0 : 0), 36, 10, x[0], x[1], false, i === t - 1 ? C1 : null));
         for (let i = 0; i < 4; i++) tile(c, 20 + i * 14, 6, 7, 0, 0, true, null, true);
       },
+      preview(c, skin) { const d = env.skin('domino', skin); tile(c, 6, 20, 13, 6, 3, false, null, false, d && d.pal); tile(c, 34, 8, 12, 5, 5, true, null, false, d && d.pal); },
       why: (g, won, opp) => g.reason === 'empty' ? (won ? 'Siz barcha toshlarni birinchi qo\'ydingiz!' : opp + ' barcha toshlarini birinchi qo\'ydi.')
         : g.reason === 'blocked' ? "Hech kim yura olmadi — qo'lida ochko kamroq bo'lgan yutdi." : '',
       stats: (g, you) => [[g.log.filter((x, i) => x !== '—').length, "{pen} Qo'yildi"], [(g.hands[you] || []).length, '🀫 Qoldi'], [null, '{timer} Vaqt']],
@@ -395,7 +415,7 @@ window.Boards = function (env) {
           for (let i = 0; i < show; i++) {
             const cy = top ? base + r + i * r * 1.9 : base - r - i * r * 1.9;
             const isSel = sel !== null && M.abs(env.you, sel) === a && i === show - 1;
-            glowDisc(c, x, cy, r * 0.95, col(pt.p), 1);
+            glowDisc(c, x, cy, r * 0.95, col(pt.p), 1, palOf('nardi', pt.p));
             if (isSel) { c.save(); c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.beginPath(); c.arc(x, cy, r, 0, 7); c.stroke(); c.restore(); }
           }
           if (pt.n > 5) { const cy = top ? base + r + 4 * r * 1.9 : base - r - 4 * r * 1.9; c.fillStyle = '#fff'; c.font = `900 ${r}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(pt.n, x, cy); }
@@ -452,6 +472,7 @@ window.Boards = function (env) {
         const t = (now % 2000) / 2000, d1 = 1 + Math.floor(t * 6), d2 = 1 + Math.floor((t * 6 * 7) % 6);
         [d1, d2].forEach((d, i) => { c.fillStyle = '#fff'; rr(c, 36 + i * 14, 40, 11, 11, 2); c.fill(); c.fillStyle = '#1b1f33'; c.font = '900 9px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(d, 41.5 + i * 14, 46); });
       },
+      preview(c, skin) { const d = env.skin('nardi', skin); for (let i = 0; i < 3; i++) glowDisc(c, 20, 52 - i * 15, 8, C0, 1, d && d.pal); for (let i = 0; i < 2; i++) glowDisc(c, 44, 12 + i * 15, 8, C1, 1, d && d.pal); },
       why: (g, won, opp) => g.reason === 'off' ? (won ? 'Siz barcha 15 toshni birinchi chiqardingiz!' + (g.mars ? ' Mars! 🔥' : '') : opp + ' barcha toshlarini birinchi chiqardi.' + (g.mars ? ' (Mars)' : '')) : '',
       stats: (g, you) => [[g.hist ? g.hist.length : 0, '{pen} Yurish'], [g.off[you], '🎲 Chiqdi'], [null, '{timer} Vaqt']],
     };
