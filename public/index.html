@@ -864,7 +864,7 @@
 <div id="rating" class="tab hide"><div class="hub-in">
   <div class="hub-title"><i data-ic="rating"></i> Reyting</div>
   <div class="seg" id="rtSeg"></div>
-  <div class="seg" id="rtPeriod"><button data-p="all" class="on">Umumiy</button><button data-p="week">Shu hafta</button></div>
+  <div class="seg" id="rtPeriod"><button data-p="all" class="on">Umumiy</button><button data-p="week">Shu hafta</button><button data-p="regions">Viloyatlar</button><button data-p="clans">Klanlar</button></div>
   <div id="rtChamp"></div>
   <div class="rt-sub" id="rtSub">Reytingli o'yinlardagi ELO bo'yicha eng kuchli o'yinchilar</div>
   <div id="podium"></div>
@@ -1861,6 +1861,7 @@
     p.appendChild(av);
     addText(p, 'h1', d.name + (d.champ.length ? ' 👑' : '')).style.fontSize = '22px';
     const st = d.status.state;
+    if (d.region || d.clan) addText(p, 'div', [d.region ? '📍 ' + d.region : '', d.clan ? `${d.clan.emoji} ${d.clan.name}` : ''].filter(Boolean).join(' · ')).className = 'note';
     addText(p, 'div', st === 'playing' ? `{games} Hozir ${GAME_NAMES[d.status.kind]} o'ynayapti` : st === 'online' ? '{check} Onlayn' : 'Oflayn').className = 'note';
     const grid = document.createElement('div'); grid.className = 'pc-elo';
     for (const k of Object.keys(GAME_NAMES)) {
@@ -2013,6 +2014,9 @@
     const add = document.createElement('button'); add.className = 'add-friend'; add.innerHTML = lbl("{invite} Do'st qo'shish");
     add.onclick = () => { haptic('light'); showAddFriend(); };
     box.appendChild(add);
+    const cl = document.createElement('button'); cl.className = 'act'; cl.style.cssText = '--c:#c084fc;width:100%'; cl.innerHTML = '🛡 Klanlar';
+    cl.onclick = async () => { haptic('light'); const x = await api('clans'); if (x && x.mine) showClan(x.mine.id); else showClans(); };
+    box.appendChild(cl);
     const reqs = (d && d.requests) || [];
     setFriendBadge(reqs.length);
     if (reqs.length) {
@@ -2155,7 +2159,7 @@
 
 
   // ---------- admin panel ----------
-  let isAdminUser = false, admTab = 'stats', admTimer = null, notifyOn = true;
+  let profileRegion = null, isAdminUser = false, admTab = 'stats', admTimer = null, notifyOn = true;
   // Telegram's own confirm dialog (window.confirm is not reliable inside the app)
   const ask = (text) => new Promise((res) => {
     try { if (tg && tg.showConfirm && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) return tg.showConfirm(text, (ok) => res(!!ok)); } catch (e) {}
@@ -2922,6 +2926,91 @@
     catch (e) { toast("{alert} Stories'ga ulashib bo'lmadi"); }
   }
 
+
+  // ---------- regions ----------
+  async function loadRegions() {
+    const board = $('board'); board.innerHTML = '<div class="note">Yuklanmoqda...</div>';
+    $('rtSub').textContent = "Shu haftada viloyatlar: onlayn g'alaba +3, durrang +1 ochko. Viloyatingizni Profilda tanlang.";
+    const d = await api('regions');
+    if (!d) return;
+    board.innerHTML = '';
+    if (!d.mine) board.appendChild(bigBtn('📍 Viloyatimni tanlash', () => pickRegion(d.regions), 'pri'));
+    const max = Math.max(1, ...d.list.map(x => x.pts));
+    d.list.forEach((x, i) => {
+      const row = document.createElement('div'); row.className = 'lrow' + (x.region === d.mine ? ' me' : '');
+      row.innerHTML = `<div class="rk">#${i + 1}</div><div class="who2"><b></b><small></small><div class="prog" style="margin-top:4px"><i style="width:${Math.round(x.pts / max * 100)}%"></i></div></div><div class="el">${x.pts}<small>och</small></div>`;
+      row.querySelector('b').textContent = (i === 0 && x.pts ? '👑 ' : '') + x.region + (x.region === d.mine ? ' (siz)' : '');
+      row.querySelector('small').textContent = `${x.players} o'yinchi` + (x.top ? ` · eng yaxshisi: ${x.top.name} (${x.top.pts})` : '');
+      board.appendChild(row);
+    });
+  }
+  async function pickRegion(regions) {
+    if (!regions) { const d = await api('regions'); regions = d ? d.regions : []; }
+    const p = openPanel('pick');
+    addText(p, 'h1', '📍 Viloyatingiz');
+    const g = document.createElement('div'); g.className = 'opts';
+    for (const r of regions) { const b = document.createElement('button'); b.className = 'qrow'; b.textContent = r; b.style.cssText = 'color:#fff;font-weight:700';
+      b.onclick = async () => { const x = await postApi('region', { region: r }); if (x && x.ok) { hideOverlay(); toast(`📍 ${r}`); if (!$('rating').classList.contains('hide')) loadRating(); if (!$('profile').classList.contains('hide')) loadProfile(); } }; g.appendChild(b); }
+    p.append(g, bigBtn('Bekor qilish', hideOverlay));
+  }
+
+  // ---------- clans ----------
+  async function loadClans(box, inFriends) {
+    const d = await api('clans');
+    if (!d) return;
+    if (!inFriends) { $('rtSub').textContent = "Klanlar reytingi: a'zolarning shu haftalik ochkolari yig'indisi."; box.innerHTML = ''; }
+    if (!inFriends) {
+      const mine = d.mine;
+      box.appendChild(bigBtn(mine ? `${mine.emoji} ${mine.name} — mening klanim` : '🛡 Klan yaratish yoki qo\'shilish', () => mine ? showClan(mine.id) : showClans(), 'pri'));
+    }
+    d.list.forEach((c, i) => {
+      const row = document.createElement('div'); row.className = 'lrow' + (d.mine && d.mine.id === c.id ? ' me' : '');
+      row.innerHTML = `<div class="rk">#${i + 1}</div><div class="ini" style="font-size:20px">${escHtml(c.emoji)}</div><div class="who2"><b></b><small></small></div><div class="el">${c.week}<small>och</small></div>`;
+      row.querySelector('b').textContent = c.name; row.querySelector('small').textContent = `${c.count}/30 a'zo · ${c.wins} g'alaba`;
+      row.onclick = () => showClan(c.id);
+      box.appendChild(row);
+    });
+    if (!d.list.length) addText(box, 'div', "Hali klan yo'q — birinchi bo'lib yarating!").className = 'empty2';
+  }
+  async function showClans() {
+    const p = openPanel('pick');
+    addText(p, 'h1', '🛡 Klanlar');
+    addText(p, 'p', "Do'stlaringiz bilan klan tuzing — har bir onlayn g'alaba klanga ochko olib keladi. Yaratish: 500 🪙.");
+    const name = document.createElement('input'); name.className = 'search-in'; name.placeholder = 'Klan nomi (3–20 belgi)'; name.maxLength = 20;
+    const emo = document.createElement('div'); emo.className = 'rx-row'; let em = '🛡';
+    for (const e of ['🛡', '⚔️', '🐺', '🦅', '🐉', '🔥', '👑', '⭐', '🦁', '💎']) { const b = document.createElement('button'); b.className = 'rx'; b.textContent = e; b.onclick = () => { em = e; emo.querySelectorAll('button').forEach(x => x.style.background = x === b ? 'rgba(255,255,255,.18)' : ''); }; emo.appendChild(b); }
+    p.append(name, emo, bigBtn('{plus} Klan yaratish (500 🪙)', async () => {
+      const x = await postApi('clanCreate', { name: name.value, emoji: em });
+      if (x && x.ok) { Snd.play('crown'); toast(`🛡 "${x.clan.name}" yaratildi!`); refreshWallet(); showClan(x.clan.id); } else toast('{alert} ' + ((x && x.msg) || 'Xato'));
+    }, 'pri'));
+    addText(p, 'div', "Yoki mavjud klanga qo'shiling:").className = 'lbl2';
+    const list = document.createElement('div'); list.className = 'sres'; p.appendChild(list);
+    p.appendChild(bigBtn('Yopish', hideOverlay));
+    loadClans(list, true);
+  }
+  async function showClan(id) {
+    const d = await api('clan', null, '&id=' + encodeURIComponent(id));
+    if (!d || !d.ok) return toast('{alert} Klan topilmadi');
+    const c = d.clan, p = openPanel('pick'), mine = c.members.some(m => m.pid === myInfo.pid), boss = c.owner === myInfo.pid;
+    addText(p, 'h1', `${c.emoji} ${c.name}`);
+    addText(p, 'div', `${c.count}/30 a'zo · shu hafta ${c.week} ochko · jami ${c.wins} g'alaba`).className = 'note';
+    const list = document.createElement('div'); list.className = 'sres';
+    for (const m of c.members) {
+      const row = document.createElement('div'); row.className = 'frow';
+      const av = document.createElement('div'); av.className = 'ini ' + frameCls(m.frame);
+      if (isPhoto(m.photo)) setAvatar(av, m.photo, initial(m.name)); else av.textContent = initial(m.name);
+      const who = document.createElement('div'); who.className = 'who2'; addText(who, 'b', (m.owner ? '👑 ' : '') + m.name); addText(who, 'small', `${m.week} ochko shu hafta`);
+      who.onclick = () => showPlayer(m.pid);
+      row.append(av, who);
+      if (boss && !m.owner) { const k = document.createElement('button'); k.className = 'no'; k.textContent = '✕'; k.onclick = async () => { if (!await ask(`${m.name} klandan chiqarilsinmi?`)) return; const x = await postApi('clanKick', { pid: m.pid }); if (x && x.ok) showClan(id); }; row.appendChild(k); }
+      list.appendChild(row);
+    }
+    p.appendChild(list);
+    if (mine) p.appendChild(bigBtn('{exit} Klandan chiqish', async () => { if (!await ask('Klandan chiqasizmi?')) return; const x = await postApi('clanLeave', {}); if (x && x.ok) { hideOverlay(); toast('Klandan chiqdingiz'); } }, 'danger'));
+    else p.appendChild(bigBtn("{plus} Qo'shilish", async () => { const x = await postApi('clanJoin', { id }); if (x && x.ok) { Snd.play('crown'); toast(`🛡 ${c.name} klaniga xush kelibsiz!`); showClan(id); } else toast('{alert} ' + ((x && x.msg) || 'Xato')); }, 'pri'));
+    p.appendChild(bigBtn('Yopish', hideOverlay));
+  }
+
   // ---------- emoji reactions (online games) ----------
   const REACTIONS = ['👍', '😂', '😮', '😡', '🔥', '👏', '🤝', '😭'];
   const PHRASES = ['Salom! 👋', 'Omad! 🍀', 'Yaxshi yurish! 👍', 'Voy! 😮', 'Tezroq 😅', "Yaxshi o'yin! 🤝", 'Rahmat! 🙏', "Yana o'ynaymizmi? 🔁"];
@@ -3081,6 +3170,13 @@
   async function loadRating() {
     const pod = $('podium'), board = $('board');
     buildSeg($('rtSeg'), loadRating);
+    $('rtSeg').style.display = rtPeriod === 'regions' || rtPeriod === 'clans' ? 'none' : '';
+    if (rtPeriod === 'regions' || rtPeriod === 'clans') {
+      $('rtPeriod').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.p === rtPeriod);
+        b.onclick = () => { if (b.dataset.p === rtPeriod) return; haptic('light'); rtPeriod = b.dataset.p; loadRating(); }; });
+      $('podium').innerHTML = ''; $('rtChamp').innerHTML = '';
+      return rtPeriod === 'regions' ? loadRegions() : loadClans($('board'));
+    }
     const week = rtPeriod === 'week';
     $('rtPeriod').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.p === rtPeriod);
       b.onclick = () => { if (b.dataset.p === rtPeriod) return; haptic('light'); rtPeriod = b.dataset.p; loadRating(); }; });
@@ -3143,6 +3239,8 @@
     const d = await api('profile');
     if ($('profile').classList.contains('hide') || ver !== loadProfile.v) return;
     if (d) myInfo = { pid: d.pid, equip: d.equip || { frame: null, skin: {} }, skins: d.skins || {}, frames: d.frames || [], ach: d.ach || {} };
+    const rg = await api('regions'); profileRegion = rg && rg.mine;
+    if ($('profile').classList.contains('hide') || ver !== loadProfile.v) return;
     box.innerHTML = '';
     const seg = document.createElement('div'); seg.className = 'seg'; box.appendChild(seg);
     buildSeg(seg, loadProfile);
@@ -3177,6 +3275,7 @@
       ls.appendChild(b);
     });
     box.appendChild(ls);
+    box.appendChild(bigBtn(`📍 Viloyat: ${profileRegion || 'tanlanmagan'}`, () => pickRegion()));
     addText(box, 'div', 'Taxta mavzusi').className = 'lbl2';
     const ts = document.createElement('div'); ts.className = 'seg';
     for (const [k, t] of Object.entries(THEMES)) {

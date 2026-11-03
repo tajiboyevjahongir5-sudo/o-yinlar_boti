@@ -239,6 +239,8 @@ function recordOnline(room) {
     } else if (g.winner !== -1) c.streak = 0;
   });
   room.prevWinner = g.winner >= 0 ? uids[g.winner] : null;
+  // weekly points for the player's region and clan: win 3, draw 1
+  room.players.forEach((pl, i) => { const w = weekOf(players[pl.uid]); w.pts = (w.pts || 0) + (g.winner === i ? 3 : g.winner === -1 ? 1 : 0); });
   // coins and daily quests
   const friends = players[uids[0]] && (players[uids[0]].friends || []).includes(uids[1]);
   room.players.forEach((pl, i) => {
@@ -466,6 +468,7 @@ function cardOf(uid, me) {
   for (const k of Object.keys(GAMES)) if (p.stats && p.stats[k]) elo[k] = { elo: p.stats[k].elo, games: p.stats[k].games, wins: p.stats[k].wins };
   return { pid: pidOf(uid), name: p.name || "O'yinchi", photo: p.photo || null, frame: l.frame, elo, status: statusOf(uid),
     ach: Object.keys(p.ach || {}), champ: champOf(uid), friend: !!(me && players[me] && (players[me].friends || []).includes(uid)), me: uid === me,
+    region: p.region || null, clan: p.clan && meta.clans[p.clan] ? { name: meta.clans[p.clan].name, emoji: meta.clans[p.clan].emoji } : null,
     pending: !!(me && (p.requests || []).includes(me)), incoming: !!(me && players[me] && (players[me].requests || []).includes(uid)), vip: isVip(p) };
 }
 
@@ -665,6 +668,67 @@ setInterval(() => {
   }
   saveMetaSoon(); savePlayers();
 }, 10 * 60 * 1000);
+
+// ---------- regions and clans ----------
+const REGIONS = ['Toshkent sh.', 'Toshkent vil.', 'Andijon', 'Buxoro', "Farg'ona", 'Jizzax', 'Xorazm', 'Namangan', 'Navoiy',
+  'Qashqadaryo', "Qoraqalpog'iston", 'Samarqand', 'Sirdaryo', 'Surxondaryo'];
+const weekPts = (p) => (p && p.week && p.week.key === weekKey() ? p.week.pts || 0 : 0);
+meta.clans = meta.clans || {};
+const clanOf = (uid) => { const p = players[uid]; return p && p.clan && meta.clans[p.clan] ? meta.clans[p.clan] : null; };
+function clanCard(c, withMembers) {
+  const members = c.members.filter(u => players[u]);
+  const out = { id: c.id, name: c.name, emoji: c.emoji, owner: pidOf(c.owner), count: members.length,
+    week: members.reduce((n, u) => n + weekPts(players[u]), 0), wins: members.reduce((n, u) => n + ((players[u].counters || {}).wins || 0), 0) };
+  if (withMembers) out.members = members.map(u => Object.assign(cardOf(u), { week: weekPts(players[u]), owner: u === c.owner }))
+    .sort((a, b) => b.week - a.week);
+  return out;
+}
+Object.assign(ECON_ACTIONS, {
+  region(me, m) {
+    const p = playerRec(me.uid, me.name, me.photo);
+    if (m.region !== null && !REGIONS.includes(m.region)) return { ok: false, msg: "Viloyat noto'g'ri" };
+    p.region = m.region; savePlayers();
+    return { ok: true, region: p.region };
+  },
+  clanCreate(me, m) {
+    const p = playerRec(me.uid, me.name, me.photo), name = String(m.name || '').trim().replace(/\s+/g, ' ');
+    if (clanOf(me.uid)) return { ok: false, msg: 'Avval hozirgi klandan chiqing' };
+    if (name.length < 3 || name.length > 20) return { ok: false, msg: 'Nom 3–20 belgi bo\'lsin' };
+    if (Object.values(meta.clans).some(c => c.name.toLowerCase() === name.toLowerCase())) return { ok: false, msg: 'Bu nom band' };
+    if ((p.coins || 0) < 500) return { ok: false, msg: 'Klan yaratish 500 tanga turadi' };
+    addCoins(me.uid, -500, 'clan');
+    const id = crypto.randomBytes(4).toString('hex');
+    meta.clans[id] = { id, name, emoji: String(m.emoji || '🛡').slice(0, 4), owner: me.uid, members: [me.uid], created: Date.now() };
+    p.clan = id; savePlayers(); saveMeta();
+    return { ok: true, clan: clanCard(meta.clans[id], true) };
+  },
+  clanJoin(me, m) {
+    const c = meta.clans[String(m.id || '')], p = playerRec(me.uid, me.name, me.photo);
+    if (!c) return { ok: false, msg: 'Klan topilmadi' };
+    if (clanOf(me.uid)) return { ok: false, msg: 'Avval hozirgi klandan chiqing' };
+    if (c.members.length >= 30) return { ok: false, msg: "Klan to'la (30 kishi)" };
+    c.members.push(me.uid); p.clan = c.id; savePlayers(); saveMeta();
+    notify(c.owner, { t: 'toast', msg: `🛡 ${me.name} klaningizga qo'shildi` });
+    return { ok: true, clan: clanCard(c, true) };
+  },
+  clanLeave(me) {
+    const c = clanOf(me.uid);
+    if (!c) return { ok: false, msg: 'Siz klanda emassiz' };
+    c.members = c.members.filter(u => u !== me.uid); delete players[me.uid].clan;
+    if (!c.members.length) delete meta.clans[c.id];
+    else if (c.owner === me.uid) c.owner = c.members[0]; // the next member leads
+    savePlayers(); saveMeta();
+    return { ok: true };
+  },
+  clanKick(me, m) {
+    const c = clanOf(me.uid), uid = uidOfPid(String(m.pid || ''));
+    if (!c || c.owner !== me.uid) return { ok: false, msg: 'Faqat klan boshlig\'i' };
+    if (!uid || uid === me.uid || !c.members.includes(uid)) return { ok: false, msg: "O'yinchi topilmadi" };
+    c.members = c.members.filter(u => u !== uid); delete players[uid].clan; savePlayers(); saveMeta();
+    notify(uid, { t: 'toast', msg: `Siz "${c.name}" klanidan chiqarildingiz` });
+    return { ok: true, clan: clanCard(c, true) };
+  },
+});
 
 Object.assign(ACTIONS, ECON_ACTIONS);
 
@@ -1240,6 +1304,24 @@ const server = http.createServer((req, res) => {
       .slice(0, 15).map(([u]) => cardOf(u, me));
     return sendJson(res, { list });
   }
+  if (url.pathname === '/api/regions') { // this week's points by region
+    const me = players[url.searchParams.get('uid')] || {};
+    const list = REGIONS.map(r => {
+      const ps = Object.values(players).filter(p => p.region === r);
+      const top = ps.slice().sort((a, b) => weekPts(b) - weekPts(a))[0];
+      return { region: r, pts: ps.reduce((n, p) => n + weekPts(p), 0), players: ps.length, top: top && weekPts(top) ? { name: top.name, pts: weekPts(top) } : null };
+    }).sort((a, b) => b.pts - a.pts || b.players - a.players);
+    return sendJson(res, { list, mine: me.region || null, regions: REGIONS, myPts: weekPts(me) });
+  }
+  if (url.pathname === '/api/clans') {
+    const uid = url.searchParams.get('uid'), mineC = clanOf(uid);
+    const list = Object.values(meta.clans).map(c => clanCard(c)).sort((a, b) => b.week - a.week || b.wins - a.wins).slice(0, 50);
+    return sendJson(res, { list, mine: mineC ? clanCard(mineC, true) : null });
+  }
+  if (url.pathname === '/api/clan') {
+    const c = meta.clans[String(url.searchParams.get('id') || '')];
+    return sendJson(res, c ? { ok: true, clan: clanCard(c, true) } : { ok: false });
+  }
   if (url.pathname === '/api/friends') {
     const p = players[url.searchParams.get('uid')];
     const list = (p && p.friends || []).filter(u => players[u]).map(u => cardOf(u));
@@ -1258,7 +1340,7 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings|spin|story)$/);
+  const act = url.pathname.match(/^\/api\/(friend|freply|challenge|decline|equip|botwin|wallet|daily|claimQuest|buy|stars|botresult|report|settings|spin|story|region|clanCreate|clanJoin|clanLeave|clanKick)$/);
   if (act && req.method === 'POST') {
     readJson(req, act[1] === 'story' ? 4 * 1024 * 1024 : 20000).then(async (body) => {
       const me = whoIs(body);
