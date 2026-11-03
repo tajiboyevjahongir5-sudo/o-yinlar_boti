@@ -472,7 +472,31 @@ function lobbyData() {
 
 // push the room list to everyone in the lobby, at most every 150 ms and only when it changed
 let lobbyTimer = null, lastLobby = '';
+// how many people are in each game right now (its lobby, a room, the rated queue, or a bot game),
+// pushed to every open app whenever it changes
+function onlineCounts() {
+  const by = {}, all = new Set();
+  for (const k of Object.keys(GAMES)) by[k] = new Set();
+  for (const [uid, set] of presence) { all.add(uid); for (const w of set) if (w.kind && by[w.kind]) by[w.kind].add(uid); }
+  for (const r of rooms.values()) for (const p of r.players) if (p && p.ws) { by[r.kind].add(p.uid); all.add(p.uid); }
+  for (const q of queue) { by[q.kind].add(q.uid); all.add(q.uid); }
+  const counts = {};
+  for (const k of Object.keys(by)) counts[k] = by[k].size;
+  return { t: 'online', counts, total: all.size };
+}
+let onlineTimer = null, lastOnline = '';
+function onlineChanged() {
+  if (onlineTimer) return;
+  onlineTimer = setTimeout(() => {
+    onlineTimer = null;
+    const msg = JSON.stringify(onlineCounts());
+    if (msg === lastOnline) return;
+    lastOnline = msg;
+    for (const set of presence.values()) for (const w of set) if (w.readyState === 1) w.send(msg);
+  }, 300);
+}
 function lobbyChanged() {
+  onlineChanged();
   if (lobbyTimer) return;
   lobbyTimer = setTimeout(() => {
     lobbyTimer = null;
@@ -718,8 +742,14 @@ wss.on('connection', (ws) => {
       if (!presence.has(me.uid)) presence.set(me.uid, new Set());
       presence.get(me.uid).add(ws);
       const t = tourOf(me.uid);
+      ws.kind = GAMES[m.kind] ? m.kind : null;
       send({ t: 'hi', pid: pidOf(me.uid), tour: t ? tourPublic(t) : null });
+      send(onlineCounts());
       return lobbyChanged();
+    }
+    if (m.t === 'where') { // which game this app is looking at (null = the games list)
+      ws.kind = GAMES[m.kind] ? m.kind : null;
+      return onlineChanged();
     }
     if (['tcreate', 'tjoin', 'tleave', 'tstart', 'tview'].includes(m.t)) return tourAction(ws, m);
 

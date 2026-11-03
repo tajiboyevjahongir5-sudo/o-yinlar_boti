@@ -558,6 +558,32 @@
   .lrow { cursor:pointer; } .lrow .el.gain { color:var(--green); text-shadow:0 0 8px rgba(46,230,107,.5); }
   #nav button { font-size:10.5px; }
 
+  /* ---------- compact games list with live online counts ---------- */
+  #games { gap:10px !important; }
+  .gcard { gap:12px; padding:10px 10px 10px 10px; border-width:1.5px; border-radius:18px; flex-wrap:nowrap !important;
+    box-shadow:0 0 8px color-mix(in srgb, var(--c) 70%, transparent), inset 0 0 14px color-mix(in srgb, var(--c) 16%, transparent); }
+  .gcard canvas { width:64px !important; height:64px !important; border-radius:14px; }
+  .gcard h3 { margin:0; font-size:17px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .gcard h3 .new-tag { margin-left:0; font-size:9.5px; padding:1px 6px; }
+  .gcard .sub { margin:2px 0 6px; font-size:12.5px; color:#c4cbef; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gcard .meta2 { display:flex; align-items:center; gap:10px; font-size:12px; font-weight:700; color:var(--mute); white-space:nowrap; overflow:hidden; }
+  .gcard .meta2 > span { display:inline-flex; align-items:center; gap:3px; }
+  .gcard .meta2 .i { width:13px; height:13px; }
+  .gcard .meta2 b { color:var(--txt); }
+  .on-n { color:var(--green); } .on-n b { color:var(--green) !important; }
+  .on-n.zero, .on-n.zero b { color:var(--mute) !important; } .on-n.zero .dot { background:#4b5480; box-shadow:none; animation:none; }
+  .on-n .dot { margin-right:2px; }
+  .on-n.bump b { animation:bump .5s ease-out; display:inline-block; }
+  @keyframes bump { 30% { transform:scale(1.45); text-shadow:0 0 8px var(--green); } }
+  .gcard .go2 { flex:none; width:46px; height:46px; border-radius:50%; border:2px solid var(--green); background:rgba(46,230,107,.14);
+    color:#fff; display:grid; place-items:center; box-shadow:0 0 10px var(--green), inset 0 0 10px rgba(46,230,107,.25); padding:0; }
+  .gcard .go2 .i { width:20px; height:20px; margin:0 0 0 3px !important; fill:#fff; }
+  .gcard.g-shaxmat { --c:#2f7bff; } .gcard.g-shashka { --c:#ff2d46; } .gcard.g-tosiq { --c:#ffc531; } .gcard.g-xo { --c:#c084fc; }
+  .hub-online { display:flex; align-items:center; gap:6px; margin-top:-8px; font-size:12.5px; font-weight:700; color:var(--mute); }
+  .hub-online b { color:var(--green); }
+  .hello .who3 b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  @media (max-width:360px) { .hello .who3 small { display:none; } .hello .who3 b { font-size:15px; } .hello { gap:8px; } }
+
   /* ---------- Telegram fullscreen: keep clear of the status bar and Telegram's Close / ⋯ buttons ---------- */
   :root { --st:calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
     --sb:var(--tg-safe-area-inset-bottom, 0px); }
@@ -643,6 +669,7 @@
 <div id="hub" class="hide"><div class="hub-in">
   <div class="hello"><div class="av" id="hubAv"></div><div class="who3"><small>Xush kelibsiz</small><b id="hubName"></b></div><button id="hubSnd" class="tiny-btn snd" aria-label="Ovoz"></button><button class="inv-btn" id="hubInvite"><i data-ic="invite"></i> Taklif qilish</button></div>
   <div class="hub-title"><i data-ic="games"></i> O'yinlar</div>
+  <div class="hub-online"><span class="dot"></span><span id="hubOnline">Onlayn o'yinchilar yuklanmoqda...</span></div>
   <div id="games"></div>
 </div></div>
 <div id="lobby" class="hide"><div class="hub-in">
@@ -1495,10 +1522,11 @@
   function openPresence() {
     clearTimeout(presRetry);
     const s = pres = new WebSocket(wsUrl());
-    s.onopen = () => s.send(JSON.stringify(authBody({ t: 'hello' })));
+    s.onopen = () => s.send(JSON.stringify(authBody({ t: 'hello', kind: whereKind })));
     s.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.t === 'hi') { myInfo.pid = m.pid; myTour = m.tour; }
+      else if (m.t === 'online') { onlineData = m; paintOnline(); }
       else if (m.t === 'ach') {
         const a = Rewards.ACHIEVEMENTS.find(x => x.id === m.id);
         if (a) { myInfo.ach = Object.assign({}, myInfo.ach, { [m.id]: Date.now() }); setTimeout(() => { Snd.play('crown'); haptic('success'); toast(`${a.icon} Yangi yutuq: ${a.name}!`); }, 1800); }
@@ -1509,6 +1537,25 @@
       else if (m.t === 'tmatch') onTourMatch(m);
     };
     s.onclose = () => { if (pres === s) presRetry = setTimeout(openPresence, 3000); };
+  }
+  // realtime "N onlayn" per game: the server counts everyone looking at each game
+  let onlineData = null, whereKind = null;
+  function setWhere(k) {
+    whereKind = k || null;
+    if (pres && pres.readyState === 1) pres.send(JSON.stringify({ t: 'where', kind: whereKind }));
+  }
+  function paintOnline() {
+    if (!onlineData) return;
+    document.querySelectorAll('.on-n').forEach(el => {
+      const n = onlineData.counts[el.dataset.k] || 0, b = el.querySelector('b');
+      if (b.textContent !== String(n)) {
+        const was = b.textContent; b.textContent = n;
+        if (was !== '…') { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+      }
+      el.classList.toggle('zero', n === 0);
+    });
+    const t = $('hubOnline');
+    if (t) t.innerHTML = `Hozir <b>${onlineData.total}</b> o'yinchi onlayn`;
   }
   const presSend = (o) => { if (pres && pres.readyState === 1) pres.send(JSON.stringify(o)); else toast("{offline} Serverga ulanib bo'lmadi"); };
 
@@ -1780,13 +1827,13 @@
   function leaveOnline() { if (ws) { mode = null; const s = ws; ws = null; s.close(); } }
   // ---------- games hub ----------
   const GAMES = [
-    { id: 'shaxmat', title: 'Shaxmat', isNew: true, desc: "Klassik shaxmat: rokirovka, o'tib olish, piyodani almashtirish. Raqib shohiga mot qo'ying!",
+    { id: 'shaxmat', short: "Klassik shaxmat — raqib shohiga mot qo'ying", title: 'Shaxmat', isNew: true, desc: "Klassik shaxmat: rokirovka, o'tib olish, piyodani almashtirish. Raqib shohiga mot qo'ying!",
       tags: ["{users} 2 o'yinchi", '{timer} 10 daq', '{grid} 8×8'], open: () => openGame('shaxmat') },
-    { id: 'shashka', title: 'Shashka', isNew: true, desc: "Rus shashkasi: urish majburiy, damka butun diagonal bo'ylab yuradi. Hamma donalarni urib oling!",
+    { id: 'shashka', short: "Rus shashkasi — urish majburiy, damka uchadi", title: 'Shashka', isNew: true, desc: "Rus shashkasi: urish majburiy, damka butun diagonal bo'ylab yuradi. Hamma donalarni urib oling!",
       tags: ["{users} 2 o'yinchi", '{timer} 5 daq', '{grid} 8×8'], open: () => openGame('shashka') },
-    { id: 'tosiq', title: "To'siq Jangi", desc: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing.",
+    { id: 'tosiq', short: "Yo'lni to'sing va marraga birinchi yeting", title: "To'siq Jangi", desc: "Raqib tomoniga birinchi yeting va uning yo'lini to'siqlar bilan to'sing.",
       tags: ["{users} 2 o'yinchi", '{timer} 5 daq', "{fence} 10 to'siq"], open: () => openGame('tosiq') },
-    { id: 'xo', title: 'X va O', desc: "Uchta belgini bir qatorga birinchi bo'lib tering — gorizontal, vertikal yoki diagonal.",
+    { id: 'xo', short: "Uchta belgini bir qatorga birinchi tering", title: 'X va O', desc: "Uchta belgini bir qatorga birinchi bo'lib tering — gorizontal, vertikal yoki diagonal.",
       tags: ["{users} 2 o'yinchi", '{timer} 1 daq', '{grid} 3×3'], open: () => openGame('xo') },
   ];
   const getStats = (id) => { try { return Object.assign({ w: 0, l: 0, d: 0 }, JSON.parse(store.get('stats_' + id) || '{}')); } catch (e) { return { w: 0, l: 0, d: 0 }; } };
@@ -1801,37 +1848,31 @@
     setAvatar($('hubAv'), myPhoto, ICON_USER); setFrame($('hubAv'), myInfo.equip.frame);
     const list = $('games');
     list.innerHTML = ''; hubThumbs = [];
+    // one compact row per game: preview, name, one line about it, live online count, time, my ELO, play
     for (const g of GAMES) {
       const card = document.createElement('div');
-      card.className = 'gcard' + (g.soon ? ' soon' : '');
-      if (g.soon) card.innerHTML = `<div class="ph">${ic('lock')}</div>`;
-      else {
-        const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
-        c.width = 92 * dpr; c.height = 92 * dpr;
-        const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-        hubThumbs.push({ x, id: g.id }); card.appendChild(c);
-      }
+      card.className = 'gcard g-' + g.id;
+      const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+      c.width = 92 * dpr; c.height = 92 * dpr;
+      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      hubThumbs.push({ x, id: g.id }); card.appendChild(c);
       const info = document.createElement('div'); info.className = 'info';
       const h = document.createElement('h3'); h.textContent = g.title;
-      if (g.soon) { const t = document.createElement('span'); t.className = 'soon-tag'; t.textContent = 'Tez kunda'; h.appendChild(t); }
       if (g.isNew) { const t = document.createElement('span'); t.className = 'new-tag'; t.textContent = 'YANGI'; h.appendChild(t); }
-      const p = document.createElement('p'); p.textContent = g.desc;
-      info.append(h, p);
-      if (g.tags) { const ch = document.createElement('div'); ch.className = 'chips'; ch.innerHTML = g.tags.map(t => `<span>${lbl(t)}</span>`).join(''); info.appendChild(ch); }
-      if (!g.soon) {
-        const st = getStats(g.id), rec = document.createElement('div'); rec.className = 'rec';
-        rec.innerHTML = `${ic('star')} ELO: <b class="hubElo">…</b> &nbsp;·&nbsp; ${ic('bot')} Bot: <b>${st.w}</b>G / <b>${st.l}</b>M` + (st.d ? ` / <b>${st.d}</b>D` : '');
-        api('profile', g.id).then(d => { const e = rec.querySelector('.hubElo'); if (e) e.textContent = d ? d.elo : '—'; });
-        info.appendChild(rec);
-      }
+      const p = document.createElement('div'); p.className = 'sub'; p.textContent = g.short;
+      const meta = document.createElement('div'); meta.className = 'meta2';
+      meta.innerHTML = `<span class="on-n" data-k="${g.id}"><span class="dot"></span><b>…</b>&nbsp;onlayn</span>`
+        + `<span>${ic('timer')}<b>${minutesFor(g.id)}</b>&nbsp;daq</span><span>${ic('star')}<b class="hubElo">…</b></span>`;
+      api('profile', g.id).then(d => { const e = meta.querySelector('.hubElo'); if (e) e.textContent = d ? d.elo : '—'; });
+      info.append(h, p, meta);
       card.appendChild(info);
-      if (!g.soon) {
-        const b = document.createElement('button'); b.className = 'play'; b.textContent = "▶ O'ynash";
-        card.appendChild(b);
-        card.onclick = () => { haptic('light'); g.open(); };
-      }
+      const b = document.createElement('button'); b.className = 'go2'; b.setAttribute('aria-label', "O'ynash"); b.innerHTML = ic('play');
+      card.appendChild(b);
+      card.onclick = () => { haptic('light'); g.open(); };
       list.appendChild(card);
     }
+    paintOnline();
+    setWhere(null);
     $('hub').classList.remove('hide');
     showTabs('hub');
     setBackButton(false);
@@ -2177,6 +2218,7 @@
     $('hub').classList.add('hide'); hideTabs(); $('lobby').classList.remove('hide');
     setBackButton(true);
     buildTimeSeg();
+    setWhere(kind);
     openLobbySocket();
     if (pendingChallenge) { const c = pendingChallenge; pendingChallenge = null; setTimeout(() => showIncomingChallenge(c.m), 300); }
   }
@@ -2421,6 +2463,7 @@
     hideOverlay(); hideHub(); hideLobby(); setTool(null);
     sel8 = null; targets8 = []; anim8 = null; rematchState = [false, false];
     const g = R().newGame(0, minutesFor(kind)); R().start(g, Date.now());
+    setWhere(kind);
     game = null; setState(g);
   }
 
